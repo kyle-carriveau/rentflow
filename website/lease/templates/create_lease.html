@@ -1,0 +1,70 @@
+{% extends "base.html" %} 
+
+{% block content %} 
+
+<form method="POST">
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Create Lease</h5>
+                </div>
+            <div class="col-auto"></div>
+            </div>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="name">Tenant</label>
+                        <div class="col">
+                            <select class="form-select js-choice" id="tenant" name="tenant" size="1" data-options='{"removeItemButton":true,"placeholder":true}'>
+                                <option value="">Select Tenant</option>
+                                {% for tenant in tenants %} 
+                                <option value="{{tenant.id}}">{{ tenant.first_name }} {{ tenant.last_name }}</option>
+                                {% endfor %} 
+                            </select>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="bedrooms">Start</label>
+                        <div class="col input-group">
+                            <input class="form-control datetimepicker" id="start" name="start" type="text" placeholder="YYYY-MM-DD" data-options='{"disableMobile":true}' />
+                        </div>
+                    </div>
+                    <br/>
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="bathrooms">Rent</label>
+                        <div class="col input-group">
+                            <span class="input-group-text">$</span><input class="form-control" type="number" min="0" name="rent" id="rent"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="sqft">Unit</label>
+                        <div class="col">
+                            <select class="form-select js-choice" id="unit" name="unit" size="1" data-options='{"removeItemButton":true,"placeholder":true}'>
+                                <option value="">Select Unit</option>
+                                {% for unit in units %} 
+                                <option value="{{unit.id}}">{{ unit.name }}</option>
+                                {% endfor %} 
+                            </select>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="rent">End Date</label>
+                        <div class="col input-group">
+                            <input class="form-control datetimepicker" id="end" name="end" type="text" placeholder="YYYY-MM-DD" data-options='{"disableMobile":true}' />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer border-top text-end"><button type="submit" class="btn btn-falcon-default btn-sm ms-2" ><span class="fas fa-check fs--2 me-1"></span>Save changes</button></div>
+    </div>
+</form>
+
+{% endblock %}

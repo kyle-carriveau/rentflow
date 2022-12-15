@@ -1,0 +1,98 @@
+{% extends "base.html" %} 
+
+{% block content %} 
+
+<form method="POST">
+    <div class="card mb-3">
+    <div class="card-header">
+        <div class="row align-items-center">
+        <div class="col">
+            <h5 class="mb-0">Create Property</h5>
+        </div>
+        <div class="col-auto"></div>
+        </div>
+    </div>
+    <div class="card-body bg-light border-top">
+        <div class="row">
+            <div class="col-lg col-xxl-5">
+                <div class="row">
+                    <div class="col-5 col-sm-4">
+                        <p class="fw-semi-bold mb-1">Name</p>
+                    </div>
+                    <div class="col">
+                        <input class="form-control" type="text" name="name" id="name" />
+                    </div>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="col-5 col-sm-4">
+                        <p class="fw-semi-bold mb-1">Property Type</p>
+                    </div>
+                    <div class="col">
+                        <select class="form-select" name="type" aria-label="Select Property Type">
+                            <option value=""></option>
+                            <option value="Single Family">Single Family</option>
+                            <option value="Duplex">Duplex</option>
+                            <option value="Multi Family">Multi Family</option>
+                            <option value="4 Plex">4 Plex</option>
+                            <option value="Apartment">Apartment</option>
+                        </select>
+                    </div>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="col-5 col-sm-4">
+                        <p class="fw-semi-bold mb-1">Portfolio</p>
+                    </div>
+                    <div class="col">
+                        <select class="form-select" name="portfolio" aria-label="Select Portfolio">
+                            <option value=""></option>
+                            {% for portfolio in portfolios %} 
+                            <option value="{{ portfolio.id }}">{{ portfolio.name }}</option>
+                            {% endfor %} 
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                <div class="row">
+                    <div class="col-5 col-sm-4">
+                        <p class="fw-semi-bold mb-1">Address</p>
+                    </div>
+                    <div class="col"><input class="form-control" type="text" name="address" id="address" /></div>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="col-5 col-sm-4">
+                        <p class="fw-semi-bold mb-1">City</p>
+                    </div>
+                    <div class="col"><input class="form-control" type="text" name="city" id="city" /></div>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="col-5 col-sm-4">
+                        <p class="fw-semi-bold mb-1">State</p>
+                    </div>
+                    <div class="col">
+                        <select class="form-select js-choice" name="state" aria-label="Select State">
+                            <option value=""></option>
+                            {% for state in states %}
+                            <option value="{{ state }}">{{ state }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="col-5 col-sm-4">
+                        <p class="fw-semi-bold mb-1">Zip Code</p>
+                    </div>
+                    <div class="col"><input class="form-control" type="number" min="0" name="zip_code" id="zip_code" /></div>
+                </div>
+            </div>
+        </div>
+    </div>
+        <div class="card-footer border-top text-end"><button type="submit" class="btn btn-falcon-default btn-sm ms-2" ><span class="fas fa-check fs--2 me-1"></span>Save changes</button></div>
+    </div>
+</form>
+{% endblock %} 

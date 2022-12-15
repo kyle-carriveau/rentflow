@@ -1,0 +1,86 @@
+{% extends "base.html" %} 
+
+{% block content %} 
+
+<form method="POST">
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Edit Tenant</h5>
+                </div>
+            <div class="col-auto"></div>
+            </div>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="first_name">First Name</label>
+                        <div class="col">
+                            <input class="form-control" type="text" name="first_name" id="first_name" value="{{ tenant.first_name }}"/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="last_name">Last Name</label>
+                        <div class="col">
+                            <input class="form-control" type="text" name="last_name" id="last_name" value="{{ tenant.last_name }}"/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="email">Email</label>
+                        <div class="col">
+                            <input class="form-control" type="email" name="email" id="email"/>
+                        </div>
+                    </div>
+                    <br/>
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="phone">Phone</label>
+                        <div class="col">
+                            <input class="form-control" type="number" min="0" name="phone" id="phone"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="address">Address</label>
+                        <div class="col">
+                            <input class="form-control" type="text" name="address" id="address"/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="city">City</label>
+                        <div class="col input-group">
+                            <input class="form-control" type="text" name="city" id="city"/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="state">State</label>
+                        <div class="col input-group">
+                            <select class="form-select" name="state" aria-label="Select State">
+                                <option value=""></option>
+                                {% for state in states %}
+                                <option value="{{ state }}">{{ state }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="zip_code">Zip Code</label>
+                        <div class="col input-group">
+                            <input class="form-control" type="number" name="zip_code" id="zip_code"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer border-top text-end"><button type="submit" class="btn btn-falcon-default btn-sm ms-2" ><span class="fas fa-check fs--2 me-1"></span>Save changes</button></div>
+    </div>
+</form>
+
+{% endblock %}

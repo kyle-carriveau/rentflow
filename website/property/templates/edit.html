@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block content %} 
+
+<form method="POST">
+    <div class="card mb-3">
+        <div class="card-header">
+        <div class="row">
+            <div class="col">
+            <h5 class="mb-2">{{ property.name }}</h5>
+            </div>
+            <div class="col-auto d-none d-sm-block">
+            <h6 class="text-uppercase text-600">Property<span class="fas fa-building ms-2"></span></h6>
+            </div>
+        </div>
+        </div>
+        <div class="card-body border-top">
+        <div class="d-flex"><span class="fas fa-building text-success me-2" data-fa-transform="down-5"></span>
+            <div class="flex-1">
+            <p class="fs--1 mb-0 text-600">Property owned since</p>
+            <p class="fs--1 mb-0 text-600">Jan 12, 2022</p>
+            </div>
+        </div>
+        </div>
+    </div>
+    <div class="card mb-3">
+    <div class="card-header">
+        <div class="row align-items-center">
+        <div class="col">
+            <h5 class="mb-0">Property Details</h5>
+        </div>
+        <div class="col-auto"></div>
+        </div>
+    </div>
+    <div class="card-body bg-light border-top">
+        <div class="row">
+            <div class="col-lg col-xxl-5">
+                <div class="row">
+                    <div class="col-5 col-sm-4">
+                        <p class="fw-semi-bold mb-1">Name</p>
+                    </div>
+                    <div class="col">
+                        <input class="form-control" type="text" name="name" id="name" value="{{property.name}}"/>
+                    </div>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="col-5 col-sm-4">
+                        <p class="fw-semi-bold mb-1">Property Type</p>
+                    </div>
+                    <div class="col">
+                        <select class="form-select" name="type" aria-label="Select Property Type">
+                            {% if property.type %}
+                            <option value="{{ property.type }}">{{ property.type }}</option>
+                            {% else %} 
+                            <option value=""></option>
+                            {% endif %} 
+                            <option value="Single Family">Single Family</option>
+                            <option value="Duplex">Duplex</option>
+                            <option value="Multi Family">Multi Family</option>
+                            <option value="4 Plex">4 Plex</option>
+                            <option value="Apartment">Apartment</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                <div class="row">
+                    <div class="col-5 col-sm-4">
+                        <p class="fw-semi-bold mb-1">Address</p>
+                    </div>
+                    <div class="col"><input class="form-control" type="text" name="address" id="address" value="{% if property.address %}{{property.address}}{% endif %}"/></div>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="col-5 col-sm-4">
+                        <p class="fw-semi-bold mb-1">City</p>
+                    </div>
+                    <div class="col"><input class="form-control" type="text" name="city" id="city" value="{% if property.city %}{{property.city}}{% endif %}"/></div>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="col-5 col-sm-4">
+                        <p class="fw-semi-bold mb-1">State</p>
+                    </div>
+                    <div class="col">
+                        <select class="form-select" name="state" aria-label="Select State">
+                            {% if property.state %}
+                            <option value="{{ property.state }}">{{ property.state }}</option>
+                            {% else %} 
+                            <option value=""></option>
+                            {% endif %}
+                            {% for state in states %}
+                            <option value="{{ state }}">{{ state }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="col-5 col-sm-4">
+                        <p class="fw-semi-bold mb-1">Zip Code</p>
+                    </div>
+                    <div class="col"><input class="form-control" type="number" min="0" name="zip_code" id="zip_code" value="{{property.zip_code}}"/></div>
+                </div>
+            </div>
+        </div>
+    </div>
+        <div class="card-footer border-top text-end"><button type="submit" class="btn btn-falcon-default btn-sm ms-2" ><span class="fas fa-check fs--2 me-1"></span>Save changes</button></div>
+    </div>
+</form>
+{% endblock %} 

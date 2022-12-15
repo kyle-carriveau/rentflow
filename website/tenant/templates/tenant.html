@@ -1,0 +1,106 @@
+{% extends "base.html" %} 
+
+{% block content %} 
+
+{% if tenant %}
+<div class="card mb-3">
+    <div class="card-header">
+      <div class="row">
+        <div class="col">
+          <h5 class="mb-2">{{ tenant.first_name }} {{ tenant.last_name }}</h5>
+        </div>
+        <div class="col-auto d-none d-sm-block">
+          <h6 class="text-uppercase text-600">Tenant<span class="fas fa-user ms-2"></span></h6>
+        </div>
+      </div>
+    </div>
+    <div class="card-body border-top">
+      <div class="d-flex"><span class="fas fa-user text-primary me-2" data-fa-transform="down-5"></span>
+        <div class="flex-1">
+          <p class="fs--1 mb-0 text-600">Tenant since</p>
+          <p class="fs--1 mb-0 text-600">Jan 12, 2022</p>
+        </div>
+      </div>
+    </div>
+</div>
+<div class="card mb-3">
+<div class="card-header">
+    <div class="row align-items-center">
+    <div class="col">
+        <h5 class="mb-0">Tenant Details</h5>
+    </div>
+    <div class="col-auto"><a class="btn btn-falcon-default btn-sm" href="{{ url_for('tenant.edit', id=tenant.id) }}"><span class="fas fa-pencil-alt fs--2 me-1"></span>Update details</a></div>
+    </div>
+</div>
+<div class="card-body bg-light border-top">
+    <div class="row">
+    <div class="col-lg col-xxl-5">
+        <div class="row">
+        <div class="col-5 col-sm-4">
+            <p class="fw-semi-bold mb-1">Name</p>
+        </div>
+        <div class="col">{{ tenant.first_name }} {{ tenant.last_name }}</div>
+        </div>
+        <div class="row">
+        <div class="col-5 col-sm-4">
+            <p class="fw-semi-bold mb-1">Bedrooms</p>
+        </div>
+        <div class="col">{% if tenant.bedrooms %}{{ tenant.bedrooms }}{% endif %}</div>
+        </div>
+        <div class="row">
+        <div class="col-5 col-sm-4">
+            <p class="fw-semi-bold mb-1">Bathrooms</p>
+        </div>
+        <div class="col">{% if tenant.bathrooms %}{{ tenant.bathrooms }}{% endif %}</div>
+        </div>
+        <div class="row">
+        <div class="col-5 col-sm-4">
+            <p class="fw-semi-bold mb-1">Tenant Type</p>
+        </div>
+        <div class="col">{% if tenant.type %}{{ tenant.type }}{% endif %}
+        </div>
+        </div>
+    </div>
+    <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+        <div class="row">
+        <div class="col-5 col-sm-4">
+            <p class="fw-semi-bold mb-1">Address</p>
+        </div>
+        <div class="col">
+            <p class="mb-1">{% if tenant.address %}{{ tenant.address }}{% endif %}<br />{% if tenant.city %}{{ tenant.city }},{% endif %} {% if tenant.state %}{{ tenant.state }}{% endif %} {% if tenant.zip_code %}{{ tenant.zip_code }}{% endif %}</p>
+        </div>
+        </div>
+        <div class="row">
+        <div class="col-5 col-sm-4">
+            <p class="fw-semi-bold mb-1"></p>
+        </div>
+        <div class="col"></div>
+        </div>
+        <div class="row">
+        <div class="col-5 col-sm-4">
+            <p class="fw-semi-bold mb-0">Monthly Rent</p>
+        </div>
+        <div class="col">
+            <p class="fw-semi-bold mb-0">{% if tenant.rent %}$ {{ tenant.rent }}{% endif %}</p>
+        </div>
+        </div>
+        <div class="row">
+        <div class="col-5 col-sm-4">
+            <p class="fw-semi-bold mb-1">Units</p>
+        </div>
+        <div class="col">{% if tenant.units %}{{ tenant.units }}{% endif %}</div>
+        </div>
+    </div>
+    </div>
+</div>
+</div>
+{% else %} 
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="mb-4">No tenant found!</h5><a class="btn btn-falcon-default btn-sm" href="/new_tenant"><span class="fas fa-plus fs--2 me-1"></span>Create Tenant</a>
+    </div>
+</div>
+
+{% endif %} 
+
+{% endblock %}
