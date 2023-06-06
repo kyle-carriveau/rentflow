@@ -2,7 +2,8 @@
 
 {% block content %} 
 
-<form method="POST">
+<form method="POST" action="{{ url_for('lease.create', id=property) }}">
+    {{ form.csrf_token }}
     <div class="card mb-3">
         <div class="card-header">
             <div class="row align-items-center">
@@ -16,48 +17,38 @@
             <div class="row">
                 <div class="col-lg col-xxl-5">
                     <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="name">Tenant</label>
+                        {{ form.tenant.label }}
                         <div class="col">
-                            <select class="form-select js-choice" id="tenant" name="tenant" size="1" data-options='{"removeItemButton":true,"placeholder":true}'>
-                                <option value="">Select Tenant</option>
-                                {% for tenant in tenants %} 
-                                <option value="{{tenant.id}}">{{ tenant.first_name }} {{ tenant.last_name }}</option>
-                                {% endfor %} 
-                            </select>
+                            {{ form.tenant(class="form-control")}}
                         </div>
                     </div>
                     <br />
                     <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="bedrooms">Start</label>
-                        <div class="col input-group">
-                            <input class="form-control datetimepicker" id="start" name="start" type="text" placeholder="YYYY-MM-DD" data-options='{"disableMobile":true}' />
+                        {{ form.start.label }}
+                        <div class="col">
+                            {{ form.start(class="form-control") }}
                         </div>
                     </div>
                     <br/>
                     <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="bathrooms">Rent</label>
+                        {{ form.rent.label }}
                         <div class="col input-group">
-                            <span class="input-group-text">$</span><input class="form-control" type="number" min="0" name="rent" id="rent"/>
+                            <span class="input-group-text">$</span>{{ form.rent(class="form-control") }}
                         </div>
                     </div>
                 </div>
                 <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
                     <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="sqft">Unit</label>
+                        {{ form.unit.label }}
                         <div class="col">
-                            <select class="form-select js-choice" id="unit" name="unit" size="1" data-options='{"removeItemButton":true,"placeholder":true}'>
-                                <option value="">Select Unit</option>
-                                {% for unit in units %} 
-                                <option value="{{unit.id}}">{{ unit.name }}</option>
-                                {% endfor %} 
-                            </select>
+                            {{ form.unit(class="form-control") }}
                         </div>
                     </div>
                     <br />
                     <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="rent">End Date</label>
-                        <div class="col input-group">
-                            <input class="form-control datetimepicker" id="end" name="end" type="text" placeholder="YYYY-MM-DD" data-options='{"disableMobile":true}' />
+                        {{ form.end.label }}
+                        <div class="col">
+                            {{ form.end(class="form-control") }}
                         </div>
                     </div>
                 </div>

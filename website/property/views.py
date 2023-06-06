@@ -4,6 +4,7 @@ from website.models import Tenant, Property, Unit, Lease
 from website import db 
 from flask_login import login_required, current_user
 from website.views import get_properties, get_portfolios, get_states, get_units
+from website.errors import page_not_found
 from datetime import datetime
 
 property = Blueprint('property', __name__, template_folder='templates')
@@ -29,10 +30,12 @@ def properties():
 @login_required
 def home(id):
     property = Property.query.filter_by(id=id, owner=current_user.id).first()
-    tenants = Tenant.query.filter_by(property=id, landlord=current_user.id)
-    leases = db.session.query(Unit, Lease, Tenant).filter_by(owner=current_user.id, property=id).join(Lease, Lease.unit_id==Unit.id).join(Tenant, Tenant.id==Lease.tenant_id).all()
     today = datetime.today()
-    return render_template("property.html", user=current_user, property=property, leases=leases, tenants=tenants, units=get_units(property.id), today=today)
+    if property:
+        tenants = Tenant.query.filter_by(property=id, landlord=current_user.id)
+        leases = db.session.query(Unit, Lease, Tenant).filter_by(owner=current_user.id, property=id).join(Lease, Lease.unit_id==Unit.id).join(Tenant, Tenant.id==Lease.tenant_id).all()     
+        return render_template("property.html", user=current_user, property=property, leases=leases, tenants=tenants, units=get_units(property.id), today=today)
+    return page_not_found(404)
 
 @property.route('/create', methods=['GET', 'POST'])
 @login_required

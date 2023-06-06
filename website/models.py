@@ -44,6 +44,7 @@ class Property(db.Model):
     city = db.Column(db.String(150))
     state = db.Column(db.String(150))
     zip_code = db.Column(db.Integer)
+    #bought = db.Column(db.Date)
     type = db.Column(db.String(150))
 
 class Unit(db.Model):

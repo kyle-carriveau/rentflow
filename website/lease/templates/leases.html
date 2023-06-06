@@ -42,12 +42,13 @@
               <th scope="col">Status</th>
             </tr>
           </thead>
+          {% if leases %}
           <tbody>
             {% for lease in leases %}
             <tr class="align-middle">
               <td class="text-nowrap">
                 <div>
-                    <a class="btn p-0" type="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit" href="{{ url_for('lease.edit', id=lease.id) }}"><span class="text-500 fas fa-edit"></span></a>
+                    <a class="btn p-0" type="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit" href="{{ url_for('lease.update', id=lease.id) }}"><span class="text-500 fas fa-edit"></span></a>
                     <a class="btn p-0 ms-2" type="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Enter" href="{{ url_for('lease.show', id=lease.id) }}"><span class="text-500 fas fa-caret-up"></span></a>
                 </div>
               </td>
@@ -67,6 +68,7 @@
             </tr>
             {% endfor %} 
           </tbody>
+          {% endif %}
         </table>
       </div>
     </div>
