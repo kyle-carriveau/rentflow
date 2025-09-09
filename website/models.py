@@ -87,6 +87,54 @@ class Unit(db.Model):
     
     # Relationships with cascade delete
     leases = db.relationship('Lease', backref='unit_ref', cascade='all, delete-orphan')
+    
+    def get_lease_status(self):
+        """Get unit's current lease status based on active leases."""
+        from datetime import datetime
+        today = datetime.now().date()
+        
+        active_leases = [lease for lease in self.leases 
+                        if lease.start.date() <= today <= lease.end.date()]
+        
+        if active_leases:
+            return 'Occupied'
+        
+        future_leases = [lease for lease in self.leases 
+                        if lease.start.date() > today]
+        
+        if future_leases:
+            return 'Reserved'
+            
+        return 'Available'
+    
+    def get_current_lease(self):
+        """Get the unit's current active lease, if any."""
+        from datetime import datetime
+        today = datetime.now().date()
+        
+        for lease in self.leases:
+            if lease.start.date() <= today <= lease.end.date():
+                return lease
+        return None
+    
+    def get_current_tenant(self):
+        """Get the current tenant for this unit."""
+        current_lease = self.get_current_lease()
+        if current_lease:
+            return current_lease.tenant_ref
+        return None
+    
+    def get_next_lease(self):
+        """Get the next upcoming lease for this unit."""
+        from datetime import datetime
+        today = datetime.now().date()
+        
+        future_leases = [lease for lease in self.leases 
+                        if lease.start.date() > today]
+        
+        if future_leases:
+            return min(future_leases, key=lambda x: x.start.date())
+        return None
 
 class Tenant(db.Model):
     __tablename__ = 'tenant'
