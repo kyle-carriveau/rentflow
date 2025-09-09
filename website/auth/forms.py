@@ -1,9 +1,7 @@
 from flask.app import Flask
 from flask_wtf import FlaskForm
-from wtforms.fields.core import BooleanField
-from wtforms.fields.simple import TextAreaField
-from wtforms.fields import StringField, SubmitField, SelectField, RadioField, SelectMultipleField, PasswordField
-from wtforms.fields.html5 import IntegerField, DateField, EmailField
+from wtforms import StringField, SubmitField, SelectField, RadioField, SelectMultipleField, PasswordField, BooleanField, TextAreaField, IntegerField, DateField
+from wtforms.fields import EmailField
 from wtforms.validators import InputRequired, DataRequired, Length, NoneOf, ValidationError
 from website.models import User
 
@@ -35,9 +33,13 @@ class RegistrationForm(FlaskForm):
                                     InputRequired("Input is required!"),
                                     DataRequired("Data is required!")
                                 ])
-    submit              = SubmitField("Login")
+    submit              = SubmitField("Register")
 
-    def validate_email(form, field):
+    def validate_email(self, field):
         email = User.query.filter_by(email=field.data).first()
         if email:
             raise ValidationError("Email already exists.")
+    
+    def validate_password_confirm(self, field):
+        if self.password.data != field.data:
+            raise ValidationError("Passwords do not match.")

@@ -4,29 +4,44 @@
 
 <div class="card mb-3" id="tenantsTable" data-list='{"valueNames":["name","email","phone","address","joined"],"page":10,"pagination":true}'>
     <div class="card-header">
-      <div class="row flex-between-center">
-        <div class="col-4 col-sm-auto d-flex align-items-center pe-0">
-          <h5 class="mb-0"><span class="fas fa-user me-2"></span>Tenants</h5>
-        </div>
-        <div class="col-8 col-sm-auto text-end ps-2">
-          <div class="d-none" id="table-tenants-actions">
-            <div class="d-flex">
-              <select class="form-select form-select-sm" aria-label="Bulk actions">
-                <option selected="">Bulk actions</option>
-                <option value="Refund">Refund</option>
-                <option value="Delete">Delete</option>
-                <option value="Archive">Archive</option>
-              </select>
-              <button class="btn btn-falcon-default btn-sm ms-2" type="button">Apply</button>
+        <div class="row flex-between-center">
+            <div class="col-4 col-sm-auto d-flex align-items-center pe-0">
+                <h5 class="mb-0"><span class="fas fa-users me-2"></span>All Tenants</h5>
+                <div class="ms-3">
+                    <div class="search-box" data-list="search-box" style="width: 200px;">
+                        <form class="position-relative" data-bs-toggle="search" data-bs-display="static">
+                            <input class="form-control search-input" type="search" placeholder="Search tenants..." aria-label="Search" />
+                            <span class="fas fa-search search-box-icon"></span>
+                        </form>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div id="table-tenants-replace-element">
-            <a class="btn btn-falcon-default btn-sm" href="{{ url_for('tenant.create') }}"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New</span></a>
-            <button class="btn btn-falcon-default btn-sm mx-2" type="button"><span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Filter</span></button>
-            <button class="btn btn-falcon-default btn-sm" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export</span></button>
-          </div>
+            <div class="col-8 col-sm-auto text-end ps-2">
+                <div id="table-tenants-replace-element">
+                    <a class="btn btn-falcon-primary btn-sm" href="{{ url_for('tenant.create') }}">
+                        <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                        <span class="d-none d-sm-inline-block ms-1">New Tenant</span>
+                    </a>
+                    <div class="btn-group ms-2" role="group">
+                        <button class="btn btn-falcon-default btn-sm" type="button" id="statusFilter" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span>
+                            <span class="d-none d-sm-inline-block ms-1">Filter</span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="filterTenants('all')">All Tenants</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterTenants('Active')">Active Only</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterTenants('Former')">Former Tenants</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterTenants('Prospect')">Prospects</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterTenants('Future')">Future Tenants</a></li>
+                        </ul>
+                        <button class="btn btn-falcon-default btn-sm" type="button" onclick="exportTenants()">
+                            <span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span>
+                            <span class="d-none d-sm-inline-block ms-1">Export</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
     <div class="card-body p-0">
       <div class="table-responsive scrollbar">
@@ -34,20 +49,41 @@
           <thead>
             <tr>
               <th scope="col">Actions</th>
-              <th scope="col">Name</th>
-              <th scope="col">Email</th>
-              <th scope="col">Phone</th>
-              <th scope="col">Property</th>
+              <th scope="col">Tenant</th>
+              <th scope="col">Contact</th>
+              <th scope="col">Current Property</th>
+              <th scope="col">Monthly Rent</th>
               <th scope="col">Status</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="list">
             {% for tenant in tenants %}
-            <tr class="align-middle">
+            {% set lease_status = tenant.get_lease_status() %}
+            <tr class="align-middle tenant-row" data-status="{{ lease_status }}" 
+                data-name="{{ tenant.first_name }} {{ tenant.last_name }}" 
+                data-email="{{ tenant.email or '' }}"
+                data-phone="{{ tenant.phone or '' }}">
               <td class="text-nowrap">
-                <div>
-                    <a class="btn p-0" type="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit" href="{{ url_for('tenant.edit', id=tenant.id) }}"><span class="text-500 fas fa-edit"></span></a>
-                    <a class="btn p-0 ms-2" type="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Enter" href="{{ url_for('tenant.home', id=tenant.id) }}"><span class="text-500 fas fa-caret-up"></span></a>
+                <div class="dropdown text-sans-serif">
+                  <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal" 
+                          type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      <span class="fas fa-ellipsis-h fs--1"></span>
+                  </button>
+                  <div class="dropdown-menu dropdown-menu-end border py-0">
+                      <div class="py-2">
+                          <a class="dropdown-item" href="{{ url_for('tenant.home', id=tenant.id) }}">
+                              <span class="fas fa-eye me-1"></span>View Details
+                          </a>
+                          <a class="dropdown-item" href="{{ url_for('tenant.edit', id=tenant.id) }}">
+                              <span class="fas fa-edit me-1"></span>Edit Tenant
+                          </a>
+                          <div class="dropdown-divider"></div>
+                          <a class="dropdown-item text-danger" href="#" 
+                             onclick="deleteTenant({{ tenant.id }}, '{{ tenant.first_name }} {{ tenant.last_name }}')">
+                              <span class="fas fa-trash me-1"></span>Delete Tenant
+                          </a>
+                      </div>
+                  </div>
                 </div>
               </td>
               <td class="text-nowrap">
@@ -55,13 +91,84 @@
                   <div class="avatar avatar-xl">
                     <div class="avatar-name rounded-circle"><span>{{ tenant.first_name[0] }}{{ tenant.last_name[0] }}</span></div>
                   </div>
-                  <div class="ms-2">{{ tenant.first_name }} {{ tenant.last_name }}</div>
+                  <div class="ms-2">
+                    <div class="fw-semi-bold">{{ tenant.first_name }} {{ tenant.last_name }}</div>
+                    {% if tenant.address %}
+                      <div class="fs--2 text-600">{{ tenant.address }}</div>
+                    {% endif %}
+                  </div>
                 </div>
               </td>
-              <td class="text-nowrap">{{ tenant.email }}</td>
-              <td class="text-nowrap">{{ tenant.phone }}</td>
-              <td class="text-nowrap">{% if tenant.property %}{{ tenant.property }}{% else %}-{% endif %}</td>
-              <td><span class="badge badge rounded-pill d-block p-2 badge-soft-success">Completed<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span></td>
+              <td class="text-nowrap">
+                <div>
+                  {% if tenant.email %}
+                    <div class="mb-1">
+                      <span class="fas fa-envelope fs--2 text-400 me-1"></span>
+                      <a href="mailto:{{ tenant.email }}" class="text-decoration-none">{{ tenant.email }}</a>
+                    </div>
+                  {% endif %}
+                  {% if tenant.phone %}
+                    <div>
+                      <span class="fas fa-phone fs--2 text-400 me-1"></span>
+                      <a href="tel:{{ tenant.phone }}" class="text-decoration-none">{{ tenant.phone }}</a>
+                    </div>
+                  {% endif %}
+                  {% if not tenant.email and not tenant.phone %}
+                    <span class="text-400">No contact info</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="text-nowrap">
+                {% set current_property = tenant.get_current_property() %}
+                {% if current_property %}
+                  <div class="d-flex align-items-center">
+                    <div class="avatar avatar-xs me-2">
+                      <div class="avatar-name rounded bg-primary text-white">
+                        <span class="fas fa-building fs--2"></span>
+                      </div>
+                    </div>
+                    <div>
+                      <a href="{{ url_for('property.home', id=current_property.id) }}" class="text-decoration-none fw-semi-bold">
+                        {{ current_property.name }}
+                      </a>
+                      {% set current_unit = tenant.get_current_unit() %}
+                      {% if current_unit %}
+                        <div class="fs--2 text-600">{{ current_unit.name }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% else %}
+                  <span class="text-400">No current lease</span>
+                {% endif %}
+              </td>
+              <td class="text-nowrap">
+                {% set current_lease = tenant.get_current_lease() %}
+                {% if current_lease and current_lease.rent %}
+                  <span class="text-success fw-bold">${{ "{:,}".format(current_lease.rent) }}</span>
+                  <div class="fs--2 text-600">per month</div>
+                {% else %}
+                  <span class="text-400">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if lease_status == 'Active' %}
+                  <span class="badge bg-success">
+                    Active<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span>
+                  </span>
+                {% elif lease_status == 'Future' %}
+                  <span class="badge bg-info">
+                    Future<span class="ms-1 fas fa-clock" data-fa-transform="shrink-2"></span>
+                  </span>
+                {% elif lease_status == 'Former' %}
+                  <span class="badge bg-secondary">
+                    Former<span class="ms-1 fas fa-history" data-fa-transform="shrink-2"></span>
+                  </span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">
+                    Prospect<span class="ms-1 fas fa-user-plus" data-fa-transform="shrink-2"></span>
+                  </span>
+                {% endif %}
+              </td>
             </tr>
             {% endfor %} 
           </tbody>
@@ -74,5 +181,62 @@
       <button class="btn btn-sm btn-falcon-default ms-1" type="button" title="Next" data-list-pagination="next"><span class="fas fa-chevron-right"></span></button>
     </div>
   </div>
+
+<!-- Delete form -->
+<form id="deleteForm" method="POST" style="display: none;">
+</form>
+
+<script>
+function deleteTenant(tenantId, tenantName) {
+    if (confirm(`Are you sure you want to delete tenant "${tenantName}"? This action cannot be undone.`)) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/tenant/${tenantId}/delete`;
+        form.submit();
+    }
+}
+
+function filterTenants(filterType) {
+    const rows = document.querySelectorAll('.tenant-row');
+    
+    rows.forEach(row => {
+        let show = false;
+        
+        if (filterType === 'all') {
+            show = true;
+        } else {
+            show = row.dataset.status === filterType;
+        }
+        
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+function exportTenants() {
+    // Simple CSV export functionality
+    const rows = document.querySelectorAll('.tenant-row:not([style*="display: none"])');
+    let csv = 'Name,Email,Phone,Property,Unit,Status,Monthly Rent\n';
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const name = row.dataset.name;
+        const email = row.dataset.email;
+        const phone = row.dataset.phone;
+        const property = cells[3].querySelector('a')?.textContent?.trim() || 'N/A';
+        const unit = cells[3].querySelector('.fs--2')?.textContent?.trim() || 'N/A';
+        const rent = cells[4].textContent.trim().replace(/\s+/g, ' ');
+        const status = row.dataset.status;
+        
+        csv += `"${name}","${email}","${phone}","${property}","${unit}","${status}","${rent}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tenants_export.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
 
 {% endblock %} 

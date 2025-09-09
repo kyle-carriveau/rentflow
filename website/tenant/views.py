@@ -1,8 +1,10 @@
 from flask import render_template, Blueprint, request, redirect, url_for, flash
-from website.models import User, Tenant
+from website.models import User, Tenant, Property
 from website import db 
 from flask_login import login_required, current_user
 from website.views import get_tenant, get_properties, get_states
+from website.errors import page_not_found
+import re
 
 tenant = Blueprint('tenant', __name__, template_folder='templates')
 
@@ -16,27 +18,57 @@ def tenants():
 @login_required
 def create():
     if request.method == "POST":
-        first_name = request.form.get('first_name')
-        last_name = request.form.get('last_name')
-        email = request.form.get('email')
-        phone = request.form.get('phone')
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        email = request.form.get('email', '').strip()
+        phone = request.form.get('phone', '').strip()
         property = request.form.get('property')
-        address = request.form.get('address')
-        city = request.form.get('city')
+        address = request.form.get('address', '').strip()
+        city = request.form.get('city', '').strip()
         state = request.form.get('state')
-        zip_code = request.form.get('zip_code')
+        zip_code = request.form.get('zip_code', '').strip()
+
+        # Server-side validation
+        if not first_name:
+            flash('First name is required.', 'error')
+            return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
+            
+        if not last_name:
+            flash('Last name is required.', 'error')
+            return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
+
+        # Email validation
+        if email:
+            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                flash('Please enter a valid email address.', 'error')
+                return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
+
+        # Zip code validation
+        if zip_code and not zip_code.isdigit():
+            flash('Zip code must contain only numbers.', 'error')
+            return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
+        
+        if zip_code and len(zip_code) != 5:
+            flash('Zip code must be exactly 5 digits.', 'error')
+            return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
 
         # Check if email is already in use
-        user = User.query.filter_by(email=email).first()
+        if email:
+            user = User.query.filter_by(email=email).first()
+            if user:
+                flash('Email is already in use.', 'error')
+                return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
 
-        if user:
-            flash('Email is already in use.', category='info')
-            return redirect(url_for('tenant.create'))
+        # Convert empty strings to None for optional fields
+        property = property if property else None
+        zip_code = int(zip_code) if zip_code else None
+        phone = int(phone) if phone and phone.isdigit() else None
 
         new_tenant = Tenant(first_name=first_name, last_name=last_name, email=email, phone=phone, property=property, address=address, city=city, state=state, zip_code=zip_code, landlord=current_user.id)
 
         db.session.add(new_tenant)
         db.session.commit()
+        flash('Tenant created successfully!', 'success')
         return redirect(url_for('tenant.tenants'))
 
     return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
@@ -44,9 +76,108 @@ def create():
 @tenant.route('/<int:id>', methods=['GET', 'POST'])
 @login_required
 def home(id):
-    return render_template("/tenant.html",tenant=get_tenant(id), user=current_user)
+    """View tenant details."""
+    tenant = Tenant.query.filter_by(id=id, landlord=current_user.id).first()
+    if not tenant:
+        return page_not_found(404)
+    return render_template("/tenant.html", tenant=tenant, user=current_user)
 
 @tenant.route('/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
 def edit(id):
-    tenant = Tenant.query.filter_by(id=id, landlord=current_user.id)
-    return render_template("edit_tenant.html",tenant=tenant, user=current_user, states=get_states())
+    """Edit tenant information."""
+    tenant = Tenant.query.filter_by(id=id, landlord=current_user.id).first()
+    if not tenant:
+        return page_not_found(404)
+    
+    if request.method == "POST":
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        email = request.form.get('email', '').strip()
+        phone = request.form.get('phone', '').strip()
+        property_id = request.form.get('property')
+        address = request.form.get('address', '').strip()
+        city = request.form.get('city', '').strip()
+        state = request.form.get('state')
+        zip_code = request.form.get('zip_code', '').strip()
+
+        # Server-side validation
+        if not first_name:
+            flash('First name is required.', 'error')
+            return render_template("edit_tenant.html", tenant=tenant, user=current_user, properties=get_properties(), states=get_states())
+            
+        if not last_name:
+            flash('Last name is required.', 'error')
+            return render_template("edit_tenant.html", tenant=tenant, user=current_user, properties=get_properties(), states=get_states())
+
+        # Email validation
+        if email:
+            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                flash('Please enter a valid email address.', 'error')
+                return render_template("edit_tenant.html", tenant=tenant, user=current_user, properties=get_properties(), states=get_states())
+
+        # Zip code validation
+        if zip_code and not zip_code.isdigit():
+            flash('Zip code must contain only numbers.', 'error')
+            return render_template("edit_tenant.html", tenant=tenant, user=current_user, properties=get_properties(), states=get_states())
+        
+        if zip_code and len(zip_code) != 5:
+            flash('Zip code must be exactly 5 digits.', 'error')
+            return render_template("edit_tenant.html", tenant=tenant, user=current_user, properties=get_properties(), states=get_states())
+
+        # Check if email is already in use (excluding current tenant)
+        if email:
+            existing_user = User.query.filter_by(email=email).first()
+            existing_tenant = Tenant.query.filter_by(email=email).filter(Tenant.id != id).first()
+            if existing_user or existing_tenant:
+                flash('Email is already in use.', 'error')
+                return render_template("edit_tenant.html", tenant=tenant, user=current_user, properties=get_properties(), states=get_states())
+
+        # Validate property ownership if property is selected
+        if property_id:
+            property_obj = Property.query.filter_by(id=property_id, owner=current_user.id).first()
+            if not property_obj:
+                flash('Invalid property selected.', 'error')
+                return render_template("edit_tenant.html", tenant=tenant, user=current_user, properties=get_properties(), states=get_states())
+
+        # Convert empty strings to None for optional fields
+        property_id = property_id if property_id else None
+        zip_code = int(zip_code) if zip_code else None
+        phone = int(phone) if phone and phone.isdigit() else None
+
+        # Update tenant
+        tenant.first_name = first_name
+        tenant.last_name = last_name
+        tenant.email = email
+        tenant.phone = phone
+        tenant.property = property_id
+        tenant.address = address
+        tenant.city = city
+        tenant.state = state
+        tenant.zip_code = zip_code
+
+        db.session.commit()
+        flash('Tenant updated successfully!', 'success')
+        return redirect(url_for('tenant.home', id=id))
+
+    return render_template("edit_tenant.html", tenant=tenant, user=current_user, properties=get_properties(), states=get_states())
+
+@tenant.route('/<int:id>/delete', methods=['POST'])
+@login_required
+def delete(id):
+    """Delete a tenant."""
+    tenant = Tenant.query.filter_by(id=id, landlord=current_user.id).first()
+    if not tenant:
+        return page_not_found(404)
+    
+    tenant_name = f"{tenant.first_name} {tenant.last_name}"
+    
+    try:
+        db.session.delete(tenant)
+        db.session.commit()
+        flash(f'Tenant "{tenant_name}" deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error deleting tenant. They may have associated leases.', 'error')
+    
+    return redirect(url_for('tenant.tenants'))

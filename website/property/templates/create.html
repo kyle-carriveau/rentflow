@@ -2,7 +2,19 @@
 
 {% block content %} 
 
-<form method="POST">
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<form method="POST" id="propertyForm">
     <div class="card mb-3">
     <div class="card-header">
         <div class="row align-items-center">
@@ -20,7 +32,7 @@
                         <p class="fw-semi-bold mb-1">Name</p>
                     </div>
                     <div class="col">
-                        <input class="form-control" type="text" name="name" id="name" />
+                        <input class="form-control" type="text" name="name" id="name" required />
                     </div>
                 </div>
                 <br />
@@ -87,7 +99,7 @@
                     <div class="col-5 col-sm-4">
                         <p class="fw-semi-bold mb-1">Zip Code</p>
                     </div>
-                    <div class="col"><input class="form-control" type="number" min="0" name="zip_code" id="zip_code" /></div>
+                    <div class="col"><input class="form-control" type="text" name="zip_code" id="zip_code" pattern="[0-9]{5}" maxlength="5" placeholder="12345" /></div>
                 </div>
             </div>
         </div>

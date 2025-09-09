@@ -105,7 +105,28 @@
             </div>
         </div>
     </div>
-        <div class="card-footer border-top text-end"><button type="submit" class="btn btn-falcon-default btn-sm ms-2" ><span class="fas fa-check fs--2 me-1"></span>Save changes</button></div>
+        <div class="card-footer border-top text-end">
+            <button type="button" class="btn btn-danger btn-sm" onclick="confirmDelete()">
+                <span class="fas fa-trash fs--2 me-1"></span>Delete Property
+            </button>
+            <button type="submit" class="btn btn-falcon-default btn-sm ms-2">
+                <span class="fas fa-check fs--2 me-1"></span>Save Changes
+            </button>
+        </div>
     </div>
 </form>
+
+<!-- Delete confirmation form -->
+<form id="deleteForm" action="{{ url_for('property.delete', id=property.id) }}" method="POST" style="display: none;">
+</form>
+
+<script>
+function confirmDelete() {
+    const propertyName = "{{ property.name }}";
+    if (confirm(`Are you sure you want to delete property "${propertyName}" and ALL associated units, tenants, and leases? This action cannot be undone.`)) {
+        document.getElementById('deleteForm').submit();
+    }
+}
+</script>
+
 {% endblock %} 

@@ -2,17 +2,17 @@ from flask import Flask
 from os import path
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
+from decouple import config
 
 db = SQLAlchemy(session_options={"autoflush": False})
-DB_NAME = 'database.db'
 
 def create_app():
     app = Flask(__name__)
     
-    app.config['SECRET_KEY'] = 'keyissecret'
-    #app.config['SQLALCHEMY_DATABASE_URI'] = 'mssql+pyodbc://re-user-db-connect:B0nehe@d1@turing-variety-344019:us-west4:re-db?driver=ODBC+Driver+17+for+SQL+Server'
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_NAME}'
+    app.config['SECRET_KEY'] = config('SECRET_KEY', default='keyissecret')
+    app.config['SQLALCHEMY_DATABASE_URI'] = config('DATABASE_URL', default='sqlite:///database.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['DEBUG'] = config('DEBUG', default=True, cast=bool)
     db.init_app(app)
 
     with app.app_context():
@@ -45,7 +45,8 @@ def create_app():
 
     from website.models import User
     
-    create_database(app)
+    with app.app_context():
+        create_database(app)
     
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
@@ -58,7 +59,13 @@ def create_app():
     return app
 
 def create_database(app):
-    if not path.exists('website/' + DB_NAME):
-        db.create_all(app=app)
-        print('created database')
+    database_uri = app.config['SQLALCHEMY_DATABASE_URI']
+    if database_uri.startswith('sqlite:///'):
+        db_path = database_uri.replace('sqlite:///', '')
+        if not path.exists(db_path):
+            db.create_all()
+            print('Created database')
+    else:
+        db.create_all()
+        print('Created database')
 

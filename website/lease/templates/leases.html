@@ -2,81 +2,395 @@
 
 {% block content %} 
 
-<div class="card mb-3" id="leasesTable" data-list='{"valueNames":["name","email","phone","address","joined"],"page":10,"pagination":true}'>
-    <div class="card-header">
-      <div class="row flex-between-center">
-        <div class="col-4 col-sm-auto d-flex align-items-center pe-0">
-          <h5 class="mb-0"><span class="fas fa-file-alt me-2"></span>Leases</h5>
-        </div>
-        <div class="col-8 col-sm-auto text-end ps-2">
-          <div class="d-none" id="table-leases-actions">
-            <div class="d-flex">
-              <select class="form-select form-select-sm" aria-label="Bulk actions">
-                <option selected="">Bulk actions</option>
-                <option value="Refund">Refund</option>
-                <option value="Delete">Delete</option>
-                <option value="Archive">Archive</option>
-              </select>
-              <button class="btn btn-falcon-default btn-sm ms-2" type="button">Apply</button>
+<!-- Lease Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden">
+            <div class="bg-holder bg-card" style="background-image:url(/static/img/corner-1.png);"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-primary text-white">
+                            <span class="fas fa-file-contract"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">{{ leases|length }}</h4>
+                        <p class="text-800 fs--1 mb-0">Active Leases</p>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div id="table-leases-replace-element">
-            <a class="btn btn-falcon-default btn-sm" href=""><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New</span></a>
-            <button class="btn btn-falcon-default btn-sm mx-2" type="button"><span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Filter</span></button>
-            <button class="btn btn-falcon-default btn-sm" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export</span></button>
-          </div>
         </div>
-      </div>
+    </div>
+    
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden">
+            <div class="bg-holder bg-card" style="background-image:url(/static/img/corner-2.png);"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-success text-white">
+                            <span class="fas fa-dollar-sign"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        {% set total_rent = leases|sum(attribute='rent') or 0 %}
+                        <h4 class="mb-0">${{ "{:,}".format(total_rent) }}</h4>
+                        <p class="text-800 fs--1 mb-0">Monthly Rent</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden">
+            <div class="bg-holder bg-card" style="background-image:url(/static/img/corner-3.png);"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-warning text-white">
+                            <span class="fas fa-clock"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        {% set expiring_soon = [] %}
+                        {% for lease in leases %}
+                            {% if (lease.end - today_date).days <= 60 and (lease.end - today_date).days >= 0 %}
+                                {% set _ = expiring_soon.append(lease) %}
+                            {% endif %}
+                        {% endfor %}
+                        <h4 class="mb-0">{{ expiring_soon|length }}</h4>
+                        <p class="text-800 fs--1 mb-0">Expiring Soon</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden">
+            <div class="bg-holder bg-card" style="background-image:url(/static/img/corner-4.png);"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-info text-white">
+                            <span class="fas fa-users"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        {% set unique_tenants = leases|map(attribute='tenant_id')|unique|list %}
+                        <h4 class="mb-0">{{ unique_tenants|length }}</h4>
+                        <p class="text-800 fs--1 mb-0">Active Tenants</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leases Table -->
+<div class="card mb-3" id="leasesTable" data-list='{"valueNames":["property","unit","tenant","start","end","rent","status"],"page":10,"pagination":true}'>
+    <div class="card-header">
+        <div class="row flex-between-center">
+            <div class="col-4 col-sm-auto d-flex align-items-center pe-0">
+                <h5 class="mb-0"><span class="fas fa-file-contract me-2"></span>All Leases</h5>
+                <div class="ms-3">
+                    <div class="search-box" data-list="search-box" style="width: 200px;">
+                        <form class="position-relative" data-bs-toggle="search" data-bs-display="static">
+                            <input class="form-control search-input" type="search" placeholder="Search leases..." aria-label="Search" />
+                            <span class="fas fa-search search-box-icon"></span>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-8 col-sm-auto text-end ps-2">
+                <div id="table-leases-replace-element">
+                    <div class="dropdown">
+                        <button class="btn btn-falcon-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                            <span class="d-none d-sm-inline-block ms-1">New Lease</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            {% for property in user.properties %}
+                                <a class="dropdown-item" href="{{ url_for('lease.create', id=property.id) }}">
+                                    <span class="fas fa-building me-2"></span>{{ property.name }}
+                                </a>
+                            {% endfor %}
+                            {% if not user.properties %}
+                                <span class="dropdown-item-text text-muted">No properties available</span>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="{{ url_for('property.create') }}">
+                                    <span class="fas fa-plus me-2"></span>Create Property First
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="btn-group ms-2" role="group">
+                        <button class="btn btn-falcon-default btn-sm" type="button" id="statusFilter" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span>
+                            <span class="d-none d-sm-inline-block ms-1">Filter</span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="filterLeases('all')">All Leases</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterLeases('active')">Active Only</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterLeases('expiring')">Expiring Soon</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterLeases('expired')">Expired</a></li>
+                        </ul>
+                        <button class="btn btn-falcon-default btn-sm" type="button" onclick="exportLeases()">
+                            <span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span>
+                            <span class="d-none d-sm-inline-block ms-1">Export</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <div class="card-body p-0">
-      <div class="table-responsive scrollbar">
-        <table class="table table-hover table-striped overflow-hidden">
-          <thead>
-            <tr>
-              <th scope="col">Actions</th>
-              <th scope="col">Property</th>
-              <th scope="col">Unit</th>
-              <th scope="col">Tenant</th>
-              <th scope="col">Start</th>
-              <th scope="col">End</th>
-              <th scope="col">Status</th>
-            </tr>
-          </thead>
-          {% if leases %}
-          <tbody>
-            {% for lease in leases %}
-            <tr class="align-middle">
-              <td class="text-nowrap">
-                <div>
-                    <a class="btn p-0" type="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit" href="{{ url_for('lease.update', id=lease.id) }}"><span class="text-500 fas fa-edit"></span></a>
-                    <a class="btn p-0 ms-2" type="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Enter" href="{{ url_for('lease.show', id=lease.id) }}"><span class="text-500 fas fa-caret-up"></span></a>
+        {% if leases %}
+        <div class="table-responsive scrollbar">
+            <table class="table table-hover table-striped overflow-hidden">
+                <thead>
+                    <tr>
+                        <th scope="col" class="sort" data-sort="property">Property</th>
+                        <th scope="col" class="sort" data-sort="unit">Unit</th>
+                        <th scope="col" class="sort" data-sort="tenant">Tenant</th>
+                        <th scope="col" class="sort" data-sort="rent">Monthly Rent</th>
+                        <th scope="col" class="sort" data-sort="start">Start Date</th>
+                        <th scope="col" class="sort" data-sort="end">End Date</th>
+                        <th scope="col" class="sort" data-sort="status">Status</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="list">
+                    {% for lease in leases %}
+                    {% set days_until_end = (lease.end - today_date).days %}
+                    <tr class="align-middle lease-row" data-status="{{ 'active' if days_until_end > 0 else 'expired' }}" data-expiring="{{ 'true' if days_until_end <= 60 and days_until_end > 0 else 'false' }}">
+                        <td class="property">
+                            {% if lease.unit_ref and lease.unit_ref.property_ref %}
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm">
+                                        <div class="avatar-name rounded bg-primary text-white">
+                                            <span class="fas fa-building fs--2"></span>
+                                        </div>
+                                    </div>
+                                    <div class="ms-2">
+                                        <a href="{{ url_for('property.home', id=lease.unit_ref.property_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                            {{ lease.unit_ref.property_ref.name }}
+                                        </a>
+                                        {% if lease.unit_ref.property_ref.address %}
+                                            <div class="fs--2 text-600">{{ lease.unit_ref.property_ref.address }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <span class="text-400">Property not found</span>
+                            {% endif %}
+                        </td>
+                        <td class="unit">
+                            {% if lease.unit_ref %}
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm">
+                                        <div class="avatar-name rounded bg-success text-white">
+                                            <span class="fas fa-home fs--2"></span>
+                                        </div>
+                                    </div>
+                                    <div class="ms-2">
+                                        <a href="{{ url_for('unit.show', id=lease.unit_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                            {{ lease.unit_ref.name }}
+                                        </a>
+                                        <div class="fs--2 text-600">
+                                            {% if lease.unit_ref.bedrooms %}{{ lease.unit_ref.bedrooms }}bed{% endif %}
+                                            {% if lease.unit_ref.bathrooms %}{{ lease.unit_ref.bathrooms }}bath{% endif %}
+                                            {% if lease.unit_ref.sqft %} • {{ lease.unit_ref.sqft }}sqft{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <span class="text-400">Unit not found</span>
+                            {% endif %}
+                        </td>
+                        <td class="tenant">
+                            {% if lease.tenant_ref %}
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm">
+                                        <div class="avatar-name rounded-circle bg-info text-white">
+                                            <span>{{ lease.tenant_ref.first_name[0] }}{{ lease.tenant_ref.last_name[0] }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="ms-2">
+                                        <a href="{{ url_for('tenant.home', id=lease.tenant_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                            {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}
+                                        </a>
+                                        {% if lease.tenant_ref.email %}
+                                            <div class="fs--2 text-600">{{ lease.tenant_ref.email }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <span class="text-400">Tenant not found</span>
+                            {% endif %}
+                        </td>
+                        <td class="rent">
+                            {% if lease.rent %}
+                                <span class="text-success fw-bold">${{ "{:,}".format(lease.rent) }}</span>
+                            {% else %}
+                                <span class="text-400">Not set</span>
+                            {% endif %}
+                        </td>
+                        <td class="start">
+                            <span class="text-600">{{ lease.start.strftime('%m/%d/%Y') if lease.start else '-' }}</span>
+                        </td>
+                        <td class="end">
+                            <span class="text-600">{{ lease.end.strftime('%m/%d/%Y') if lease.end else '-' }}</span>
+                            {% if days_until_end <= 60 and days_until_end > 0 %}
+                                <div class="fs--2 text-warning">
+                                    <span class="fas fa-exclamation-triangle me-1"></span>{{ days_until_end }} days left
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td class="status">
+                            {% if days_until_end > 60 %}
+                                <span class="badge bg-success">Active</span>
+                            {% elif days_until_end > 0 and days_until_end <= 60 %}
+                                <span class="badge bg-warning text-dark">Expiring Soon</span>
+                            {% else %}
+                                <span class="badge bg-danger">Expired</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            <div class="dropdown text-sans-serif">
+                                <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal" 
+                                        type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <span class="fas fa-ellipsis-h fs--1"></span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end border py-0">
+                                    <div class="py-2">
+                                        <a class="dropdown-item" href="{{ url_for('lease.show', id=lease.id) }}">
+                                            <span class="fas fa-eye me-1"></span>View Details
+                                        </a>
+                                        <a class="dropdown-item" href="{{ url_for('lease.update', id=lease.id) }}">
+                                            <span class="fas fa-edit me-1"></span>Edit Lease
+                                        </a>
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item text-danger" href="#" 
+                                           onclick="deleteLease({{ lease.id }}, '{{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}', '{{ lease.unit_ref.name }}')">
+                                            <span class="fas fa-trash me-1"></span>Delete Lease
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center p-4">
+            <div class="mb-3">
+                <span class="fas fa-file-contract fa-2x text-300"></span>
+            </div>
+            <h6 class="mb-2">No Leases Found</h6>
+            <p class="text-600 mb-3">You haven't created any leases yet. Create your first lease to get started.</p>
+            {% if user.properties %}
+                <div class="dropdown">
+                    <button class="btn btn-falcon-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <span class="fas fa-plus fs--2 me-1"></span>Create Lease
+                    </button>
+                    <div class="dropdown-menu">
+                        {% for property in user.properties %}
+                            <a class="dropdown-item" href="{{ url_for('lease.create', id=property.id) }}">
+                                <span class="fas fa-building me-2"></span>{{ property.name }}
+                            </a>
+                        {% endfor %}
+                    </div>
                 </div>
-              </td>
-              <td class="text-nowrap">
-                <div class="d-flex align-items-center">
-                  <div class="avatar avatar-xl">
-                    <div class="avatar-name rounded-circle"><span></span></div>
-                  </div>
-                  <div class="ms-2">{{ lease.property_id }}</div>
-                </div>
-              </td>
-              <td class="text-nowrap"></td>
-              <td class="text-nowrap"></td>
-              <td class="text-nowrap"></td>
-              <td class="text-nowrap"></td>
-              <td><span class="badge badge rounded-pill d-block p-2 badge-soft-success">Completed<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span></td>
-            </tr>
-            {% endfor %} 
-          </tbody>
-          {% endif %}
-        </table>
-      </div>
+            {% else %}
+                <a href="{{ url_for('property.create') }}" class="btn btn-falcon-primary btn-sm">
+                    <span class="fas fa-building fs--2 me-1"></span>Create Property First
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
+    {% if leases %}
     <div class="card-footer d-flex align-items-center justify-content-center">
-      <button class="btn btn-sm btn-falcon-default me-1" type="button" title="Previous" data-list-pagination="prev"><span class="fas fa-chevron-left"></span></button>
-      <ul class="pagination mb-0"></ul>
-      <button class="btn btn-sm btn-falcon-default ms-1" type="button" title="Next" data-list-pagination="next"><span class="fas fa-chevron-right"></span></button>
+        <button class="btn btn-sm btn-falcon-default me-1" type="button" title="Previous" data-list-pagination="prev">
+            <span class="fas fa-chevron-left"></span>
+        </button>
+        <ul class="pagination mb-0"></ul>
+        <button class="btn btn-sm btn-falcon-default ms-1" type="button" title="Next" data-list-pagination="next">
+            <span class="fas fa-chevron-right"></span>
+        </button>
     </div>
-  </div>
+    {% endif %}
+</div>
+
+<!-- Delete form -->
+<form id="deleteForm" method="POST" style="display: none;">
+</form>
+
+<script>
+function deleteLease(leaseId, tenantName, unitName) {
+    if (confirm(`Are you sure you want to delete the lease for "${tenantName}" in "${unitName}"? This action cannot be undone.`)) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/lease/${leaseId}/delete`;
+        form.submit();
+    }
+}
+
+function filterLeases(filterType) {
+    const rows = document.querySelectorAll('.lease-row');
+    
+    rows.forEach(row => {
+        let show = false;
+        
+        switch(filterType) {
+            case 'all':
+                show = true;
+                break;
+            case 'active':
+                show = row.dataset.status === 'active';
+                break;
+            case 'expiring':
+                show = row.dataset.expiring === 'true';
+                break;
+            case 'expired':
+                show = row.dataset.status === 'expired';
+                break;
+        }
+        
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+function exportLeases() {
+    // Simple CSV export functionality
+    const rows = document.querySelectorAll('.lease-row:not([style*="display: none"])');
+    let csv = 'Property,Unit,Tenant,Monthly Rent,Start Date,End Date,Status\n';
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const property = cells[0].querySelector('a')?.textContent?.trim() || 'N/A';
+        const unit = cells[1].querySelector('a')?.textContent?.trim() || 'N/A';
+        const tenant = cells[2].querySelector('a')?.textContent?.trim() || 'N/A';
+        const rent = cells[3].textContent.trim();
+        const start = cells[4].textContent.trim();
+        const end = cells[5].textContent.trim();
+        const status = cells[6].textContent.trim();
+        
+        csv += `"${property}","${unit}","${tenant}","${rent}","${start}","${end}","${status}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'leases_export.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
 
 {% endblock %} 

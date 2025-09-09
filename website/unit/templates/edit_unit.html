@@ -1,0 +1,91 @@
+{% extends "base.html" %} 
+
+{% block content %} 
+
+<form method="POST">
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Edit Unit - {{ unit.name }}</h5>
+                    <p class="text-600 mb-0">Property: {{ property.name }}</p>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ url_for('unit.show', id=unit.id) }}" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-arrow-left fs--2 me-1"></span>Back to Unit
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="name">Name*</label>
+                        <div class="col">
+                            <input class="form-control" type="text" name="name" id="name" value="{{ unit.name }}" required/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="bedrooms">Bedrooms</label>
+                        <div class="col">
+                            <input class="form-control" type="number" min="0" name="bedrooms" id="bedrooms" value="{{ unit.bedrooms or '' }}"/>
+                        </div>
+                    </div>
+                    <br/>
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="bathrooms">Bathrooms</label>
+                        <div class="col">
+                            <input class="form-control" type="number" min="0" name="bathrooms" id="bathrooms" value="{{ unit.bathrooms or '' }}"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="sqft">SQ Feet</label>
+                        <div class="col">
+                            <input class="form-control" type="number" min="1" name="sqft" id="sqft" value="{{ unit.sqft or '' }}"/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="rent">Monthly Rent</label>
+                        <div class="col input-group">
+                            <span class="input-group-text">$</span><input class="form-control" type="number" min="0" name="rent" id="rent" value="{{ unit.rent or '' }}" />
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <label class="col-5 col-sm-4 col-form-label" for="description">Description</label>
+                        <div class="col">
+                            <textarea class="form-control" name="description" id="description" rows="3">{{ unit.description or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer border-top text-end">
+            <button type="button" class="btn btn-danger btn-sm" onclick="confirmDelete()">
+                <span class="fas fa-trash fs--2 me-1"></span>Delete Unit
+            </button>
+            <button type="submit" class="btn btn-falcon-default btn-sm ms-2">
+                <span class="fas fa-check fs--2 me-1"></span>Save Changes
+            </button>
+        </div>
+    </div>
+</form>
+
+<!-- Delete confirmation form -->
+<form id="deleteForm" action="{{ url_for('unit.delete', id=unit.id) }}" method="POST" style="display: none;">
+</form>
+
+<script>
+function confirmDelete() {
+    if (confirm('Are you sure you want to delete this unit? This action cannot be undone.')) {
+        document.getElementById('deleteForm').submit();
+    }
+}
+</script>
+
+{% endblock %}

@@ -1,18 +1,205 @@
-from flask import render_template, Blueprint, request, redirect, url_for, flash
-from website.models import Portfolio
+from flask import render_template, Blueprint, request, redirect, url_for, flash, jsonify
+from website.models import Portfolio, Property, Unit, Lease
 from website import db 
 from flask_login import login_required, current_user
 from website.views import get_portfolios
+from website.errors import page_not_found
+from sqlalchemy import func, and_
+from datetime import datetime
 
 portfolio = Blueprint('portfolio', __name__, template_folder='templates')
 
 @portfolio.route('/', methods=['GET', 'POST']) 
 @login_required 
 def portfolios():
+    """Display all portfolios with enhanced metrics."""
     if request.method == "POST":
-        name = request.form.get('portfolio_name')
+        name = request.form.get('portfolio_name', '').strip()
+        description = request.form.get('description', '').strip()
+        
+        if not name:
+            flash('Portfolio name is required.', 'error')
+            return render_template("portfolios.html", user=current_user, portfolios=get_enhanced_portfolios())
+        
         new_portfolio = Portfolio(name=name, owner=current_user.id)
         db.session.add(new_portfolio)
         db.session.commit()
-        return redirect(url_for('portfolio.portfolios', user=current_user))
-    return render_template("portfolios.html", user=current_user, portfolios=get_portfolios())
+        flash('Portfolio created successfully!', 'success')
+        return redirect(url_for('portfolio.portfolios'))
+    
+    return render_template("portfolios.html", user=current_user, portfolios=get_enhanced_portfolios())
+
+@portfolio.route('/<int:id>')
+@login_required
+def view(id):
+    """View individual portfolio details."""
+    portfolio = Portfolio.query.filter_by(id=id, owner=current_user.id).first()
+    if not portfolio:
+        return page_not_found(404)
+    
+    # Get portfolio properties with metrics
+    properties = Property.query.filter_by(portfolio=id, owner=current_user.id).all()
+    unassigned_properties = Property.query.filter_by(portfolio=None, owner=current_user.id).all()
+    
+    # Calculate portfolio metrics
+    metrics = calculate_portfolio_metrics(portfolio)
+    
+    return render_template("portfolio_detail.html", 
+                         user=current_user, 
+                         portfolio=portfolio, 
+                         properties=properties,
+                         unassigned_properties=unassigned_properties,
+                         metrics=metrics)
+
+@portfolio.route('/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit(id):
+    """Edit portfolio details."""
+    portfolio = Portfolio.query.filter_by(id=id, owner=current_user.id).first()
+    if not portfolio:
+        return page_not_found(404)
+    
+    if request.method == "POST":
+        name = request.form.get('name', '').strip()
+        
+        if not name:
+            flash('Portfolio name is required.', 'error')
+            return render_template("edit_portfolio.html", user=current_user, portfolio=portfolio)
+        
+        portfolio.name = name
+        db.session.commit()
+        flash('Portfolio updated successfully!', 'success')
+        return redirect(url_for('portfolio.view', id=id))
+    
+    return render_template("edit_portfolio.html", user=current_user, portfolio=portfolio)
+
+@portfolio.route('/<int:id>/delete', methods=['POST'])
+@login_required
+def delete(id):
+    """Delete a portfolio (moves properties to unassigned)."""
+    portfolio = Portfolio.query.filter_by(id=id, owner=current_user.id).first()
+    if not portfolio:
+        return page_not_found(404)
+    
+    portfolio_name = portfolio.name
+    
+    try:
+        # Move all properties in this portfolio to unassigned
+        Property.query.filter_by(portfolio=id, owner=current_user.id).update({'portfolio': None})
+        db.session.delete(portfolio)
+        db.session.commit()
+        flash(f'Portfolio "{portfolio_name}" deleted. Properties moved to unassigned.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error deleting portfolio.', 'error')
+    
+    return redirect(url_for('portfolio.portfolios'))
+
+@portfolio.route('/<int:id>/assign-property', methods=['POST'])
+@login_required
+def assign_property(id):
+    """Assign a property to this portfolio."""
+    portfolio = Portfolio.query.filter_by(id=id, owner=current_user.id).first()
+    if not portfolio:
+        return page_not_found(404)
+    
+    property_id = request.form.get('property_id')
+    property = Property.query.filter_by(id=property_id, owner=current_user.id).first()
+    
+    if not property:
+        flash('Property not found.', 'error')
+        return redirect(url_for('portfolio.view', id=id))
+    
+    property.portfolio = id
+    db.session.commit()
+    flash(f'Property "{property.name}" assigned to portfolio "{portfolio.name}".', 'success')
+    return redirect(url_for('portfolio.view', id=id))
+
+@portfolio.route('/<int:id>/remove-property', methods=['POST'])
+@login_required  
+def remove_property(id):
+    """Remove a property from this portfolio."""
+    portfolio = Portfolio.query.filter_by(id=id, owner=current_user.id).first()
+    if not portfolio:
+        return page_not_found(404)
+    
+    property_id = request.form.get('property_id')
+    property = Property.query.filter_by(id=property_id, portfolio=id, owner=current_user.id).first()
+    
+    if not property:
+        flash('Property not found in this portfolio.', 'error')
+        return redirect(url_for('portfolio.view', id=id))
+    
+    property.portfolio = None
+    db.session.commit()
+    flash(f'Property "{property.name}" removed from portfolio.', 'success')
+    return redirect(url_for('portfolio.view', id=id))
+
+def get_enhanced_portfolios():
+    """Get portfolios with enhanced metrics."""
+    portfolios = Portfolio.query.filter_by(owner=current_user.id).all()
+    enhanced_portfolios = []
+    
+    for portfolio in portfolios:
+        metrics = calculate_portfolio_metrics(portfolio)
+        enhanced_portfolio = {
+            'id': portfolio.id,
+            'name': portfolio.name,
+            'property_count': metrics['property_count'],
+            'total_units': metrics['total_units'],
+            'total_revenue': metrics['total_revenue'],
+            'occupancy_rate': metrics['occupancy_rate'],
+            'properties': metrics['properties']
+        }
+        enhanced_portfolios.append(enhanced_portfolio)
+    
+    return enhanced_portfolios
+
+def calculate_portfolio_metrics(portfolio):
+    """Calculate comprehensive metrics for a portfolio."""
+    properties = Property.query.filter_by(portfolio=portfolio.id, owner=current_user.id).all()
+    
+    total_units = 0
+    total_revenue = 0
+    occupied_units = 0
+    property_details = []
+    
+    for property in properties:
+        units = Unit.query.filter_by(property=property.id).all()
+        property_revenue = 0
+        property_occupied = 0
+        
+        for unit in units:
+            total_units += 1
+            # Check for active leases
+            active_lease = Lease.query.filter(
+                and_(
+                    Lease.unit_id == unit.id,
+                    Lease.start <= datetime.now().date(),
+                    Lease.end >= datetime.now().date()
+                )
+            ).first()
+            
+            if active_lease:
+                occupied_units += 1
+                property_occupied += 1
+                total_revenue += active_lease.rent
+                property_revenue += active_lease.rent
+        
+        property_details.append({
+            'id': property.id,
+            'name': property.name,
+            'units': len(units),
+            'occupied': property_occupied,
+            'revenue': property_revenue,
+            'occupancy_rate': (property_occupied / len(units) * 100) if units else 0
+        })
+    
+    return {
+        'property_count': len(properties),
+        'total_units': total_units,
+        'occupied_units': occupied_units,
+        'total_revenue': total_revenue,
+        'occupancy_rate': (occupied_units / total_units * 100) if total_units > 0 else 0,
+        'properties': property_details
+    }

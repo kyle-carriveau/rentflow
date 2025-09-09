@@ -108,22 +108,28 @@
                   <p class="fs--1 text-600 mb-0">Have an account? <a href="{{ url_for('auth.login') }}">Login</a></p>
                 </div>
               </div>
-              <form method="POST" action="{{ url_for('auth.register') }}">
+              <form id="modal-register-form" method="POST">
+                {{ registration_form.csrf_token }}
                 <div class="mb-3">
                   {{ registration_form.first_name(class="form-control", placeholder="First Name") }}
+                  <div class="invalid-feedback" id="first_name-error"></div>
                 </div>
                 <div class="mb-3">
                   {{ registration_form.last_name(class="form-control", placeholder="Last Name") }}
+                  <div class="invalid-feedback" id="last_name-error"></div>
                 </div>
                 <div class="mb-3">
                   {{ registration_form.email(class="form-control", placeholder="Email") }}
+                  <div class="invalid-feedback" id="email-error"></div>
                 </div>
                 <div class="row gx-2">
                   <div class="mb-3 col-sm-6">
                     {{ registration_form.password(class="form-control", placeholder="Password") }}
+                    <div class="invalid-feedback" id="password-error"></div>
                   </div>
                   <div class="mb-3 col-sm-6">
                     {{ registration_form.password_confirm(class="form-control", placeholder="Password confirm") }}
+                    <div class="invalid-feedback" id="password_confirm-error"></div>
                   </div>
                 </div>
                 <div class="form-check">
@@ -401,5 +407,53 @@
     <script src="https://polyfill.io/v3/polyfill.min.js?features=window.scroll"></script>
     <script src="../static/vendors/list.js/list.min.js"></script>
     <script src="../static/assets/js/theme.js"></script>
+    <script>
+      document.getElementById('modal-register-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Clear previous errors
+        document.querySelectorAll('.invalid-feedback').forEach(el => {
+          el.textContent = '';
+          el.previousElementSibling.classList.remove('is-invalid');
+        });
+        
+        // Get form data
+        const formData = new FormData(this);
+        
+        fetch('{{ url_for("auth.modal_register") }}', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Close modal and redirect
+            const modal = bootstrap.Modal.getInstance(document.getElementById('exampleModal'));
+            modal.hide();
+            window.location.href = data.redirect;
+          } else {
+            // Display errors
+            if (data.errors) {
+              Object.keys(data.errors).forEach(field => {
+                const errorElement = document.getElementById(field + '-error');
+                const inputElement = document.querySelector(`[name="${field}"]`);
+                if (errorElement && inputElement) {
+                  errorElement.textContent = data.errors[field][0];
+                  errorElement.style.display = 'block';
+                  inputElement.classList.add('is-invalid');
+                }
+              });
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred. Please try again.');
+        });
+      });
+    </script>
   </body>
 </html>

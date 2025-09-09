@@ -7,7 +7,7 @@ def get_tenants():
     return tenants
 
 def get_tenant(id):
-    tenant = Tenant.query.filter_by(id=id).first()
+    tenant = Tenant.query.filter_by(id=id, landlord=current_user.id).first()
     return tenant
 
 def get_portfolios():

@@ -3,104 +3,399 @@
 {% block content %} 
 
 {% if tenant %}
-<div class="card mb-3">
-    <div class="card-header">
-      <div class="row">
-        <div class="col">
-          <h5 class="mb-2">{{ tenant.first_name }} {{ tenant.last_name }}</h5>
+<!-- Tenant Header -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-xl me-3">
+                        <div class="avatar-name rounded-circle bg-primary text-white">
+                            <span>{{ tenant.first_name[0] }}{{ tenant.last_name[0] }}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="mb-1">{{ tenant.first_name }} {{ tenant.last_name }}</h4>
+                        <div class="d-flex align-items-center">
+                            {% set lease_status = tenant.get_lease_status() %}
+                            {% if lease_status == 'Active' %}
+                                <span class="badge bg-success me-2">Active Tenant</span>
+                            {% elif lease_status == 'Future' %}
+                                <span class="badge bg-info me-2">Future Tenant</span>
+                            {% elif lease_status == 'Former' %}
+                                <span class="badge bg-secondary me-2">Former Tenant</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark me-2">Prospect</span>
+                            {% endif %}
+                            {% set current_lease = tenant.get_current_lease() %}
+                            {% if current_lease %}
+                                <span class="text-600">Currently renting {{ current_lease.unit_ref.name if current_lease.unit_ref else 'Unknown Unit' }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-auto">
+                <a href="{{ url_for('tenant.tenants') }}" class="btn btn-falcon-default btn-sm">
+                    <span class="fas fa-arrow-left me-1"></span>Back to Tenants
+                </a>
+                <a href="{{ url_for('tenant.edit', id=tenant.id) }}" class="btn btn-falcon-primary btn-sm ms-2">
+                    <span class="fas fa-edit me-1"></span>Edit Tenant
+                </a>
+            </div>
         </div>
-        <div class="col-auto d-none d-sm-block">
-          <h6 class="text-uppercase text-600">Tenant<span class="fas fa-user ms-2"></span></h6>
-        </div>
-      </div>
-    </div>
-    <div class="card-body border-top">
-      <div class="d-flex"><span class="fas fa-user text-primary me-2" data-fa-transform="down-5"></span>
-        <div class="flex-1">
-          <p class="fs--1 mb-0 text-600">Tenant since</p>
-          <p class="fs--1 mb-0 text-600">Jan 12, 2022</p>
-        </div>
-      </div>
-    </div>
-</div>
-<div class="card mb-3">
-<div class="card-header">
-    <div class="row align-items-center">
-    <div class="col">
-        <h5 class="mb-0">Tenant Details</h5>
-    </div>
-    <div class="col-auto"><a class="btn btn-falcon-default btn-sm" href="{{ url_for('tenant.edit', id=tenant.id) }}"><span class="fas fa-pencil-alt fs--2 me-1"></span>Update details</a></div>
-    </div>
-</div>
-<div class="card-body bg-light border-top">
-    <div class="row">
-    <div class="col-lg col-xxl-5">
-        <div class="row">
-        <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-1">Name</p>
-        </div>
-        <div class="col">{{ tenant.first_name }} {{ tenant.last_name }}</div>
-        </div>
-        <div class="row">
-        <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-1">Bedrooms</p>
-        </div>
-        <div class="col">{% if tenant.bedrooms %}{{ tenant.bedrooms }}{% endif %}</div>
-        </div>
-        <div class="row">
-        <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-1">Bathrooms</p>
-        </div>
-        <div class="col">{% if tenant.bathrooms %}{{ tenant.bathrooms }}{% endif %}</div>
-        </div>
-        <div class="row">
-        <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-1">Tenant Type</p>
-        </div>
-        <div class="col">{% if tenant.type %}{{ tenant.type }}{% endif %}
-        </div>
-        </div>
-    </div>
-    <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
-        <div class="row">
-        <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-1">Address</p>
-        </div>
-        <div class="col">
-            <p class="mb-1">{% if tenant.address %}{{ tenant.address }}{% endif %}<br />{% if tenant.city %}{{ tenant.city }},{% endif %} {% if tenant.state %}{{ tenant.state }}{% endif %} {% if tenant.zip_code %}{{ tenant.zip_code }}{% endif %}</p>
-        </div>
-        </div>
-        <div class="row">
-        <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-1"></p>
-        </div>
-        <div class="col"></div>
-        </div>
-        <div class="row">
-        <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-0">Monthly Rent</p>
-        </div>
-        <div class="col">
-            <p class="fw-semi-bold mb-0">{% if tenant.rent %}$ {{ tenant.rent }}{% endif %}</p>
-        </div>
-        </div>
-        <div class="row">
-        <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-1">Units</p>
-        </div>
-        <div class="col">{% if tenant.units %}{{ tenant.units }}{% endif %}</div>
-        </div>
-    </div>
-    </div>
-</div>
-</div>
-{% else %} 
-<div class="card mb-3">
-    <div class="card-header">
-        <h5 class="mb-4">No tenant found!</h5><a class="btn btn-falcon-default btn-sm" href="/new_tenant"><span class="fas fa-plus fs--2 me-1"></span>Create Tenant</a>
     </div>
 </div>
 
+<div class="row">
+    <!-- Contact Information -->
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-address-card me-2"></span>Contact Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Full Name</label>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar avatar-sm me-2">
+                                <div class="avatar-name rounded-circle bg-primary text-white">
+                                    <span class="fas fa-user fs--2"></span>
+                                </div>
+                            </div>
+                            <div class="fw-semi-bold">{{ tenant.first_name }} {{ tenant.last_name }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Email Address</label>
+                        <div>
+                            {% if tenant.email %}
+                                <a href="mailto:{{ tenant.email }}" class="text-decoration-none">
+                                    <span class="fas fa-envelope me-2"></span>{{ tenant.email }}
+                                </a>
+                            {% else %}
+                                <span class="text-400">Not provided</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Phone Number</label>
+                        <div>
+                            {% if tenant.phone %}
+                                <a href="tel:{{ tenant.phone }}" class="text-decoration-none">
+                                    <span class="fas fa-phone me-2"></span>{{ tenant.phone }}
+                                </a>
+                            {% else %}
+                                <span class="text-400">Not provided</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Address</label>
+                        <div>
+                            {% if tenant.address or tenant.city or tenant.state or tenant.zip_code %}
+                                <div>
+                                    <span class="fas fa-map-marker-alt me-2"></span>
+                                    {% if tenant.address %}{{ tenant.address }}{% endif %}
+                                    {% if tenant.city %}<br/>{{ tenant.city }}{% endif %}{% if tenant.state %}, {{ tenant.state }}{% endif %} {% if tenant.zip_code %}{{ tenant.zip_code }}{% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-400">Not provided</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Lease Information -->
+        {% set current_lease = tenant.get_current_lease() %}
+        {% if current_lease %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-file-contract me-2"></span>Current Lease
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Property</label>
+                        <div class="d-flex align-items-center">
+                            {% if current_lease.unit_ref and current_lease.unit_ref.property_ref %}
+                                <div class="avatar avatar-sm me-2">
+                                    <div class="avatar-name rounded bg-primary text-white">
+                                        <span class="fas fa-building fs--2"></span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('property.home', id=current_lease.unit_ref.property_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                        {{ current_lease.unit_ref.property_ref.name }}
+                                    </a>
+                                    {% if current_lease.unit_ref.property_ref.address %}
+                                        <div class="fs--2 text-600">{{ current_lease.unit_ref.property_ref.address }}</div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-400">Property not found</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Unit</label>
+                        <div class="d-flex align-items-center">
+                            {% if current_lease.unit_ref %}
+                                <div class="avatar avatar-sm me-2">
+                                    <div class="avatar-name rounded bg-success text-white">
+                                        <span class="fas fa-home fs--2"></span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('unit.show', id=current_lease.unit_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                        {{ current_lease.unit_ref.name }}
+                                    </a>
+                                    <div class="fs--2 text-600">
+                                        {% if current_lease.unit_ref.bedrooms %}{{ current_lease.unit_ref.bedrooms }}bed{% endif %}
+                                        {% if current_lease.unit_ref.bathrooms %} {{ current_lease.unit_ref.bathrooms }}bath{% endif %}
+                                        {% if current_lease.unit_ref.sqft %} • {{ current_lease.unit_ref.sqft }}sqft{% endif %}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <span class="text-400">Unit not found</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Monthly Rent</label>
+                        <div>
+                            {% if current_lease.rent %}
+                                <span class="text-success fw-bold h5 mb-0">${{ "{:,}".format(current_lease.rent) }}</span>
+                            {% else %}
+                                <span class="text-400">Not set</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Lease Term</label>
+                        <div>
+                            {% if current_lease.start and current_lease.end %}
+                                <div>{{ current_lease.start.strftime('%m/%d/%Y') }} - {{ current_lease.end.strftime('%m/%d/%Y') }}</div>
+                                <div class="fs--2 text-600">{{ (current_lease.end - current_lease.start).days }} days total</div>
+                            {% else %}
+                                <span class="text-400">Not set</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <a href="{{ url_for('lease.show', id=current_lease.id) }}" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-eye me-1"></span>View Lease Details
+                    </a>
+                    <a href="{{ url_for('lease.update', id=current_lease.id) }}" class="btn btn-falcon-primary btn-sm ms-2">
+                        <span class="fas fa-edit me-1"></span>Edit Lease
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Lease History -->
+        {% if tenant.leases %}
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-history me-2"></span>Lease History
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="bg-200">
+                            <tr>
+                                <th>Property</th>
+                                <th>Unit</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Rent</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lease in tenant.leases %}
+                            {% set lease_active = lease == current_lease %}
+                            <tr class="{{ 'table-active' if lease_active else '' }}">
+                                <td>
+                                    {% if lease.unit_ref and lease.unit_ref.property_ref %}
+                                        {{ lease.unit_ref.property_ref.name }}
+                                    {% else %}
+                                        <span class="text-400">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if lease.unit_ref %}
+                                        {{ lease.unit_ref.name }}
+                                    {% else %}
+                                        <span class="text-400">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ lease.start.strftime('%m/%d/%Y') if lease.start else '-' }}</td>
+                                <td>{{ lease.end.strftime('%m/%d/%Y') if lease.end else '-' }}</td>
+                                <td>
+                                    {% if lease.rent %}
+                                        ${{ "{:,}".format(lease.rent) }}
+                                    {% else %}
+                                        <span class="text-400">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if lease_active %}
+                                        <span class="badge badge-soft-success">Active</span>
+                                    {% else %}
+                                        <span class="badge badge-soft-secondary">Ended</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('lease.show', id=lease.id) }}" class="btn btn-link btn-sm p-0">
+                                        <span class="fas fa-eye"></span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Tenant Status -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-info me-2"></span>Tenant Status
+                </h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    {% if lease_status == 'Active' %}
+                        <div class="avatar avatar-3xl">
+                            <div class="avatar-name rounded-circle bg-success text-white">
+                                <span class="fas fa-check fa-2x"></span>
+                            </div>
+                        </div>
+                    {% elif lease_status == 'Future' %}
+                        <div class="avatar avatar-3xl">
+                            <div class="avatar-name rounded-circle bg-info text-white">
+                                <span class="fas fa-clock fa-2x"></span>
+                            </div>
+                        </div>
+                    {% elif lease_status == 'Former' %}
+                        <div class="avatar avatar-3xl">
+                            <div class="avatar-name rounded-circle bg-secondary text-white">
+                                <span class="fas fa-history fa-2x"></span>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="avatar avatar-3xl">
+                            <div class="avatar-name rounded-circle bg-warning text-white">
+                                <span class="fas fa-user-plus fa-2x"></span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                {% if lease_status == 'Active' %}
+                    <h5 class="text-success">Active Tenant</h5>
+                    <p class="text-600 mb-0">Currently has an active lease agreement.</p>
+                {% elif lease_status == 'Future' %}
+                    <h5 class="text-info">Future Tenant</h5>
+                    <p class="text-600 mb-0">Has a lease starting in the future.</p>
+                {% elif lease_status == 'Former' %}
+                    <h5 class="text-secondary">Former Tenant</h5>
+                    <p class="text-600 mb-0">Previously rented but lease has ended.</p>
+                {% else %}
+                    <h5 class="text-warning">Prospect</h5>
+                    <p class="text-600 mb-0">Potential tenant with no lease agreements yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Actions Card -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-cogs me-2"></span>Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('tenant.edit', id=tenant.id) }}" class="btn btn-falcon-primary">
+                        <span class="fas fa-edit me-1"></span>Edit Tenant Info
+                    </a>
+                    
+                    {% if lease_status == 'Prospect' or lease_status == 'Former' %}
+                        <div class="dropdown">
+                            <button class="btn btn-falcon-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <span class="fas fa-plus me-1"></span>Create Lease
+                            </button>
+                            <div class="dropdown-menu w-100">
+                                {% for property in user.properties %}
+                                    <a class="dropdown-item" href="{{ url_for('lease.create', id=property.id) }}?tenant={{ tenant.id }}">
+                                        <span class="fas fa-building me-2"></span>{{ property.name }}
+                                    </a>
+                                {% endfor %}
+                                {% if not user.properties %}
+                                    <span class="dropdown-item-text text-muted">No properties available</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <button class="btn btn-falcon-danger" onclick="deleteTenant()">
+                        <span class="fas fa-trash me-1"></span>Delete Tenant
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Form -->
+<form id="deleteForm" method="POST" style="display: none;">
+</form>
+
+<script>
+function deleteTenant() {
+    if (confirm('Are you sure you want to delete tenant "{{ tenant.first_name }} {{ tenant.last_name }}"? This action cannot be undone.')) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/tenant/{{ tenant.id }}/delete`;
+        form.submit();
+    }
+}
+</script>
+
+{% else %} 
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="mb-4">No tenant found!</h5>
+        <a class="btn btn-falcon-primary btn-sm" href="{{ url_for('tenant.create') }}">
+            <span class="fas fa-plus fs--2 me-1"></span>Create Tenant
+        </a>
+    </div>
+</div>
 {% endif %} 
 
 {% endblock %}

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h5 class="mb-0">All Units</h5>
+                <p class="text-600 mb-0">Manage all your rental units</p>
+            </div>
+            <div class="col-auto">
+                <a href="{{ url_for('property.properties') }}" class="btn btn-falcon-default btn-sm">
+                    <span class="fas fa-building fs--2 me-1"></span>View Properties
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if units %}
+        <div class="table-responsive scrollbar">
+            <table class="table table-sm fs--1 mb-0">
+                <thead class="bg-200">
+                    <tr>
+                        <th class="text-900 sort" data-sort="unit">Unit Name</th>
+                        <th class="text-900 sort" data-sort="property">Property</th>
+                        <th class="text-900 sort" data-sort="specs">Specifications</th>
+                        <th class="text-900 sort" data-sort="rent">Monthly Rent</th>
+                        <th class="text-900 sort" data-sort="status">Status</th>
+                        <th class="text-900 no-sort">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="list">
+                    {% for unit in units %}
+                    <tr>
+                        <td class="unit">
+                            <a href="{{ url_for('unit.show', id=unit.id) }}" class="text-800 fw-semi-bold">
+                                {{ unit.name }}
+                            </a>
+                        </td>
+                        <td class="property">
+                            {% if unit.property_ref %}
+                                <a href="{{ url_for('property.home', id=unit.property) }}" class="text-600">
+                                    {{ unit.property_ref.name }}
+                                </a>
+                            {% else %}
+                                <span class="text-400">Property not found</span>
+                            {% endif %}
+                        </td>
+                        <td class="specs">
+                            <span class="badge badge-soft-info me-1">
+                                {{ unit.bedrooms or 0 }}bed
+                            </span>
+                            <span class="badge badge-soft-info me-1">
+                                {{ unit.bathrooms or 0 }}bath
+                            </span>
+                            {% if unit.sqft %}
+                                <span class="badge badge-soft-info">
+                                    {{ unit.sqft }}sqft
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="rent">
+                            {% if unit.rent %}
+                                <span class="text-success fw-semi-bold">${{ "{:,}".format(unit.rent) }}</span>
+                            {% else %}
+                                <span class="text-400">Not set</span>
+                            {% endif %}
+                        </td>
+                        <td class="status">
+                            <!-- TODO: Add lease status logic -->
+                            <span class="badge badge-soft-warning">Available</span>
+                        </td>
+                        <td class="actions">
+                            <div class="dropdown text-sans-serif">
+                                <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal" 
+                                        type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <span class="fas fa-ellipsis-h fs--1"></span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end border py-0">
+                                    <div class="py-2">
+                                        <a class="dropdown-item" href="{{ url_for('unit.show', id=unit.id) }}">
+                                            <span class="fas fa-eye me-1"></span>View Details
+                                        </a>
+                                        <a class="dropdown-item" href="{{ url_for('unit.edit', id=unit.id) }}">
+                                            <span class="fas fa-edit me-1"></span>Edit Unit
+                                        </a>
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item text-danger" href="#" 
+                                           onclick="deleteUnit({{ unit.id }}, '{{ unit.name }}')">
+                                            <span class="fas fa-trash me-1"></span>Delete Unit
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center p-4">
+            <div class="mb-3">
+                <span class="fas fa-home fa-2x text-300"></span>
+            </div>
+            <h6 class="mb-2">No Units Found</h6>
+            <p class="text-600 mb-3">You haven't created any units yet. Units are created within properties.</p>
+            <a href="{{ url_for('property.properties') }}" class="btn btn-falcon-primary btn-sm">
+                <span class="fas fa-building fs--2 me-1"></span>Go to Properties
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete form -->
+<form id="deleteForm" method="POST" style="display: none;">
+</form>
+
+<script>
+function deleteUnit(unitId, unitName) {
+    if (confirm(`Are you sure you want to delete unit "${unitName}"? This action cannot be undone.`)) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/unit/${unitId}/delete`;
+        form.submit();
+    }
+}
+</script>
+
+{% endblock %}

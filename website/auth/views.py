@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from website.models import User
 from werkzeug.security import generate_password_hash, check_password_hash
 from website import db 
@@ -41,7 +41,7 @@ def register():
         email           = register_form.email.data
         password        = register_form.password.data
 
-        user = User(first_name, last_name, email)
+        user = User(first_name=first_name, last_name=last_name, email=email)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
@@ -50,6 +50,27 @@ def register():
         return redirect(url_for("profile.home"))
 
     return render_template("register.html", form=register_form)
+
+@auth.route('/modal-register', methods=['POST'])
+def modal_register():
+    if current_user.is_authenticated:
+        return jsonify({'success': False, 'error': 'Already logged in'})
+    
+    register_form = RegistrationForm()
+    if register_form.validate_on_submit():
+        first_name = register_form.first_name.data
+        last_name = register_form.last_name.data
+        email = register_form.email.data
+        password = register_form.password.data
+
+        user = User(first_name=first_name, last_name=last_name, email=email)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        login_user(user, remember=True)
+        return jsonify({'success': True, 'redirect': url_for("profile.home")})
+    else:
+        return jsonify({'success': False, 'errors': register_form.errors})
 
 @auth.route('/forgot', methods=['GET', 'POST'])
 def forgot():

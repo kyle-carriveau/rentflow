@@ -54,7 +54,14 @@
               <td class="text-nowrap">{% if property.address %}{{ property.address }}{% endif %}</td>
               <td class="text-nowrap">{% if property.city %}{{ property.city }}{% endif %}</td>
               <td class="text-nowrap">{% if property.state %}{{ property.state }}{% endif %}</td>
-              <td><span class="badge badge rounded-pill d-block p-2 badge-soft-success">Leased<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span></td>
+              <td>
+                {% set status = property.get_lease_status() %}
+                {% if status == 'Leased' %}
+                  <span class="badge badge rounded-pill d-block p-2 badge-soft-success">Leased<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span>
+                {% else %}
+                  <span class="badge badge rounded-pill d-block p-2 badge-soft-warning">Vacant<span class="ms-1 fas fa-home" data-fa-transform="shrink-2"></span></span>
+                {% endif %}
+              </td>
             </tr>
             {% endfor %} 
           </tbody>

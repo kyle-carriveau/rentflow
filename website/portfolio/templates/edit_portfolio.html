@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Portfolio Header -->
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="d-flex align-items-center">
+                    <span class="fas fa-edit fa-2x text-primary me-3"></span>
+                    <div>
+                        <h4 class="mb-0">Edit Portfolio</h4>
+                        <p class="text-600 mb-0">Update portfolio details</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-auto">
+                <a href="{{ url_for('portfolio.view', id=portfolio.id) }}" class="btn btn-falcon-default btn-sm">
+                    <span class="fas fa-arrow-left fs--2 me-1"></span>Back to Portfolio
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Form -->
+<div class="row justify-content-center">
+    <div class="col-xl-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Portfolio Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Portfolio Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="{{ portfolio.name }}" required 
+                               placeholder="e.g., Downtown Properties, Residential Portfolio">
+                        <div class="form-text">Choose a descriptive name for your property collection</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="description" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" 
+                                  placeholder="Brief description of this portfolio...">{{ portfolio.description or '' }}</textarea>
+                        <div class="form-text">Provide additional context about this portfolio's purpose or strategy</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-danger" onclick="confirmDelete()">
+                            <span class="fas fa-trash fs--2 me-1"></span>Delete Portfolio
+                        </button>
+                        <div>
+                            <a href="{{ url_for('portfolio.view', id=portfolio.id) }}" class="btn btn-secondary me-2">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <span class="fas fa-save fs--2 me-1"></span>Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete confirmation form -->
+<form id="deleteForm" action="{{ url_for('portfolio.delete', id=portfolio.id) }}" method="POST" style="display: none;">
+</form>
+
+<script>
+function confirmDelete() {
+    const portfolioName = "{{ portfolio.name }}";
+    if (confirm(`Are you sure you want to delete portfolio "${portfolioName}"?\n\nAll properties will be moved to unassigned. This action cannot be undone.`)) {
+        document.getElementById('deleteForm').submit();
+    }
+}
+</script>
+
+{% endblock %}
