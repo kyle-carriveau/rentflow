@@ -7,7 +7,23 @@ profile = Blueprint('profile', __name__, template_folder='templates')
 @profile.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template("dashboard.html", user=current_user)
+    from datetime import datetime
+    from website.models import Property, Portfolio, Tenant
+    
+    # Get user's data
+    properties = Property.query.filter_by(owner=current_user.id).all()
+    portfolios = Portfolio.query.filter_by(owner=current_user.id).all()
+    tenants = Tenant.query.filter_by(landlord=current_user.id).all()
+    
+    # Pass today's date for lease calculations
+    today_date = datetime.now().date()
+    
+    return render_template("dashboard.html", 
+                         user=current_user, 
+                         properties=properties,
+                         portfolios=portfolios,
+                         tenants=tenants,
+                         today_date=today_date)
 
 @profile.route('/')
 @login_required
