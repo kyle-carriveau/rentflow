@@ -22,7 +22,7 @@
                 <li><a class="dropdown-item" href="{{ url_for('tenant.create') }}">
                     <span class="fas fa-user me-2"></span>New Tenant
                 </a></li>
-                <li><a class="dropdown-item" href="{{ url_for('portfolio.create_portfolio') }}">
+                <li><a class="dropdown-item" href="{{ url_for('portfolio.portfolios') }}">
                     <span class="fas fa-layer-group me-2"></span>New Portfolio
                 </a></li>
             </ul>
@@ -48,7 +48,7 @@
                         <p class="text-800 fs--1 mb-0">Total Properties</p>
                         {% if properties|length > 0 %}
                             <small class="text-600">
-                                {{ portfolios|length }} portfolio{{ 's' if portfolios|length != 1 else '' }}
+                                {{ portfolios|length }} portfolio{% if portfolios|length != 1 %}s{% endif %}
                             </small>
                         {% endif %}
                     </div>
@@ -237,11 +237,12 @@
                         {% set _ = all_leases.append(lease) %}
                     {% endfor %}
                 {% endfor %}
-                {% set recent_leases = all_leases|sort(attribute='id', reverse=true)[:5] %}
+                {% set sorted_leases = all_leases|sort(attribute='id', reverse=true) %}
                 
-                {% if recent_leases %}
+                {% if sorted_leases %}
                     <div class="list-group list-group-flush">
-                        {% for lease in recent_leases %}
+                        {% for lease in sorted_leases %}
+                            {% if loop.index <= 5 %}
                             <div class="list-group-item list-group-item-action">
                                 <div class="d-flex align-items-center">
                                     <div class="avatar avatar-sm me-3">
@@ -274,6 +275,7 @@
                                     </div>
                                 </div>
                             </div>
+                            {% endif %}
                         {% endfor %}
                     </div>
                 {% else %}
@@ -317,10 +319,12 @@
                                 <span class="fas fa-file-contract me-2"></span>Create Lease
                             </button>
                             <ul class="dropdown-menu w-100">
-                                {% for property in properties[:5] %}
+                                {% for property in properties %}
+                                    {% if loop.index <= 5 %}
                                     <li><a class="dropdown-item" href="{{ url_for('lease.create', id=property.id) }}">
                                         <span class="fas fa-building me-2"></span>{{ property.name }}
                                     </a></li>
+                                    {% endif %}
                                 {% endfor %}
                                 {% if properties|length > 5 %}
                                     <li><hr class="dropdown-divider"></li>
@@ -355,7 +359,8 @@
                 
                 {% if expiring_leases %}
                     <div class="list-group list-group-flush">
-                        {% for item in expiring_leases|sort(attribute='days')[:5] %}
+                        {% for item in expiring_leases|sort(attribute='days') %}
+                            {% if loop.index <= 5 %}
                             {% set lease = item.lease %}
                             {% set days = item.days %}
                             <div class="list-group-item">
@@ -377,7 +382,7 @@
                                             {% if lease.unit_ref %}
                                                 {{ lease.unit_ref.name }}
                                             {% endif %}
-                                            • {{ days }} day{{ 's' if days != 1 else '' }} left
+                                            • {{ days }} day{% if days != 1 %}s{% endif %} left
                                         </p>
                                     </div>
                                     <div class="text-end">
@@ -387,6 +392,7 @@
                                     </div>
                                 </div>
                             </div>
+                            {% endif %}
                         {% endfor %}
                     </div>
                 {% else %}
@@ -424,9 +430,10 @@
                         {% set _ = property_revenues.append({'property': property, 'revenue': revenue}) %}
                     {% endfor %}
                     
-                    {% set top_properties = property_revenues|sort(attribute='revenue', reverse=true)[:3] %}
+                    {% set sorted_properties = property_revenues|sort(attribute='revenue', reverse=true) %}
                     <div class="list-group list-group-flush">
-                        {% for item in top_properties %}
+                        {% for item in sorted_properties %}
+                            {% if loop.index <= 3 %}
                             {% set property = item.property %}
                             {% set revenue = item.revenue %}
                             <div class="list-group-item">
@@ -439,7 +446,7 @@
                                     <div class="flex-1">
                                         <h6 class="mb-1">{{ property.name }}</h6>
                                         <p class="mb-0 text-600 fs--1">
-                                            {{ property.units|length }} unit{{ 's' if property.units|length != 1 else '' }}
+                                            {{ property.units|length }} unit{% if property.units|length != 1 %}s{% endif %}
                                         </p>
                                     </div>
                                     <div class="text-end">
@@ -448,6 +455,7 @@
                                     </div>
                                 </div>
                             </div>
+                            {% endif %}
                         {% endfor %}
                     </div>
                 {% else %}

@@ -118,7 +118,7 @@
                 </div>
             </div>
             <div class="col-8 col-sm-auto text-end ps-2">
-                <div id="table-units-replace-element">
+                <div id="table-units-replace-element" class="d-flex align-items-center justify-content-end gap-2">
                     <div class="dropdown">
                         <button class="btn btn-falcon-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
@@ -139,7 +139,7 @@
                             {% endif %}
                         </div>
                     </div>
-                    <div class="btn-group ms-2" role="group">
+                    <div class="dropdown">
                         <button class="btn btn-falcon-default btn-sm" type="button" id="statusFilter" data-bs-toggle="dropdown" aria-expanded="false">
                             <span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span>
                             <span class="d-none d-sm-inline-block ms-1">Filter</span>
@@ -150,11 +150,11 @@
                             <li><a class="dropdown-item" href="#" onclick="filterUnits('Available')">Available Only</a></li>
                             <li><a class="dropdown-item" href="#" onclick="filterUnits('Reserved')">Reserved Only</a></li>
                         </ul>
-                        <button class="btn btn-falcon-default btn-sm" type="button" onclick="exportUnits()">
-                            <span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span>
-                            <span class="d-none d-sm-inline-block ms-1">Export</span>
-                        </button>
                     </div>
+                    <button class="btn btn-falcon-default btn-sm" type="button" onclick="exportUnits()">
+                        <span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span>
+                        <span class="d-none d-sm-inline-block ms-1">Export</span>
+                    </button>
                 </div>
             </div>
         </div>
