@@ -220,7 +220,16 @@
             <td class="text-nowrap">{{ unit.bathrooms }}</td>
             <td class="text-nowrap">{{ unit.sqft }}</td>
             <td class="text-nowrap">$ {{ unit.rent }}</td>
-            <td><span class="badge badge rounded-pill d-block p-2 badge-soft-success">Leased<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span></td>
+            <td>
+              {% set unit_status = unit.get_lease_status() %}
+              {% if unit_status == 'Occupied' %}
+                <span class="badge badge rounded-pill d-block p-2 badge-soft-success">Occupied<span class="ms-1 fas fa-user" data-fa-transform="shrink-2"></span></span>
+              {% elif unit_status == 'Reserved' %}
+                <span class="badge badge rounded-pill d-block p-2 badge-soft-info">Reserved<span class="ms-1 fas fa-calendar" data-fa-transform="shrink-2"></span></span>
+              {% else %}
+                <span class="badge badge rounded-pill d-block p-2 badge-soft-warning">Available<span class="ms-1 fas fa-home" data-fa-transform="shrink-2"></span></span>
+              {% endif %}
+            </td>
           </tr>
           {% endfor %} 
         </tbody>
