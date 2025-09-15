@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Add Expense - RentFlow{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0">Add Expense</h2>
+        <p class="mb-0 text-700">Record a property or business expense</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('financial.expenses') }}" class="btn btn-falcon-default btn-sm">
+            <span class="fas fa-arrow-left me-1"></span>Back to Expenses
+        </a>
+    </div>
+</div>
+
+<!-- Expense Form -->
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-receipt me-2"></span>Expense Details
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row g-3">
+                        <!-- Amount -->
+                        <div class="col-md-6">
+                            <label for="amount" class="form-label">Amount <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" step="0.01" min="0" class="form-control" id="amount" name="amount" required>
+                            </div>
+                        </div>
+
+                        <!-- Expense Date -->
+                        <div class="col-md-6">
+                            <label for="expense_date" class="form-label">Expense Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="expense_date" name="expense_date" 
+                                   value="{{ datetime.now().strftime('%Y-%m-%d') }}" required>
+                        </div>
+
+                        <!-- Category -->
+                        <div class="col-md-6">
+                            <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="">Choose a category...</option>
+                                {% for category in categories %}
+                                <option value="{{ category }}">{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Subcategory -->
+                        <div class="col-md-6">
+                            <label for="subcategory" class="form-label">Subcategory</label>
+                            <input type="text" class="form-control" id="subcategory" name="subcategory" 
+                                   placeholder="Optional subcategory">
+                        </div>
+
+                        <!-- Property -->
+                        <div class="col-md-6">
+                            <label for="property_id" class="form-label">Property</label>
+                            <select class="form-select" id="property_id" name="property_id">
+                                <option value="general">General Business Expense</option>
+                                {% for property in properties %}
+                                <option value="{{ property.id }}">{{ property.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Vendor -->
+                        <div class="col-md-6">
+                            <label for="vendor" class="form-label">Vendor/Payee</label>
+                            <input type="text" class="form-control" id="vendor" name="vendor" 
+                                   placeholder="Who was paid?">
+                        </div>
+
+                        <!-- Description -->
+                        <div class="col-12">
+                            <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="description" name="description" 
+                                   placeholder="Brief description of the expense" required>
+                        </div>
+
+                        <!-- Reference Number -->
+                        <div class="col-md-6">
+                            <label for="reference_number" class="form-label">Reference Number</label>
+                            <input type="text" class="form-control" id="reference_number" name="reference_number" 
+                                   placeholder="Invoice #, receipt #, etc.">
+                        </div>
+
+                        <!-- Tax Deductible -->
+                        <div class="col-md-6">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="tax_deductible" name="tax_deductible" value="1">
+                                <label class="form-check-label" for="tax_deductible">
+                                    Tax Deductible
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="col-12">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="Additional expense details or notes..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="{{ url_for('financial.expenses') }}" class="btn btn-falcon-default">Cancel</a>
+                                <button type="submit" class="btn btn-falcon-primary">
+                                    <span class="fas fa-save me-1"></span>Add Expense
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

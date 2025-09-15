@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Payments - RentFlow{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0">Payments</h2>
+        <p class="mb-0 text-700">View and manage rent payments</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('financial.record_payment') }}" class="btn btn-falcon-success btn-sm">
+            <span class="fas fa-plus me-1"></span>Record Payment
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="property" class="form-label">Property</label>
+                <select class="form-select" id="property" name="property">
+                    <option value="all" {% if property_filter == 'all' %}selected{% endif %}>All Properties</option>
+                    {% for property in properties %}
+                    <option value="{{ property.id }}" {% if property_filter == property.id|string %}selected{% endif %}>
+                        {{ property.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-falcon-primary">
+                    <span class="fas fa-filter me-1"></span>Filter
+                </button>
+                <a href="{{ url_for('financial.payments') }}" class="btn btn-falcon-default ms-2">
+                    <span class="fas fa-times me-1"></span>Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Payments Table -->
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h6 class="mb-0">
+                    <span class="fas fa-list me-2"></span>Payment History
+                </h6>
+            </div>
+            <div class="col-auto">
+                <span class="text-600">{{ payments.total }} payment{% if payments.total != 1 %}s{% endif %} found</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if payments.items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Tenant</th>
+                        <th>Property</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Reference</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments.items %}
+                    <tr>
+                        <td>{{ payment.payment_date.strftime('%m/%d/%Y') }}</td>
+                        <td>
+                            {% if payment.lease_ref and payment.lease_ref.tenant_ref %}
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-xs me-2">
+                                    <div class="avatar-name rounded-circle bg-primary text-white">
+                                        <span>{{ payment.lease_ref.tenant_ref.first_name[0] }}{{ payment.lease_ref.tenant_ref.last_name[0] }}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('tenant.home', id=payment.lease_ref.tenant_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                        {{ payment.lease_ref.tenant_ref.first_name }} {{ payment.lease_ref.tenant_ref.last_name }}
+                                    </a>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if payment.property_ref %}
+                            <a href="{{ url_for('property.home', id=payment.property_ref.id) }}" class="text-decoration-none">
+                                {{ payment.property_ref.name }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="fw-bold text-success">${{ "{:,.2f}".format(payment.amount) }}</span>
+                        </td>
+                        <td>
+                            <span class="text-capitalize">{{ payment.payment_method.replace('_', ' ') }}</span>
+                        </td>
+                        <td>
+                            {% if payment.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                            {% elif payment.status == 'pending' %}
+                            <span class="badge bg-warning">Pending</span>
+                            {% elif payment.status == 'failed' %}
+                            <span class="badge bg-danger">Failed</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ payment.status.title() }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if payment.reference_number %}
+                            <span class="text-600">{{ payment.reference_number }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-falcon-default dropdown-toggle" type="button" 
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="fas fa-ellipsis-h"></span>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#paymentModal{{ payment.id }}">
+                                        <span class="fas fa-eye me-2"></span>View Details
+                                    </a></li>
+                                    {% if payment.status == 'pending' %}
+                                    <li><a class="dropdown-item" href="#">
+                                        <span class="fas fa-check me-2"></span>Mark as Completed
+                                    </a></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if payments.pages > 1 %}
+        <div class="card-footer">
+            <nav aria-label="Payments pagination">
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    {% if payments.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('financial.payments', page=payments.prev_num, status=status_filter, property=property_filter) }}">
+                            <span class="fas fa-chevron-left"></span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in payments.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != payments.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('financial.payments', page=page_num, status=status_filter, property=property_filter) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if payments.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('financial.payments', page=payments.next_num, status=status_filter, property=property_filter) }}">
+                            <span class="fas fa-chevron-right"></span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center p-5">
+            <div class="avatar avatar-2xl">
+                <div class="avatar-name rounded-circle bg-200 text-600">
+                    <span class="fas fa-dollar-sign"></span>
+                </div>
+            </div>
+            <h6 class="mt-3 mb-1">No Payments Found</h6>
+            <p class="text-600 mb-3">No payments match your current filters.</p>
+            <a href="{{ url_for('financial.record_payment') }}" class="btn btn-falcon-success">
+                <span class="fas fa-plus me-1"></span>Record First Payment
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Payment Detail Modals -->
+{% for payment in payments.items %}
+<div class="modal fade" id="paymentModal{{ payment.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Payment Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <strong>Payment Date:</strong><br>
+                        {{ payment.payment_date.strftime('%B %d, %Y') }}
+                    </div>
+                    <div class="col-6">
+                        <strong>Amount:</strong><br>
+                        ${{ "{:,.2f}".format(payment.amount) }}
+                    </div>
+                    <div class="col-6">
+                        <strong>Payment Method:</strong><br>
+                        {{ payment.payment_method.replace('_', ' ').title() }}
+                    </div>
+                    <div class="col-6">
+                        <strong>Status:</strong><br>
+                        <span class="badge bg-{% if payment.status == 'completed' %}success{% elif payment.status == 'pending' %}warning{% else %}danger{% endif %}">
+                            {{ payment.status.title() }}
+                        </span>
+                    </div>
+                    {% if payment.reference_number %}
+                    <div class="col-12">
+                        <strong>Reference Number:</strong><br>
+                        {{ payment.reference_number }}
+                    </div>
+                    {% endif %}
+                    {% if payment.notes %}
+                    <div class="col-12">
+                        <strong>Notes:</strong><br>
+                        {{ payment.notes }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-falcon-default" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}

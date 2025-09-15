@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Reports - RentFlow{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0">Financial Reports</h2>
+        <p class="mb-0 text-700">Analytics and reporting for your rental business</p>
+    </div>
+    <div class="col-auto">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('financial.dashboard') }}" class="btn btn-falcon-default btn-sm">
+                <span class="fas fa-tachometer-alt me-1"></span>Dashboard
+            </a>
+            <button type="button" class="btn btn-falcon-primary btn-sm">
+                <span class="fas fa-download me-1"></span>Export Report
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Year-to-Date Summary Cards -->
+<div class="row g-3 mb-4">
+    <!-- YTD Income -->
+    <div class="col-sm-6 col-lg-4">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-1.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-success text-white">
+                            <span class="fas fa-arrow-up"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0 text-success">${{ "{:,.2f}".format(ytd_income) }}</h4>
+                        <p class="text-800 fs--1 mb-0">YTD Income</p>
+                        <small class="text-600">Year to Date</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- YTD Expenses -->
+    <div class="col-sm-6 col-lg-4">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-2.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-danger text-white">
+                            <span class="fas fa-arrow-down"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0 text-danger">${{ "{:,.2f}".format(ytd_expenses) }}</h4>
+                        <p class="text-800 fs--1 mb-0">YTD Expenses</p>
+                        <small class="text-600">Year to Date</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- YTD Net Income -->
+    <div class="col-sm-6 col-lg-4">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-3.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle {% if ytd_net >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white">
+                            <span class="fas fa-chart-line"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0 {% if ytd_net >= 0 %}text-primary{% else %}text-warning{% endif %}">${{ "{:,.2f}".format(ytd_net) }}</h4>
+                        <p class="text-800 fs--1 mb-0">YTD Net Income</p>
+                        <small class="text-600">Year to Date</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reports Content Row -->
+<div class="row g-3">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Monthly Income vs Expenses Chart -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-chart-bar me-2"></span>Monthly Income vs Expenses
+                </h6>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Monthly Breakdown Table -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-table me-2"></span>Monthly Breakdown
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Income</th>
+                                <th>Expenses</th>
+                                <th>Net Income</th>
+                                <th>Margin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for month in monthly_data %}
+                            <tr>
+                                <td class="fw-semi-bold">{{ month.month }}</td>
+                                <td class="text-success">${{ "{:,.2f}".format(month.income) }}</td>
+                                <td class="text-danger">${{ "{:,.2f}".format(month.expenses) }}</td>
+                                <td class="{% if month.net >= 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                    ${{ "{:,.2f}".format(month.net) }}
+                                </td>
+                                <td>
+                                    {% if month.income > 0 %}
+                                    {% set margin = ((month.net / month.income) * 100) %}
+                                    <span class="{% if margin >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ "{:.1f}".format(margin) }}%
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Expense Categories Breakdown -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-pie-chart me-2"></span>Expense Categories
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if expense_categories %}
+                <canvas id="expenseChart" width="300" height="300"></canvas>
+                {% else %}
+                <div class="text-center p-3">
+                    <div class="avatar avatar-xl">
+                        <div class="avatar-name rounded-circle bg-200 text-600">
+                            <span class="fas fa-chart-pie"></span>
+                        </div>
+                    </div>
+                    <h6 class="mt-3 mb-1">No Expense Data</h6>
+                    <p class="text-600 mb-0">Add expenses to see category breakdown.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-calculator me-2"></span>Quick Stats
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-0">
+                    <div class="col-12 mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-600">Average Monthly Income:</span>
+                            <span class="fw-bold text-success">
+                                {% set avg_income = monthly_data|map(attribute='income')|list|sum / monthly_data|length if monthly_data|length > 0 else 0 %}
+                                ${{ "{:,.0f}".format(avg_income) }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-600">Average Monthly Expenses:</span>
+                            <span class="fw-bold text-danger">
+                                {% set avg_expenses = monthly_data|map(attribute='expenses')|list|sum / monthly_data|length if monthly_data|length > 0 else 0 %}
+                                ${{ "{:,.0f}".format(avg_expenses) }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-600">Best Month:</span>
+                            <span class="fw-bold">
+                                {% set best_month = monthly_data|sort(attribute='net', reverse=true)|first if monthly_data else none %}
+                                {% if best_month %}
+                                {{ best_month.month }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-600">Profit Margin:</span>
+                            <span class="fw-bold">
+                                {% if ytd_income > 0 %}
+                                {% set margin = ((ytd_net / ytd_income) * 100) %}
+                                <span class="{% if margin >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ "{:.1f}".format(margin) }}%
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block javascript %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Monthly Income vs Expenses Chart
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+const monthlyChart = new Chart(monthlyCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for month in monthly_data %}'{{ month.month }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Income',
+            data: [{% for month in monthly_data %}{{ month.income }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }, {
+            label: 'Expenses',
+            data: [{% for month in monthly_data %}{{ month.expenses }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: 'rgba(255, 99, 132, 0.8)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value.toLocaleString();
+                    }
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+{% if expense_categories %}
+// Expense Categories Pie Chart
+const expenseCtx = document.getElementById('expenseChart').getContext('2d');
+const expenseChart = new Chart(expenseCtx, {
+    type: 'pie',
+    data: {
+        labels: [{% for category in expense_categories %}'{{ category.category }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            data: [{% for category in expense_categories %}{{ category.total }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 205, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)',
+                'rgba(199, 199, 199, 0.8)',
+                'rgba(83, 102, 255, 0.8)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 205, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)',
+                'rgba(199, 199, 199, 1)',
+                'rgba(83, 102, 255, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                        return context.label + ': $' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

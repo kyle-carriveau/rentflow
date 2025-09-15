@@ -40,6 +40,9 @@ def create_app():
     from website.portfolio.views import portfolio
     app.register_blueprint(portfolio, url_prefix='/portfolio')
 
+    from website.financial.views import financial
+    app.register_blueprint(financial, url_prefix='/financial')
+
     from website.errors import page_not_found
     app.register_error_handler(404, page_not_found)
 

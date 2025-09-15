@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Record Payment - RentFlow{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0">Record Payment</h2>
+        <p class="mb-0 text-700">Record a rent payment from a tenant</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('financial.payments') }}" class="btn btn-falcon-default btn-sm">
+            <span class="fas fa-arrow-left me-1"></span>Back to Payments
+        </a>
+    </div>
+</div>
+
+<!-- Payment Form -->
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-dollar-sign me-2"></span>Payment Details
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row g-3">
+                        <!-- Lease Selection -->
+                        <div class="col-md-12">
+                            <label for="lease_id" class="form-label">Select Lease <span class="text-danger">*</span></label>
+                            <select class="form-select" id="lease_id" name="lease_id" required>
+                                <option value="">Choose a lease...</option>
+                                {% for lease in leases %}
+                                <option value="{{ lease.id }}" 
+                                        {% if request.args.get('lease') == lease.id|string %}selected{% endif %}>
+                                    {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }} - 
+                                    {{ lease.property_ref.name }} (Unit {{ lease.unit_ref.unit_number }}) - 
+                                    ${{ "{:,.2f}".format(lease.rent_amount) }}/month
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Amount -->
+                        <div class="col-md-6">
+                            <label for="amount" class="form-label">Payment Amount <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" step="0.01" min="0" class="form-control" id="amount" name="amount" required>
+                            </div>
+                        </div>
+
+                        <!-- Payment Date -->
+                        <div class="col-md-6">
+                            <label for="payment_date" class="form-label">Payment Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="payment_date" name="payment_date" 
+                                   value="{{ datetime.now().strftime('%Y-%m-%d') }}" required>
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div class="col-md-6">
+                            <label for="payment_method" class="form-label">Payment Method</label>
+                            <select class="form-select" id="payment_method" name="payment_method">
+                                <option value="cash">Cash</option>
+                                <option value="check">Check</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="credit_card">Credit Card</option>
+                                <option value="money_order">Money Order</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Reference Number -->
+                        <div class="col-md-6">
+                            <label for="reference_number" class="form-label">Reference Number</label>
+                            <input type="text" class="form-control" id="reference_number" name="reference_number" 
+                                   placeholder="Check #, transaction ID, etc.">
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="col-12">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="Additional payment details or notes..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="{{ url_for('financial.payments') }}" class="btn btn-falcon-default">Cancel</a>
+                                <button type="submit" class="btn btn-falcon-success">
+                                    <span class="fas fa-save me-1"></span>Record Payment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

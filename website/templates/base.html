@@ -155,6 +155,44 @@
                   </a>
                 </li>
 
+                <!-- Financial Management Section -->
+                <li class="nav-item">
+                  <div class="row navbar-vertical-label-wrapper mt-3 mb-2">
+                    <div class="col-auto navbar-vertical-label">Financial Management</div>
+                    <div class="col ps-0">
+                      <hr class="mb-0 navbar-vertical-divider" />
+                    </div>
+                  </div>
+                  
+                  <a class="nav-link {{ 'active' if request.endpoint and 'financial.dashboard' in request.endpoint else '' }}" href="{{ url_for('financial.dashboard') }}" role="button">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-icon"><span class="fas fa-chart-line"></span></span>
+                      <span class="nav-link-text ps-1">Financial Dashboard</span>
+                    </div>
+                  </a>
+                  
+                  <a class="nav-link {{ 'active' if request.endpoint and 'financial.payments' in request.endpoint else '' }}" href="{{ url_for('financial.payments') }}" role="button">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-icon"><span class="fas fa-dollar-sign"></span></span>
+                      <span class="nav-link-text ps-1">Payments</span>
+                    </div>
+                  </a>
+                  
+                  <a class="nav-link {{ 'active' if request.endpoint and 'financial.expenses' in request.endpoint else '' }}" href="{{ url_for('financial.expenses') }}" role="button">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-icon"><span class="fas fa-receipt"></span></span>
+                      <span class="nav-link-text ps-1">Expenses</span>
+                    </div>
+                  </a>
+                  
+                  <a class="nav-link {{ 'active' if request.endpoint and 'financial.reports' in request.endpoint else '' }}" href="{{ url_for('financial.reports') }}" role="button">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-icon"><span class="fas fa-chart-bar"></span></span>
+                      <span class="nav-link-text ps-1">Reports</span>
+                    </div>
+                  </a>
+                </li>
+
                 <!-- Account Section -->
                 <li class="nav-item">
                   <div class="row navbar-vertical-label-wrapper mt-3 mb-2">

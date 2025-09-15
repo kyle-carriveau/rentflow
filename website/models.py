@@ -211,3 +211,136 @@ class Lease(db.Model):
     start = db.Column(db.DateTime, nullable=False)
     end = db.Column(db.DateTime, nullable=False)
     rent = db.Column(db.Integer, nullable=False)
+    
+    # Relationships
+    tenant_ref = db.relationship('Tenant', backref='leases')
+    unit_ref = db.relationship('Unit', backref='leases')
+    property_ref = db.relationship('Property', backref='leases')
+    payments = db.relationship('Payment', backref='lease_ref', lazy=True, cascade='all, delete-orphan')
+    
+    def get_total_paid(self):
+        """Calculate total amount paid for this lease."""
+        return sum(payment.amount for payment in self.payments if payment.status == 'completed')
+    
+    def get_outstanding_balance(self):
+        """Calculate outstanding balance for this lease."""
+        from datetime import datetime
+        
+        # Calculate total rent due up to today
+        today = datetime.now().date()
+        lease_start = self.start.date()
+        lease_end = min(self.end.date(), today)
+        
+        if lease_start > today:
+            return 0
+            
+        # Simple monthly calculation (could be enhanced for daily proration)
+        import calendar
+        from dateutil.relativedelta import relativedelta
+        
+        total_due = 0
+        current_date = lease_start.replace(day=1)  # Start from first of month
+        
+        while current_date <= lease_end:
+            if current_date.month == lease_start.month and current_date.year == lease_start.year:
+                # Prorate first month if needed
+                days_in_month = calendar.monthrange(current_date.year, current_date.month)[1]
+                days_occupied = days_in_month - lease_start.day + 1
+                total_due += (self.rent * days_occupied) / days_in_month
+            elif current_date <= lease_end:
+                total_due += self.rent
+            current_date += relativedelta(months=1)
+        
+        return max(0, total_due - self.get_total_paid())
+    
+    def is_overdue(self):
+        """Check if rent payment is overdue."""
+        return self.get_outstanding_balance() > 0
+
+
+class Payment(db.Model):
+    __tablename__ = 'payment'
+    id = db.Column(db.Integer, primary_key=True)
+    lease_id = db.Column(db.Integer, db.ForeignKey('lease.id'), nullable=False)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Payment details
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    payment_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    due_date = db.Column(db.DateTime, nullable=False)
+    
+    # Payment method and status
+    payment_method = db.Column(db.String(50), nullable=False, default='cash')  # cash, check, bank_transfer, credit_card
+    status = db.Column(db.String(20), nullable=False, default='pending')  # pending, completed, failed, refunded
+    
+    # References and notes
+    reference_number = db.Column(db.String(100))  # Check number, transaction ID, etc.
+    notes = db.Column(db.Text)
+    
+    # Late fee tracking
+    late_fee = db.Column(db.Numeric(10, 2), default=0)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    property_ref = db.relationship('Property', backref='payments')
+    user_ref = db.relationship('User', backref='payments')
+    
+    def __repr__(self):
+        return f'<Payment {self.id}: ${self.amount} for Lease {self.lease_id}>'
+    
+    def is_late(self):
+        """Check if payment is late."""
+        return self.payment_date.date() > self.due_date.date() if self.status == 'completed' else datetime.now().date() > self.due_date.date()
+
+
+class Expense(db.Model):
+    __tablename__ = 'expense'
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)  # Nullable for general expenses
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Expense details
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    expense_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    
+    # Categorization
+    category = db.Column(db.String(50), nullable=False)  # maintenance, utilities, insurance, taxes, etc.
+    subcategory = db.Column(db.String(50))  # plumbing, electrical, water, electric, etc.
+    
+    # Description and details
+    description = db.Column(db.String(255), nullable=False)
+    vendor = db.Column(db.String(100))
+    receipt_url = db.Column(db.String(255))  # Path to uploaded receipt
+    
+    # Tax and business categorization
+    tax_deductible = db.Column(db.Boolean, default=True)
+    recurring = db.Column(db.Boolean, default=False)
+    recurring_frequency = db.Column(db.String(20))  # monthly, quarterly, yearly
+    
+    # References
+    reference_number = db.Column(db.String(100))  # Invoice number, receipt number
+    notes = db.Column(db.Text)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    property_ref = db.relationship('Property', backref='expenses')
+    user_ref = db.relationship('User', backref='expenses')
+    
+    def __repr__(self):
+        return f'<Expense {self.id}: ${self.amount} - {self.category}>'
+    
+    @staticmethod
+    def get_categories():
+        """Get list of expense categories."""
+        return [
+            'maintenance', 'repairs', 'utilities', 'insurance', 'taxes', 
+            'management_fees', 'legal_fees', 'advertising', 'cleaning',
+            'landscaping', 'mortgage_interest', 'depreciation', 'other'
+        ]

@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}Expenses - RentFlow{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0">Expenses</h2>
+        <p class="mb-0 text-700">View and manage property expenses</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('financial.add_expense') }}" class="btn btn-falcon-primary btn-sm">
+            <span class="fas fa-plus me-1"></span>Add Expense
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="category" class="form-label">Category</label>
+                <select class="form-select" id="category" name="category">
+                    <option value="all" {% if category_filter == 'all' %}selected{% endif %}>All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category }}" {% if category_filter == category %}selected{% endif %}>
+                        {{ category }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="property" class="form-label">Property</label>
+                <select class="form-select" id="property" name="property">
+                    <option value="all" {% if property_filter == 'all' %}selected{% endif %}>All Properties</option>
+                    <option value="general" {% if property_filter == 'general' %}selected{% endif %}>General Business</option>
+                    {% for property in properties %}
+                    <option value="{{ property.id }}" {% if property_filter == property.id|string %}selected{% endif %}>
+                        {{ property.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-falcon-primary">
+                    <span class="fas fa-filter me-1"></span>Filter
+                </button>
+                <a href="{{ url_for('financial.expenses') }}" class="btn btn-falcon-default ms-2">
+                    <span class="fas fa-times me-1"></span>Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Expenses Table -->
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h6 class="mb-0">
+                    <span class="fas fa-list me-2"></span>Expense History
+                </h6>
+            </div>
+            <div class="col-auto">
+                <span class="text-600">{{ expenses.total }} expense{% if expenses.total != 1 %}s{% endif %} found</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if expenses.items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Property</th>
+                        <th>Vendor</th>
+                        <th>Amount</th>
+                        <th>Tax Deductible</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses.items %}
+                    <tr>
+                        <td>{{ expense.expense_date.strftime('%m/%d/%Y') }}</td>
+                        <td>
+                            <div>
+                                <span class="fw-semi-bold">{{ expense.description }}</span>
+                                {% if expense.subcategory %}
+                                <br><small class="text-600">{{ expense.subcategory }}</small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-info text-dark">{{ expense.category }}</span>
+                        </td>
+                        <td>
+                            {% if expense.property_ref %}
+                            <a href="{{ url_for('property.home', id=expense.property_ref.id) }}" class="text-decoration-none">
+                                {{ expense.property_ref.name }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">General Business</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if expense.vendor %}
+                            <span class="text-600">{{ expense.vendor }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="fw-bold text-danger">${{ "{:,.2f}".format(expense.amount) }}</span>
+                        </td>
+                        <td>
+                            {% if expense.tax_deductible %}
+                            <span class="badge bg-success">
+                                <span class="fas fa-check me-1"></span>Yes
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-falcon-default dropdown-toggle" type="button" 
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="fas fa-ellipsis-h"></span>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#expenseModal{{ expense.id }}">
+                                        <span class="fas fa-eye me-2"></span>View Details
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#">
+                                        <span class="fas fa-edit me-2"></span>Edit
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#">
+                                        <span class="fas fa-trash me-2"></span>Delete
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if expenses.pages > 1 %}
+        <div class="card-footer">
+            <nav aria-label="Expenses pagination">
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    {% if expenses.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('financial.expenses', page=expenses.prev_num, category=category_filter, property=property_filter) }}">
+                            <span class="fas fa-chevron-left"></span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in expenses.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != expenses.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('financial.expenses', page=page_num, category=category_filter, property=property_filter) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if expenses.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('financial.expenses', page=expenses.next_num, category=category_filter, property=property_filter) }}">
+                            <span class="fas fa-chevron-right"></span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center p-5">
+            <div class="avatar avatar-2xl">
+                <div class="avatar-name rounded-circle bg-200 text-600">
+                    <span class="fas fa-receipt"></span>
+                </div>
+            </div>
+            <h6 class="mt-3 mb-1">No Expenses Found</h6>
+            <p class="text-600 mb-3">No expenses match your current filters.</p>
+            <a href="{{ url_for('financial.add_expense') }}" class="btn btn-falcon-primary">
+                <span class="fas fa-plus me-1"></span>Add First Expense
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Expense Detail Modals -->
+{% for expense in expenses.items %}
+<div class="modal fade" id="expenseModal{{ expense.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Expense Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <strong>Expense Date:</strong><br>
+                        {{ expense.expense_date.strftime('%B %d, %Y') }}
+                    </div>
+                    <div class="col-6">
+                        <strong>Amount:</strong><br>
+                        ${{ "{:,.2f}".format(expense.amount) }}
+                    </div>
+                    <div class="col-6">
+                        <strong>Category:</strong><br>
+                        {{ expense.category }}
+                        {% if expense.subcategory %}<br><small class="text-muted">{{ expense.subcategory }}</small>{% endif %}
+                    </div>
+                    <div class="col-6">
+                        <strong>Property:</strong><br>
+                        {% if expense.property_ref %}
+                        {{ expense.property_ref.name }}
+                        {% else %}
+                        General Business
+                        {% endif %}
+                    </div>
+                    <div class="col-12">
+                        <strong>Description:</strong><br>
+                        {{ expense.description }}
+                    </div>
+                    {% if expense.vendor %}
+                    <div class="col-6">
+                        <strong>Vendor:</strong><br>
+                        {{ expense.vendor }}
+                    </div>
+                    {% endif %}
+                    {% if expense.reference_number %}
+                    <div class="col-6">
+                        <strong>Reference Number:</strong><br>
+                        {{ expense.reference_number }}
+                    </div>
+                    {% endif %}
+                    <div class="col-6">
+                        <strong>Tax Deductible:</strong><br>
+                        {% if expense.tax_deductible %}
+                        <span class="badge bg-success">Yes</span>
+                        {% else %}
+                        <span class="badge bg-secondary">No</span>
+                        {% endif %}
+                    </div>
+                    {% if expense.notes %}
+                    <div class="col-12">
+                        <strong>Notes:</strong><br>
+                        {{ expense.notes }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-falcon-default" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}
