@@ -38,8 +38,8 @@
                                 <option value="{{ lease.id }}" 
                                         {% if request.args.get('lease') == lease.id|string %}selected{% endif %}>
                                     {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }} - 
-                                    {{ lease.property_ref.name }} (Unit {{ lease.unit_ref.unit_number }}) - 
-                                    ${{ "{:,.2f}".format(lease.rent_amount) }}/month
+                                    {{ lease.lease_property_ref.name }} (Unit {{ lease.unit_ref.name }}) - 
+                                    ${{ "{:,.2f}".format(lease.rent) }}/month
                                 </option>
                                 {% endfor %}
                             </select>

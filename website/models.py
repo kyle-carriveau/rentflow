@@ -51,8 +51,8 @@ class Property(db.Model):
     
     # Relationships with cascade delete
     units = db.relationship('Unit', backref='property_ref', cascade='all, delete-orphan')
-    tenants = db.relationship('Tenant', backref='property_ref', cascade='all, delete-orphan')
-    leases = db.relationship('Lease', backref='property_ref', cascade='all, delete-orphan')
+    tenants = db.relationship('Tenant', backref='tenant_property_ref', cascade='all, delete-orphan')
+    leases = db.relationship('Lease', backref='lease_property_ref', cascade='all, delete-orphan')
     
     def get_lease_status(self):
         """Returns the lease status of this property"""
@@ -213,9 +213,6 @@ class Lease(db.Model):
     rent = db.Column(db.Integer, nullable=False)
     
     # Relationships
-    tenant_ref = db.relationship('Tenant', backref='leases')
-    unit_ref = db.relationship('Unit', backref='leases')
-    property_ref = db.relationship('Property', backref='leases')
     payments = db.relationship('Payment', backref='lease_ref', lazy=True, cascade='all, delete-orphan')
     
     def get_total_paid(self):

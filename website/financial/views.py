@@ -52,7 +52,7 @@ def dashboard():
                 'lease': lease,
                 'balance': balance,
                 'tenant': lease.tenant_ref,
-                'property': lease.property_ref
+                'property': lease.lease_property_ref
             })
             total_outstanding += balance
     
@@ -124,7 +124,7 @@ def record_payment():
         
         try:
             lease = Lease.query.filter_by(id=lease_id).first()
-            if not lease or lease.property_ref.owner != current_user.id:
+            if not lease or lease.lease_property_ref.owner != current_user.id:
                 flash('Invalid lease selected.', 'error')
                 return redirect(url_for('financial.record_payment'))
             
