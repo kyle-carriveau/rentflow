@@ -117,38 +117,76 @@ def record_payment():
         reference_number = request.form.get('reference_number', '')
         notes = request.form.get('notes', '')
         
-        # Validation
-        if not all([lease_id, amount, payment_date]):
-            flash('Please fill in all required fields.', 'error')
+        # Enhanced validation with specific error messages
+        errors = []
+        
+        if not lease_id:
+            errors.append('Please select a lease.')
+        if not amount:
+            errors.append('Please enter a payment amount.')
+        elif not amount.replace('.', '').isdigit() or float(amount) <= 0:
+            errors.append('Please enter a valid payment amount greater than 0.')
+        if not payment_date:
+            errors.append('Please select a payment date.')
+            
+        if errors:
+            for error in errors:
+                flash(error, 'error')
             return redirect(url_for('financial.record_payment'))
         
         try:
+            # Validate lease exists and belongs to user
             lease = Lease.query.filter_by(id=lease_id).first()
-            if not lease or lease.lease_property_ref.owner != current_user.id:
-                flash('Invalid lease selected.', 'error')
+            if not lease:
+                flash('The selected lease could not be found.', 'error')
+                return redirect(url_for('financial.record_payment'))
+                
+            if lease.lease_property_ref.owner != current_user.id:
+                flash('You do not have permission to record payments for this lease.', 'error')
                 return redirect(url_for('financial.record_payment'))
             
+            # Validate amount
+            payment_amount = Decimal(amount)
+            if payment_amount > 99999.99:
+                flash('Payment amount cannot exceed $99,999.99.', 'error')
+                return redirect(url_for('financial.record_payment'))
+            
+            # Validate date
+            try:
+                payment_date_obj = datetime.strptime(payment_date, '%Y-%m-%d')
+            except ValueError:
+                flash('Please enter a valid payment date.', 'error')
+                return redirect(url_for('financial.record_payment'))
+            
+            # Create payment record
             payment = Payment(
                 lease_id=lease_id,
                 property_id=lease.property_id,
                 user_id=current_user.id,
-                amount=Decimal(amount),
-                payment_date=datetime.strptime(payment_date, '%Y-%m-%d'),
-                due_date=datetime.strptime(payment_date, '%Y-%m-%d'),  # Simplified for now
+                amount=payment_amount,
+                payment_date=payment_date_obj,
+                due_date=payment_date_obj,  # Simplified for now
                 payment_method=payment_method,
-                reference_number=reference_number,
-                notes=notes,
+                reference_number=reference_number.strip() if reference_number else '',
+                notes=notes.strip() if notes else '',
                 status='completed'
             )
             
             db.session.add(payment)
             db.session.commit()
-            flash('Payment recorded successfully!', 'success')
+            
+            # Success message with details
+            tenant_name = f"{lease.tenant_ref.first_name} {lease.tenant_ref.last_name}"
+            flash(f'Payment of ${payment_amount:,.2f} recorded successfully for {tenant_name}.', 'success')
             return redirect(url_for('financial.payments'))
             
+        except ValueError as e:
+            db.session.rollback()
+            flash('Invalid payment amount format. Please enter a valid number.', 'error')
+            return redirect(url_for('financial.record_payment'))
         except Exception as e:
             db.session.rollback()
-            flash('Error recording payment. Please try again.', 'error')
+            flash('An unexpected error occurred while recording the payment. Please try again.', 'error')
             return redirect(url_for('financial.record_payment'))
     
     # GET request - show form
