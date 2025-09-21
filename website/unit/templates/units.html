@@ -11,7 +11,7 @@
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-primary text-white">
+                        <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-home"></span>
                         </div>
                     </div>
@@ -30,7 +30,7 @@
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-success text-white">
+                        <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-user"></span>
                         </div>
                     </div>
@@ -55,7 +55,7 @@
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-warning text-white">
+                        <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-door-open"></span>
                         </div>
                     </div>
@@ -80,7 +80,7 @@
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-info text-white">
+                        <div class="avatar-name rounded-circle bg-info text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-dollar-sign"></span>
                         </div>
                     </div>
@@ -183,38 +183,24 @@
                         data-unit="{{ unit.name }}" 
                         data-property="{{ unit.property_ref.name if unit.property_ref else '' }}">
                         <td class="unit">
-                            <div class="d-flex align-items-center">
-                                <div class="avatar avatar-sm me-2">
-                                    <div class="avatar-name rounded bg-primary text-white">
-                                        <span class="fas fa-home fs--2"></span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <a href="{{ url_for('unit.show', id=unit.id) }}" class="fw-semi-bold text-decoration-none">
-                                        {{ unit.name }}
-                                    </a>
-                                    {% if unit.description %}
-                                        <div class="fs--2 text-600">{{ unit.description[:50] }}{% if unit.description|length > 50 %}...{% endif %}</div>
-                                    {% endif %}
-                                </div>
+                            <div>
+                                <a href="{{ url_for('unit.show', id=unit.id) }}" class="fw-semi-bold text-decoration-none">
+                                    {{ unit.name }}
+                                </a>
+                                {% if unit.description %}
+                                    <div class="fs--2 text-600">{{ unit.description[:50] }}{% if unit.description|length > 50 %}...{% endif %}</div>
+                                {% endif %}
                             </div>
                         </td>
                         <td class="property">
                             {% if unit.property_ref %}
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-xs me-2">
-                                        <div class="avatar-name rounded bg-secondary text-white">
-                                            <span class="fas fa-building fs--2"></span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <a href="{{ url_for('property.home', id=unit.property) }}" class="fw-semi-bold text-decoration-none">
-                                            {{ unit.property_ref.name }}
-                                        </a>
-                                        {% if unit.property_ref.address %}
-                                            <div class="fs--2 text-600">{{ unit.property_ref.address }}</div>
-                                        {% endif %}
-                                    </div>
+                                <div>
+                                    <a href="{{ url_for('property.home', id=unit.property) }}" class="fw-semi-bold text-decoration-none">
+                                        {{ unit.property_ref.name }}
+                                    </a>
+                                    {% if unit.property_ref.address %}
+                                        <div class="fs--2 text-600">{{ unit.property_ref.address }}</div>
+                                    {% endif %}
                                 </div>
                             {% else %}
                                 <span class="text-400">Property not found</span>
@@ -224,7 +210,7 @@
                             {% if current_tenant %}
                                 <div class="d-flex align-items-center">
                                     <div class="avatar avatar-xs me-2">
-                                        <div class="avatar-name rounded-circle bg-success text-white">
+                                        <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
                                             <span>{{ current_tenant.first_name[0] }}{{ current_tenant.last_name[0] }}</span>
                                         </div>
                                     </div>
@@ -242,7 +228,7 @@
                                 {% if next_lease and next_lease.tenant_ref %}
                                     <div class="d-flex align-items-center">
                                         <div class="avatar avatar-xs me-2">
-                                            <div class="avatar-name rounded-circle bg-info text-white">
+                                            <div class="avatar-name rounded-circle bg-info text-white d-flex align-items-center justify-content-center">
                                                 <span>{{ next_lease.tenant_ref.first_name[0] }}{{ next_lease.tenant_ref.last_name[0] }}</span>
                                             </div>
                                         </div>

@@ -43,21 +43,27 @@
     <div class="col-lg col-xxl-5">
         <div class="row">
         <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-1">Bedrooms</p>
+            <p class="fw-semi-bold mb-1">Total Units</p>
         </div>
-        <div class="col">{{ units | sum(attribute='bedrooms') }}</div>
+        <div class="col">{{ units|length }}</div>
         </div>
         <div class="row">
         <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-1">Bathrooms</p>
+            <p class="fw-semi-bold mb-1">Total Bedrooms</p>
         </div>
-        <div class="col">{{ units | sum(attribute='bathrooms') }}</div>
+        <div class="col">{{ units | sum(attribute='bedrooms') or 0 }}</div>
         </div>
         <div class="row">
           <div class="col-5 col-sm-4">
-              <p class="fw-semi-bold mb-1">Units</p>
+              <p class="fw-semi-bold mb-1">Total Bathrooms</p>
           </div>
-          <div class="col">{{ units|length }}</div>
+          <div class="col">{{ units | sum(attribute='bathrooms') or 0 }}</div>
+          </div>
+        <div class="row">
+          <div class="col-5 col-sm-4">
+              <p class="fw-semi-bold mb-1">Total Square Footage</p>
+          </div>
+          <div class="col">{% set total_sqft = units | sum(attribute='sqft') %}{% if total_sqft %}{{ "{:,}".format(total_sqft) }} sqft{% else %}Not available{% endif %}</div>
           </div>
     </div>
     <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
@@ -70,16 +76,28 @@
         </div>
         </div>
         <div class="row">
-        <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-1"></p>
-        </div>
-        <div class="col"></div>
-        </div>
-        <div class="row">
           <div class="col-5 col-sm-4">
               <p class="fw-semi-bold mb-1">Property Type</p>
           </div>
-          <div class="col">{% if property.type %}{{ property.type }}{% endif %}
+          <div class="col">{% if property.type %}{{ property.type }}{% else %}Not specified{% endif %}
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-5 col-sm-4">
+              <p class="fw-semi-bold mb-1">Occupancy Rate</p>
+          </div>
+          <div class="col">
+            {% if units|length > 0 %}
+              {% set occupied_units = [] %}
+              {% for unit in units %}
+                {% if unit.get_lease_status() == 'Occupied' %}
+                  {% set _ = occupied_units.append(unit) %}
+                {% endif %}
+              {% endfor %}
+              {{ ((occupied_units|length / units|length) * 100)|round|int }}% ({{ occupied_units|length }}/{{ units|length }})
+            {% else %}
+              No units
+            {% endif %}
           </div>
         </div>
     </div>

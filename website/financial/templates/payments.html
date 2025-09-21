@@ -41,13 +41,15 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-falcon-primary">
-                    <span class="fas fa-filter me-1"></span>Filter
-                </button>
-                <a href="{{ url_for('financial.payments') }}" class="btn btn-falcon-default ms-2">
-                    <span class="fas fa-times me-1"></span>Clear
-                </a>
+            <div class="col-md-6 text-end">
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn btn-falcon-primary btn-sm">
+                        <span class="fas fa-filter me-1"></span>Filter
+                    </button>
+                    <a href="{{ url_for('financial.payments') }}" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-times me-1"></span>Clear
+                    </a>
+                </div>
             </div>
         </form>
     </div>
@@ -91,7 +93,7 @@
                             {% if payment.lease_ref and payment.lease_ref.tenant_ref %}
                             <div class="d-flex align-items-center">
                                 <div class="avatar avatar-xs me-2">
-                                    <div class="avatar-name rounded-circle bg-primary text-white">
+                                    <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
                                         <span>{{ payment.lease_ref.tenant_ref.first_name[0] }}{{ payment.lease_ref.tenant_ref.last_name[0] }}</span>
                                     </div>
                                 </div>
@@ -209,7 +211,7 @@
         <!-- Empty State -->
         <div class="text-center p-5">
             <div class="avatar avatar-2xl">
-                <div class="avatar-name rounded-circle bg-200 text-600">
+                <div class="avatar-name rounded-circle bg-200 text-600 d-flex align-items-center justify-content-center">
                     <span class="fas fa-dollar-sign"></span>
                 </div>
             </div>
@@ -273,5 +275,30 @@
     </div>
 </div>
 {% endfor %}
+
+<script>
+// Handle dropdown positioning to prevent cut-off
+document.addEventListener('DOMContentLoaded', function() {
+    const dropdownButtons = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+    
+    dropdownButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            setTimeout(() => {
+                const dropdown = this.closest('.dropdown');
+                const menu = dropdown.querySelector('.dropdown-menu');
+                const rect = dropdown.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                
+                // Check if there's enough space below (120px for menu height)
+                if (rect.bottom + 120 > viewportHeight) {
+                    dropdown.classList.add('dropup');
+                } else {
+                    dropdown.classList.remove('dropup');
+                }
+            }, 10);
+        });
+    });
+});
+</script>
 
 {% endblock %}

@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - RentFlow{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0">User Management</h2>
+        <p class="mb-0 text-700">Manage users and roles in your company</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('user_management.invite_user') }}" class="btn btn-falcon-primary btn-sm">
+            <span class="fas fa-user-plus me-1"></span>Invite User
+        </a>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h6 class="mb-0">
+                    <span class="fas fa-users me-2"></span>Company Users
+                </h6>
+            </div>
+            <div class="col-auto">
+                <span class="text-600">{{ users|length }} user{% if users|length != 1 %}s{% endif %}</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if users %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for company_user in users %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-m me-2">
+                                    <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
+                                        <span>{{ company_user.first_name[0] }}{{ company_user.last_name[0] }}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="fw-semi-bold">{{ company_user.first_name }} {{ company_user.last_name }}</div>
+                                    {% if company_user.id == user.id %}
+                                        <span class="badge bg-info fs--2">You</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ company_user.email }}</td>
+                        <td>
+                            {% if company_user.role == 'owner' %}
+                                <span class="badge bg-success">Owner</span>
+                            {% elif company_user.role == 'manager' %}
+                                <span class="badge bg-primary">Manager</span>
+                            {% elif company_user.role == 'staff' %}
+                                <span class="badge bg-info">Staff</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Viewer</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-success">Active</span>
+                        </td>
+                        <td>
+                            {% if company_user.id != user.id %}
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-falcon-default dropdown-toggle" type="button" 
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="fas fa-ellipsis-h"></span>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{{ url_for('user_management.edit_user', user_id=company_user.id) }}">
+                                        <span class="fas fa-edit me-2"></span>Edit User
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" 
+                                           onclick="deleteUser({{ company_user.id }}, '{{ company_user.first_name }} {{ company_user.last_name }}')">
+                                        <span class="fas fa-trash me-2"></span>Delete User
+                                    </a></li>
+                                </ul>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center p-5">
+            <div class="avatar avatar-2xl">
+                <div class="avatar-name rounded-circle bg-200 text-600 d-flex align-items-center justify-content-center">
+                    <span class="fas fa-users"></span>
+                </div>
+            </div>
+            <h6 class="mt-3 mb-1">No Additional Users</h6>
+            <p class="text-600 mb-3">You are the only user in your company. Invite team members to collaborate.</p>
+            <a href="{{ url_for('user_management.invite_user') }}" class="btn btn-falcon-primary">
+                <span class="fas fa-user-plus me-1"></span>Invite First User
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Form -->
+<form id="deleteForm" method="POST" style="display: none;">
+</form>
+
+<script>
+function deleteUser(userId, userName) {
+    if (confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/users/${userId}/delete`;
+        form.submit();
+    }
+}
+
+// Handle dropdown positioning to prevent cut-off
+document.addEventListener('DOMContentLoaded', function() {
+    const dropdownButtons = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+    
+    dropdownButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            setTimeout(() => {
+                const dropdown = this.closest('.dropdown');
+                const menu = dropdown.querySelector('.dropdown-menu');
+                const rect = dropdown.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                
+                // Check if there's enough space below (120px for menu height)
+                if (rect.bottom + 120 > viewportHeight) {
+                    dropdown.classList.add('dropup');
+                } else {
+                    dropdown.classList.remove('dropup');
+                }
+            }, 10);
+        });
+    });
+});
+</script>
+
+{% endblock %}

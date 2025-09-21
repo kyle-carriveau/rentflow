@@ -34,7 +34,7 @@
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-success text-white">
+                        <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-dollar-sign"></span>
                         </div>
                     </div>
@@ -55,7 +55,7 @@
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-danger text-white">
+                        <div class="avatar-name rounded-circle bg-danger text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-receipt"></span>
                         </div>
                     </div>
@@ -76,7 +76,7 @@
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle {% if net_income >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white">
+                        <div class="avatar-name rounded-circle {% if net_income >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-chart-line"></span>
                         </div>
                     </div>
@@ -97,7 +97,7 @@
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle {% if total_outstanding > 0 %}bg-warning{% else %}bg-success{% endif %} text-white">
+                        <div class="avatar-name rounded-circle {% if total_outstanding > 0 %}bg-warning{% else %}bg-success{% endif %} text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-exclamation-triangle"></span>
                         </div>
                     </div>
@@ -148,7 +148,7 @@
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="avatar avatar-xs me-2">
-                                            <div class="avatar-name rounded-circle bg-warning text-white">
+                                            <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
                                                 <span>{{ item.tenant.first_name[0] }}{{ item.tenant.last_name[0] }}</span>
                                             </div>
                                         </div>
@@ -246,7 +246,7 @@
                 {% else %}
                 <div class="text-center p-4">
                     <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-200 text-600">
+                        <div class="avatar-name rounded-circle bg-200 text-600 d-flex align-items-center justify-content-center">
                             <span class="fas fa-receipt"></span>
                         </div>
                     </div>

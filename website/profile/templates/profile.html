@@ -7,7 +7,14 @@
         </div>
         <!--/.bg-holder-->
 
-        <div class="avatar avatar-5xl avatar-profile"><img class="rounded-circle img-thumbnail shadow-sm" src="../static/assets/img/team/2.jpg" width="200" alt="" /></div>
+        <div class="avatar avatar-5xl avatar-profile position-relative">
+            <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-sm img-thumbnail" style="width: 128px; height: 128px; font-size: 2rem; font-weight: 600;">
+                <span>{{ user.first_name[0] }}{{ user.last_name[0] }}</span>
+            </div>
+            <button class="btn btn-sm btn-primary rounded-circle position-absolute" style="bottom: 8px; right: 8px; width: 32px; height: 32px; padding: 0;">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
     </div>
     <div class="card-body">
         <div class="row">

@@ -17,12 +17,12 @@
                 </div>
             </div>
             <div class="col-8 col-sm-auto text-end ps-2">
-                <div id="table-tenants-replace-element">
+                <div id="table-tenants-replace-element" class="d-flex align-items-center justify-content-end gap-2">
                     <a class="btn btn-falcon-primary btn-sm" href="{{ url_for('tenant.create') }}">
                         <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                         <span class="d-none d-sm-inline-block ms-1">New Tenant</span>
                     </a>
-                    <div class="btn-group ms-2" role="group">
+                    <div class="dropdown">
                         <button class="btn btn-falcon-default btn-sm" type="button" id="statusFilter" data-bs-toggle="dropdown" aria-expanded="false">
                             <span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span>
                             <span class="d-none d-sm-inline-block ms-1">Filter</span>
@@ -34,11 +34,11 @@
                             <li><a class="dropdown-item" href="#" onclick="filterTenants('Prospect')">Prospects</a></li>
                             <li><a class="dropdown-item" href="#" onclick="filterTenants('Future')">Future Tenants</a></li>
                         </ul>
-                        <button class="btn btn-falcon-default btn-sm" type="button" onclick="exportTenants()">
-                            <span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span>
-                            <span class="d-none d-sm-inline-block ms-1">Export</span>
-                        </button>
                     </div>
+                    <button class="btn btn-falcon-default btn-sm" type="button" onclick="exportTenants()">
+                        <span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span>
+                        <span class="d-none d-sm-inline-block ms-1">Export</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -66,7 +66,8 @@
               <td class="text-nowrap">
                 <div class="dropdown text-sans-serif">
                   <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal" 
-                          type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                          type="button" data-bs-toggle="dropdown" data-bs-auto-close="true" 
+                          aria-haspopup="true" aria-expanded="false">
                       <span class="fas fa-ellipsis-h fs--1"></span>
                   </button>
                   <div class="dropdown-menu dropdown-menu-end border py-0">
@@ -89,7 +90,7 @@
               <td class="text-nowrap">
                 <div class="d-flex align-items-center">
                   <div class="avatar avatar-xl">
-                    <div class="avatar-name rounded-circle"><span>{{ tenant.first_name[0] }}{{ tenant.last_name[0] }}</span></div>
+                    <div class="avatar-name rounded-circle d-flex align-items-center justify-content-center"><span>{{ tenant.first_name[0] }}{{ tenant.last_name[0] }}</span></div>
                   </div>
                   <div class="ms-2">
                     <div class="fw-semi-bold">{{ tenant.first_name }} {{ tenant.last_name }}</div>
@@ -123,7 +124,7 @@
                 {% if current_property %}
                   <div class="d-flex align-items-center">
                     <div class="avatar avatar-xs me-2">
-                      <div class="avatar-name rounded bg-primary text-white">
+                      <div class="avatar-name rounded bg-primary text-white d-flex align-items-center justify-content-center">
                         <span class="fas fa-building fs--2"></span>
                       </div>
                     </div>
@@ -237,6 +238,29 @@ function exportTenants() {
     a.click();
     window.URL.revokeObjectURL(url);
 }
+
+// Handle dropdown positioning to prevent cut-off
+document.addEventListener('DOMContentLoaded', function() {
+    const dropdownButtons = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+    
+    dropdownButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            setTimeout(() => {
+                const dropdown = this.closest('.dropdown');
+                const menu = dropdown.querySelector('.dropdown-menu');
+                const rect = dropdown.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                
+                // Check if there's enough space below (120px for menu height)
+                if (rect.bottom + 120 > viewportHeight) {
+                    dropdown.classList.add('dropup');
+                } else {
+                    dropdown.classList.remove('dropup');
+                }
+            }, 10);
+        });
+    });
+});
 </script>
 
 {% endblock %} 

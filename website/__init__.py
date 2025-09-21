@@ -43,10 +43,20 @@ def create_app():
     from website.financial.views import financial
     app.register_blueprint(financial, url_prefix='/financial')
 
+    from website.user_management.views import user_management
+    app.register_blueprint(user_management, url_prefix='/users')
+
+    from website.company.views import company
+    app.register_blueprint(company, url_prefix='/company')
+
     from website.errors import page_not_found
     app.register_error_handler(404, page_not_found)
 
-    from website.models import User
+    # Import all models to ensure they're registered with SQLAlchemy
+    from website.models import (
+        User, Company, Portfolio, Property, Unit, 
+        Tenant, Lease, Payment, Expense
+    )
     
     with app.app_context():
         create_database(app)
@@ -62,13 +72,7 @@ def create_app():
     return app
 
 def create_database(app):
-    database_uri = app.config['SQLALCHEMY_DATABASE_URI']
-    if database_uri.startswith('sqlite:///'):
-        db_path = database_uri.replace('sqlite:///', '')
-        if not path.exists(db_path):
-            db.create_all()
-            print('Created database')
-    else:
-        db.create_all()
-        print('Created database')
+    # Always create tables (db.create_all() is safe to call multiple times)
+    db.create_all()
+    print('Created database and tables')
 

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
-from website.models import User
+from website.models import User, Company
 from werkzeug.security import generate_password_hash, check_password_hash
 from website import db 
 from flask_login import login_user, login_required, logout_user, current_user
@@ -38,15 +38,23 @@ def register():
     if register_form.validate_on_submit():
         first_name      = register_form.first_name.data
         last_name       = register_form.last_name.data
+        company_name    = register_form.company_name.data
         email           = register_form.email.data
         password        = register_form.password.data
 
-        user = User(first_name=first_name, last_name=last_name, email=email)
+        # Create company with user-provided name
+        company = Company(name=company_name, email=email)
+        db.session.add(company)
+        db.session.flush()  # Get company ID without committing
+        
+        # Create user with owner role and assign to company
+        user = User(first_name=first_name, last_name=last_name, email=email, 
+                   company_id=company.id, role=User.ROLE_OWNER)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
         login_user(user, remember=True)
-        flash('Profile created.', category="success")
+        flash('Profile and company created successfully.', category="success")
         return redirect(url_for("profile.home"))
 
     return render_template("register.html", form=register_form)
@@ -60,10 +68,18 @@ def modal_register():
     if register_form.validate_on_submit():
         first_name = register_form.first_name.data
         last_name = register_form.last_name.data
+        company_name = register_form.company_name.data
         email = register_form.email.data
         password = register_form.password.data
 
-        user = User(first_name=first_name, last_name=last_name, email=email)
+        # Create company with user-provided name
+        company = Company(name=company_name, email=email)
+        db.session.add(company)
+        db.session.flush()  # Get company ID without committing
+        
+        # Create user with owner role and assign to company
+        user = User(first_name=first_name, last_name=last_name, email=email, 
+                   company_id=company.id, role=User.ROLE_OWNER)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()

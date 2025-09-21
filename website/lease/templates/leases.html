@@ -10,7 +10,7 @@
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-primary text-white">
+                        <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-file-contract"></span>
                         </div>
                     </div>
@@ -29,7 +29,7 @@
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-success text-white">
+                        <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-dollar-sign"></span>
                         </div>
                     </div>
@@ -49,7 +49,7 @@
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-warning text-white">
+                        <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-clock"></span>
                         </div>
                     </div>
@@ -74,7 +74,7 @@
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-info text-white">
+                        <div class="avatar-name rounded-circle bg-info text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-users"></span>
                         </div>
                     </div>
@@ -105,7 +105,7 @@
                 </div>
             </div>
             <div class="col-8 col-sm-auto text-end ps-2">
-                <div id="table-leases-replace-element">
+                <div id="table-leases-replace-element" class="d-flex align-items-center justify-content-end gap-2">
                     <div class="dropdown">
                         <button class="btn btn-falcon-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
@@ -126,7 +126,7 @@
                             {% endif %}
                         </div>
                     </div>
-                    <div class="btn-group ms-2" role="group">
+                    <div class="dropdown">
                         <button class="btn btn-falcon-default btn-sm" type="button" id="statusFilter" data-bs-toggle="dropdown" aria-expanded="false">
                             <span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span>
                             <span class="d-none d-sm-inline-block ms-1">Filter</span>
@@ -137,11 +137,11 @@
                             <li><a class="dropdown-item" href="#" onclick="filterLeases('expiring')">Expiring Soon</a></li>
                             <li><a class="dropdown-item" href="#" onclick="filterLeases('expired')">Expired</a></li>
                         </ul>
-                        <button class="btn btn-falcon-default btn-sm" type="button" onclick="exportLeases()">
-                            <span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span>
-                            <span class="d-none d-sm-inline-block ms-1">Export</span>
-                        </button>
                     </div>
+                    <button class="btn btn-falcon-default btn-sm" type="button" onclick="exportLeases()">
+                        <span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span>
+                        <span class="d-none d-sm-inline-block ms-1">Export</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -152,6 +152,7 @@
             <table class="table table-hover table-striped overflow-hidden">
                 <thead>
                     <tr>
+                        <th scope="col">Actions</th>
                         <th scope="col" class="sort" data-sort="property">Property</th>
                         <th scope="col" class="sort" data-sort="unit">Unit</th>
                         <th scope="col" class="sort" data-sort="tenant">Tenant</th>
@@ -159,29 +160,44 @@
                         <th scope="col" class="sort" data-sort="start">Start Date</th>
                         <th scope="col" class="sort" data-sort="end">End Date</th>
                         <th scope="col" class="sort" data-sort="status">Status</th>
-                        <th scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="list">
                     {% for lease in leases %}
                     {% set days_until_end = (lease.end - today_date).days %}
                     <tr class="align-middle lease-row" data-status="{{ 'active' if days_until_end > 0 else 'expired' }}" data-expiring="{{ 'true' if days_until_end <= 60 and days_until_end > 0 else 'false' }}">
+                        <td class="text-nowrap">
+                            <div class="dropdown text-sans-serif">
+                                <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal" 
+                                        type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <span class="fas fa-ellipsis-h fs--1"></span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end border py-0">
+                                    <div class="py-2">
+                                        <a class="dropdown-item" href="{{ url_for('lease.show', id=lease.id) }}">
+                                            <span class="fas fa-eye me-1"></span>View Details
+                                        </a>
+                                        <a class="dropdown-item" href="{{ url_for('lease.update', id=lease.id) }}">
+                                            <span class="fas fa-edit me-1"></span>Edit Lease
+                                        </a>
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item text-danger" href="#" 
+                                           onclick="deleteLease({{ lease.id }}, '{{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}', '{{ lease.unit_ref.name }}')">
+                                            <span class="fas fa-trash me-1"></span>Delete Lease
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
                         <td class="property">
                             {% if lease.unit_ref and lease.unit_ref.property_ref %}
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-sm">
-                                        <div class="avatar-name rounded bg-primary text-white">
-                                            <span class="fas fa-building fs--2"></span>
-                                        </div>
-                                    </div>
-                                    <div class="ms-2">
-                                        <a href="{{ url_for('property.home', id=lease.unit_ref.property_ref.id) }}" class="fw-semi-bold text-decoration-none">
-                                            {{ lease.unit_ref.property_ref.name }}
-                                        </a>
-                                        {% if lease.unit_ref.property_ref.address %}
-                                            <div class="fs--2 text-600">{{ lease.unit_ref.property_ref.address }}</div>
-                                        {% endif %}
-                                    </div>
+                                <div>
+                                    <a href="{{ url_for('property.home', id=lease.unit_ref.property_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                        {{ lease.unit_ref.property_ref.name }}
+                                    </a>
+                                    {% if lease.unit_ref.property_ref.address %}
+                                        <div class="fs--2 text-600">{{ lease.unit_ref.property_ref.address }}</div>
+                                    {% endif %}
                                 </div>
                             {% else %}
                                 <span class="text-400">Property not found</span>
@@ -189,21 +205,14 @@
                         </td>
                         <td class="unit">
                             {% if lease.unit_ref %}
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-sm">
-                                        <div class="avatar-name rounded bg-success text-white">
-                                            <span class="fas fa-home fs--2"></span>
-                                        </div>
-                                    </div>
-                                    <div class="ms-2">
-                                        <a href="{{ url_for('unit.show', id=lease.unit_ref.id) }}" class="fw-semi-bold text-decoration-none">
-                                            {{ lease.unit_ref.name }}
-                                        </a>
-                                        <div class="fs--2 text-600">
-                                            {% if lease.unit_ref.bedrooms %}{{ lease.unit_ref.bedrooms }}bed{% endif %}
-                                            {% if lease.unit_ref.bathrooms %}{{ lease.unit_ref.bathrooms }}bath{% endif %}
-                                            {% if lease.unit_ref.sqft %} • {{ lease.unit_ref.sqft }}sqft{% endif %}
-                                        </div>
+                                <div>
+                                    <a href="{{ url_for('unit.show', id=lease.unit_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                        {{ lease.unit_ref.name }}
+                                    </a>
+                                    <div class="fs--2 text-600">
+                                        {% if lease.unit_ref.bedrooms %}{{ lease.unit_ref.bedrooms }}bed{% endif %}
+                                        {% if lease.unit_ref.bathrooms %}{{ lease.unit_ref.bathrooms }}bath{% endif %}
+                                        {% if lease.unit_ref.sqft %} • {{ lease.unit_ref.sqft }}sqft{% endif %}
                                     </div>
                                 </div>
                             {% else %}
@@ -212,20 +221,13 @@
                         </td>
                         <td class="tenant">
                             {% if lease.tenant_ref %}
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-sm">
-                                        <div class="avatar-name rounded-circle bg-info text-white">
-                                            <span>{{ lease.tenant_ref.first_name[0] }}{{ lease.tenant_ref.last_name[0] }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="ms-2">
-                                        <a href="{{ url_for('tenant.home', id=lease.tenant_ref.id) }}" class="fw-semi-bold text-decoration-none">
-                                            {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}
-                                        </a>
-                                        {% if lease.tenant_ref.email %}
-                                            <div class="fs--2 text-600">{{ lease.tenant_ref.email }}</div>
-                                        {% endif %}
-                                    </div>
+                                <div>
+                                    <a href="{{ url_for('tenant.home', id=lease.tenant_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                        {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}
+                                    </a>
+                                    {% if lease.tenant_ref.email %}
+                                        <div class="fs--2 text-600">{{ lease.tenant_ref.email }}</div>
+                                    {% endif %}
                                 </div>
                             {% else %}
                                 <span class="text-400">Tenant not found</span>
@@ -257,29 +259,6 @@
                             {% else %}
                                 <span class="badge bg-danger">Expired</span>
                             {% endif %}
-                        </td>
-                        <td class="text-nowrap">
-                            <div class="dropdown text-sans-serif">
-                                <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal" 
-                                        type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <span class="fas fa-ellipsis-h fs--1"></span>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end border py-0">
-                                    <div class="py-2">
-                                        <a class="dropdown-item" href="{{ url_for('lease.show', id=lease.id) }}">
-                                            <span class="fas fa-eye me-1"></span>View Details
-                                        </a>
-                                        <a class="dropdown-item" href="{{ url_for('lease.update', id=lease.id) }}">
-                                            <span class="fas fa-edit me-1"></span>Edit Lease
-                                        </a>
-                                        <div class="dropdown-divider"></div>
-                                        <a class="dropdown-item text-danger" href="#" 
-                                           onclick="deleteLease({{ lease.id }}, '{{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}', '{{ lease.unit_ref.name }}')">
-                                            <span class="fas fa-trash me-1"></span>Delete Lease
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -372,13 +351,14 @@ function exportLeases() {
     
     rows.forEach(row => {
         const cells = row.querySelectorAll('td');
-        const property = cells[0].querySelector('a')?.textContent?.trim() || 'N/A';
-        const unit = cells[1].querySelector('a')?.textContent?.trim() || 'N/A';
-        const tenant = cells[2].querySelector('a')?.textContent?.trim() || 'N/A';
-        const rent = cells[3].textContent.trim();
-        const start = cells[4].textContent.trim();
-        const end = cells[5].textContent.trim();
-        const status = cells[6].textContent.trim();
+        // Account for Actions column being first (index 0)
+        const property = cells[1].querySelector('a')?.textContent?.trim() || 'N/A';
+        const unit = cells[2].querySelector('a')?.textContent?.trim() || 'N/A';
+        const tenant = cells[3].querySelector('a')?.textContent?.trim() || 'N/A';
+        const rent = cells[4].textContent.trim();
+        const start = cells[5].textContent.trim();
+        const end = cells[6].textContent.trim();
+        const status = cells[7].textContent.trim();
         
         csv += `"${property}","${unit}","${tenant}","${rent}","${start}","${end}","${status}"\n`;
     });
@@ -391,6 +371,29 @@ function exportLeases() {
     a.click();
     window.URL.revokeObjectURL(url);
 }
+
+// Handle dropdown positioning to prevent cut-off
+document.addEventListener('DOMContentLoaded', function() {
+    const dropdownButtons = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+    
+    dropdownButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            setTimeout(() => {
+                const dropdown = this.closest('.dropdown');
+                const menu = dropdown.querySelector('.dropdown-menu');
+                const rect = dropdown.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                
+                // Check if there's enough space below (120px for menu height)
+                if (rect.bottom + 120 > viewportHeight) {
+                    dropdown.classList.add('dropup');
+                } else {
+                    dropdown.classList.remove('dropup');
+                }
+            }, 10);
+        });
+    });
+});
 </script>
 
 {% endblock %} 

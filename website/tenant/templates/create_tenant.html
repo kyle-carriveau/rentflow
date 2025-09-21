@@ -1,83 +1,110 @@
 {% extends "base.html" %} 
+
+{% block title %}Create Tenant - RentFlow{% endblock %}
+
 {% block content %} 
-<form method="POST">
+<form method="POST" action="{{ url_for('tenant.create') }}" id="createTenantForm">
     <div class="card mb-3">
         <div class="card-header">
             <div class="row align-items-center">
                 <div class="col">
                     <h5 class="mb-0">Create Tenant</h5>
+                    <p class="mb-0 text-700">Add a new tenant to your system</p>
                 </div>
-            <div class="col-auto"></div>
+                <div class="col-auto">
+                    <a href="{{ url_for('tenant.tenants') }}" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-arrow-left me-1"></span>Back to Tenants
+                    </a>
+                </div>
             </div>
         </div>
         <div class="card-body bg-light border-top">
             <div class="row">
                 <div class="col-lg col-xxl-5">
-                    <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="first_name">First Name</label>
-                        <div class="col">
-                            <input class="form-control" type="text" name="first_name" id="first_name"/>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="first_name">First Name <span class="text-danger">*</span></label>
+                        <input class="form-control" type="text" name="first_name" id="first_name" required/>
+                        <div class="invalid-feedback">Please enter a first name.</div>
                     </div>
-                    <br />
-                    <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="last_name">Last Name</label>
-                        <div class="col">
-                            <input class="form-control" type="text" name="last_name" id="last_name"/>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="last_name">Last Name <span class="text-danger">*</span></label>
+                        <input class="form-control" type="text" name="last_name" id="last_name" required/>
+                        <div class="invalid-feedback">Please enter a last name.</div>
                     </div>
-                    <br />
-                    <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="email">Email</label>
-                        <div class="col">
-                            <input class="form-control" type="email" name="email" id="email"/>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="email">Email</label>
+                        <input class="form-control email-field" type="email" name="email" id="email"/>
+                        <div class="invalid-feedback">Please enter a valid email address.</div>
                     </div>
-                    <br/>
-                    <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="phone">Phone</label>
-                        <div class="col">
-                            <input class="form-control" type="number" min="0" name="phone" id="phone"/>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="phone">Phone</label>
+                        <input class="form-control phone-field" type="tel" name="phone" id="phone" placeholder="(555) 123-4567"/>
+                        <div class="invalid-feedback">Please enter a valid phone number.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="property">Property Assignment</label>
+                        <select class="form-select" name="property" id="property">
+                            <option value="">Select Property (Optional)</option>
+                            {% for property in properties %}
+                            <option value="{{ property.id }}">{{ property.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">You can assign this tenant to a property later</div>
                     </div>
                 </div>
                 <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
-                    <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="address">Address</label>
-                        <div class="col">
-                            <input class="form-control" type="text" name="address" id="address"/>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="address">Address</label>
+                        <input class="form-control" type="text" name="address" id="address" placeholder="123 Main St"/>
+                        <div class="invalid-feedback">Please enter a valid address.</div>
                     </div>
-                    <br />
-                    <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="city">City</label>
-                        <div class="col input-group">
-                            <input class="form-control" type="text" name="city" id="city"/>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="city">City</label>
+                        <input class="form-control" type="text" name="city" id="city"/>
+                        <div class="invalid-feedback">Please enter a valid city.</div>
                     </div>
-                    <br />
-                    <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="state">State</label>
-                        <div class="col input-group">
-                            <select class="form-select" name="state" aria-label="Select State">
-                                <option value=""></option>
-                                {% for state in states %}
-                                <option value="{{ state }}">{{ state }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="state">State</label>
+                        <select class="form-select" name="state" id="state" aria-label="Select State">
+                            <option value="">Select State</option>
+                            {% for state in states %}
+                            <option value="{{ state }}">{{ state }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">Please select a state.</div>
                     </div>
-                    <br />
-                    <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="zip_code">Zip Code</label>
-                        <div class="col input-group">
-                            <input class="form-control" type="number" name="zip_code" id="zip_code"/>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="zip_code">Zip Code</label>
+                        <input class="form-control" type="text" name="zip_code" id="zip_code" maxlength="5" pattern="[0-9]{5}" placeholder="12345"/>
+                        <div class="invalid-feedback">Please enter a valid 5-digit zip code.</div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="card-footer border-top text-end"><button type="submit" class="btn btn-falcon-default btn-sm ms-2" ><span class="fas fa-check fs--2 me-1"></span>Save changes</button></div>
+        <div class="card-footer border-top text-end">
+            <button type="submit" class="btn btn-falcon-primary btn-sm ms-2" data-loading="Creating tenant...">
+                <span class="fas fa-user-plus fs--2 me-1"></span>Create Tenant
+            </button>
+        </div>
     </div>
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Phone number formatting only
+    const phoneField = document.getElementById('phone');
+    if (phoneField) {
+        phoneField.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 6) {
+                value = value.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+            } else if (value.length >= 3) {
+                value = value.replace(/(\d{3})(\d{0,3})/, '($1) $2');
+            }
+            e.target.value = value;
+        });
+    }
+});
+</script>
+
 {% endblock %}

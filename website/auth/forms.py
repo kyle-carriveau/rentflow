@@ -20,6 +20,7 @@ class LoginForm(FlaskForm):
 class RegistrationForm(FlaskForm):
     first_name          = StringField("First Name", validators=[InputRequired("First Name is required."), DataRequired("First Name is required."), Length(min=1, max=20, message="First Name must be between 1 and 20 characters long")])
     last_name           = StringField("Last Name", validators=[InputRequired("Last Name is required."), DataRequired("Last Name is required."), Length(min=1, max=20, message="Last Name must be between 1 and 20 characters long")])
+    company_name        = StringField("Company Name", validators=[InputRequired("Company Name is required."), DataRequired("Company Name is required."), Length(min=1, max=150, message="Company Name must be between 1 and 150 characters long")])
     email               = StringField("Email", validators=[InputRequired("Email is required."), DataRequired("Email is required."), Email("Please enter a valid email address.")])
     password            = PasswordField("Password",
                                 validators=[

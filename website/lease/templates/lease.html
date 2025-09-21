@@ -9,7 +9,7 @@
             <div class="col">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-xl me-3">
-                        <div class="avatar-name rounded-circle bg-primary text-white">
+                        <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-file-contract"></span>
                         </div>
                     </div>
@@ -53,13 +53,8 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-700">Property</label>
-                        <div class="d-flex align-items-center">
+                        <div>
                             {% if lease.unit_ref and lease.unit_ref.property_ref %}
-                                <div class="avatar avatar-sm me-2">
-                                    <div class="avatar-name rounded bg-primary text-white">
-                                        <span class="fas fa-building fs--2"></span>
-                                    </div>
-                                </div>
                                 <div>
                                     <a href="{{ url_for('property.home', id=lease.unit_ref.property_ref.id) }}" 
                                        class="text-decoration-none fw-semi-bold">
@@ -77,13 +72,8 @@
                     
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-700">Unit</label>
-                        <div class="d-flex align-items-center">
+                        <div>
                             {% if lease.unit_ref %}
-                                <div class="avatar avatar-sm me-2">
-                                    <div class="avatar-name rounded bg-success text-white">
-                                        <span class="fas fa-home fs--2"></span>
-                                    </div>
-                                </div>
                                 <div>
                                     <a href="{{ url_for('unit.show', id=lease.unit_ref.id) }}" 
                                        class="text-decoration-none fw-semi-bold">
@@ -103,13 +93,8 @@
                     
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-700">Tenant</label>
-                        <div class="d-flex align-items-center">
+                        <div>
                             {% if lease.tenant_ref %}
-                                <div class="avatar avatar-sm me-2">
-                                    <div class="avatar-name rounded-circle bg-info text-white">
-                                        <span>{{ lease.tenant_ref.first_name[0] }}{{ lease.tenant_ref.last_name[0] }}</span>
-                                    </div>
-                                </div>
                                 <div>
                                     <a href="{{ url_for('tenant.home', id=lease.tenant_ref.id) }}" 
                                        class="text-decoration-none fw-semi-bold">
@@ -227,7 +212,7 @@
             <div class="card-body text-center">
                 <div class="mb-3">
                     <div class="avatar avatar-3xl">
-                        <div class="avatar-name rounded-circle bg-primary text-white">
+                        <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-file-contract fa-2x"></span>
                         </div>
                     </div>

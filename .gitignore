@@ -60,3 +60,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.eggreenv312/
+reenv*/
+
+# Test files
+*test*.py
+test_*.py

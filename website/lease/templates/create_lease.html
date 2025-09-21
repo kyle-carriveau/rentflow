@@ -2,60 +2,113 @@
 
 {% block content %} 
 
-<form method="POST" action="{{ url_for('lease.create', id=property) }}">
+<form method="POST" action="{{ url_for('lease.create', id=property.id) }}" id="createLeaseForm" class="needs-validation" novalidate>
     {{ form.csrf_token }}
     <div class="card mb-3">
         <div class="card-header">
             <div class="row align-items-center">
                 <div class="col">
                     <h5 class="mb-0">Create Lease</h5>
+                    <p class="mb-0 text-700">Creating lease for {{ property.name }}</p>
                 </div>
-            <div class="col-auto"></div>
+            <div class="col-auto">
+                <a href="{{ url_for('property.home', id=property.id) }}" class="btn btn-falcon-default btn-sm">
+                    <span class="fas fa-arrow-left me-1"></span>Back to Property
+                </a>
+            </div>
             </div>
         </div>
         <div class="card-body bg-light border-top">
             <div class="row">
                 <div class="col-lg col-xxl-5">
                     <div class="row">
-                        {{ form.tenant.label }}
+                        {{ form.tenant.label(class="form-label") }}
                         <div class="col">
-                            {{ form.tenant(class="form-control")}}
+                            {{ form.tenant(class="form-control", required=true)}}
+                            <div class="invalid-feedback">Please select a tenant.</div>
                         </div>
                     </div>
                     <br />
                     <div class="row">
-                        {{ form.start.label }}
+                        {{ form.start.label(class="form-label") }}
                         <div class="col">
-                            {{ form.start(class="form-control") }}
+                            {{ form.start(class="form-control", required=true) }}
+                            <div class="invalid-feedback">Please select a start date.</div>
                         </div>
                     </div>
                     <br/>
                     <div class="row">
-                        {{ form.rent.label }}
+                        {{ form.rent.label(class="form-label") }}
                         <div class="col input-group">
-                            <span class="input-group-text">$</span>{{ form.rent(class="form-control") }}
+                            <span class="input-group-text">$</span>{{ form.rent(class="form-control currency-field", required=true, min="0", step="0.01") }}
+                            <div class="invalid-feedback">Please enter a valid rent amount.</div>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
                     <div class="row">
-                        {{ form.unit.label }}
+                        {{ form.unit.label(class="form-label") }}
                         <div class="col">
-                            {{ form.unit(class="form-control") }}
+                            {{ form.unit(class="form-control", required=true) }}
+                            <div class="invalid-feedback">Please select a unit.</div>
                         </div>
                     </div>
                     <br />
                     <div class="row">
-                        {{ form.end.label }}
+                        {{ form.end.label(class="form-label") }}
                         <div class="col">
-                            {{ form.end(class="form-control") }}
+                            {{ form.end(class="form-control", required=true) }}
+                            <div class="invalid-feedback">Please select an end date.</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="card-footer border-top text-end"><button type="submit" class="btn btn-falcon-default btn-sm ms-2" ><span class="fas fa-check fs--2 me-1"></span>Save changes</button></div>
+        <div class="card-footer border-top text-end">
+            <button type="submit" class="btn btn-falcon-primary btn-sm ms-2" data-loading="Creating lease...">
+                <span class="fas fa-check fs--2 me-1"></span>Create Lease
+            </button>
+        </div>
     </div>
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize form validation for lease creation
+    if (typeof FormValidator !== 'undefined') {
+        const validator = new FormValidator('#createLeaseForm', {
+            validateOnBlur: true,
+            validateOnInput: true,
+            showSuccessIcons: true
+        });
+        
+        // Add custom validation for date ranges
+        validator.addCustomRule('start', 'dateRange', (value, field) => {
+            const endField = document.querySelector('[name="end"]');
+            if (value && endField.value && new Date(value) >= new Date(endField.value)) {
+                return { isValid: false, message: 'Start date must be before end date.' };
+            }
+            return { isValid: true };
+        });
+        
+        validator.addCustomRule('end', 'dateRange', (value, field) => {
+            const startField = document.querySelector('[name="start"]');
+            if (value && startField.value && new Date(value) <= new Date(startField.value)) {
+                return { isValid: false, message: 'End date must be after start date.' };
+            }
+            return { isValid: true };
+        });
+    }
+    
+    // Show success toast when form is submitted successfully
+    const form = document.getElementById('createLeaseForm');
+    form.addEventListener('submit', function(e) {
+        if (form.checkValidity() && typeof loadingManager !== 'undefined') {
+            // Show immediate feedback
+            loadingManager.showToast('Creating lease...', 'info', 3000);
+        }
+    });
+});
+</script>
 
 {% endblock %}
