@@ -12,7 +12,7 @@ class Company(db.Model):
     address = db.Column(db.String(150))
     city = db.Column(db.String(150))
     state = db.Column(db.String(150))
-    zip_code = db.Column(db.Integer)
+    zip_code = db.Column(db.String(10))
     phone = db.Column(db.String(20))
     email = db.Column(db.String(150))
     website = db.Column(db.String(150))
@@ -20,8 +20,13 @@ class Company(db.Model):
     
     # Relationships
     users = db.relationship('User', backref='company_ref', lazy=True)
+    portfolios = db.relationship('Portfolio', backref='company_ref', lazy=True)
     properties = db.relationship('Property', backref='company_ref', lazy=True)
+    units = db.relationship('Unit', backref='company_ref', lazy=True)
     tenants = db.relationship('Tenant', backref='company_ref', lazy=True)
+    leases = db.relationship('Lease', backref='company_ref', lazy=True)
+    payments = db.relationship('Payment', backref='company_ref', lazy=True)
+    expenses = db.relationship('Expense', backref='company_ref', lazy=True)
 
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
@@ -41,14 +46,13 @@ class User(db.Model, UserMixin):
     address = db.Column(db.String(150))
     city = db.Column(db.String(150))
     state = db.Column(db.String(150))
-    zip_code = db.Column(db.Integer)
+    zip_code = db.Column(db.String(10))
     password_hash = db.Column(db.String(1500), nullable=False)
     company = db.Column(db.String(150))
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     role = db.Column(db.String(20), nullable=False, default=ROLE_OWNER)
     
-    # Relationships
-    tenants = db.relationship('Tenant', backref='landlord_ref', lazy=True, foreign_keys='Tenant.landlord')
+    # Relationships (tenants now managed at company level)
 
     def __init__(self, first_name="", last_name="", email="", password="", company_id=None, role=None):
         self.first_name = first_name
@@ -130,17 +134,19 @@ class Portfolio(db.Model):
     name = db.Column(db.String(150))
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
+    # Relationships
+    properties = db.relationship('Property', backref='portfolio_ref', lazy=True)
+
 class Property(db.Model):
     __tablename__ = 'property'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
-    portfolio = db.Column(db.Integer, db.ForeignKey('portfolio.id'), nullable=True)
+    portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolio.id'), nullable=True)
     address = db.Column(db.String(150))
     city = db.Column(db.String(150))
     state = db.Column(db.String(150))
-    zip_code = db.Column(db.Integer)
-    #bought = db.Column(db.Date)
+    zip_code = db.Column(db.String(10))
     type = db.Column(db.String(150))
     
     # Relationships with cascade delete
@@ -156,7 +162,7 @@ class Property(db.Model):
         # Check if property has any active leases through its units
         active_leases = db.session.query(Lease).join(Unit).filter(
             and_(
-                Unit.property == self.id,
+                Unit.property_id == self.id,
                 Lease.start <= current_date,
                 Lease.end >= current_date
             )
@@ -172,7 +178,7 @@ class Unit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150))
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
-    property = db.Column(db.Integer, db.ForeignKey('property.id'))
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'))
     bedrooms = db.Column(db.Integer)
     bathrooms = db.Column(db.Integer)
     rent = db.Column(db.Integer)
@@ -233,17 +239,16 @@ class Unit(db.Model):
 class Tenant(db.Model):
     __tablename__ = 'tenant'
     id = db.Column(db.Integer, primary_key=True)
-    landlord = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     first_name = db.Column(db.String(150), nullable=False)
     last_name = db.Column(db.String(150), nullable=False)
     email = db.Column(db.String(150))
-    phone = db.Column(db.Integer)
+    phone = db.Column(db.String(20))
     address = db.Column(db.String(150))
     city = db.Column(db.String(150))
     state = db.Column(db.String(150))
-    zip_code = db.Column(db.Integer)
-    property = db.Column(db.Integer, db.ForeignKey('property.id'))
+    zip_code = db.Column(db.String(10))
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'))
     
     # Relationships with cascade delete
     leases = db.relationship('Lease', backref='tenant_ref', cascade='all, delete-orphan')
@@ -303,7 +308,7 @@ class Lease(db.Model):
     tenant_id = db.Column(db.Integer, db.ForeignKey('tenant.id'), nullable=False)
     unit_id = db.Column(db.Integer, db.ForeignKey('unit.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     start = db.Column(db.DateTime, nullable=False)
     end = db.Column(db.DateTime, nullable=False)
     rent = db.Column(db.Integer, nullable=False)
@@ -350,6 +355,46 @@ class Lease(db.Model):
         """Check if rent payment is overdue."""
         return self.get_outstanding_balance() > 0
 
+    @staticmethod
+    def check_tenant_overlap(tenant_id, start_date, end_date, company_id, exclude_lease_id=None):
+        """Check if a tenant has overlapping leases."""
+        from sqlalchemy import and_, or_
+
+        query = db.session.query(Lease).filter(
+            Lease.tenant_id == tenant_id,
+            Lease.company_id == company_id,
+            or_(
+                and_(Lease.start <= start_date, Lease.end >= start_date),  # New lease starts during existing lease
+                and_(Lease.start <= end_date, Lease.end >= end_date),      # New lease ends during existing lease
+                and_(Lease.start >= start_date, Lease.end <= end_date)     # Existing lease is within new lease
+            )
+        )
+
+        if exclude_lease_id:
+            query = query.filter(Lease.id != exclude_lease_id)
+
+        return query.first() is not None
+
+    @staticmethod
+    def check_unit_overlap(unit_id, start_date, end_date, company_id, exclude_lease_id=None):
+        """Check if a unit has overlapping leases."""
+        from sqlalchemy import and_, or_
+
+        query = db.session.query(Lease).filter(
+            Lease.unit_id == unit_id,
+            Lease.company_id == company_id,
+            or_(
+                and_(Lease.start <= start_date, Lease.end >= start_date),  # New lease starts during existing lease
+                and_(Lease.start <= end_date, Lease.end >= end_date),      # New lease ends during existing lease
+                and_(Lease.start >= start_date, Lease.end <= end_date)     # Existing lease is within new lease
+            )
+        )
+
+        if exclude_lease_id:
+            query = query.filter(Lease.id != exclude_lease_id)
+
+        return query.first() is not None
+
 
 class Payment(db.Model):
     __tablename__ = 'payment'
@@ -357,7 +402,7 @@ class Payment(db.Model):
     lease_id = db.Column(db.Integer, db.ForeignKey('lease.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     
     # Payment details
     amount = db.Column(db.Numeric(10, 2), nullable=False)
@@ -396,7 +441,7 @@ class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)  # Nullable for general expenses
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     
     # Expense details
     amount = db.Column(db.Numeric(10, 2), nullable=False)

@@ -72,7 +72,7 @@ def create():
             phone = None
 
         company_id = current_user.get_company_id()
-        new_tenant = Tenant(first_name=first_name, last_name=last_name, email=email, phone=phone, property=property, address=address, city=city, state=state, zip_code=zip_code, landlord=current_user.id, company_id=company_id)
+        new_tenant = Tenant(first_name=first_name, last_name=last_name, email=email, phone=phone, property_id=property, address=address, city=city, state=state, zip_code=zip_code, company_id=company_id)
 
         db.session.add(new_tenant)
         db.session.commit()
@@ -175,7 +175,7 @@ def edit(id):
         tenant.last_name = last_name
         tenant.email = email
         tenant.phone = phone
-        tenant.property = property_id
+        tenant.property_id = property_id
         tenant.address = address
         tenant.city = city
         tenant.state = state

@@ -41,13 +41,33 @@ def update(id):
         Property.company_id == company_id
     ).first_or_404()
     form = LeaseForm(obj=lease)
-    form.tenant.choices = [(t.id, f"{t.first_name} {t.last_name}") for t in Tenant.query.filter_by(landlord=current_user.id)]
+    form.tenant.choices = [(t.id, f"{t.first_name} {t.last_name}") for t in Tenant.query.filter_by(company_id=company_id)]
     form.unit.choices = [(u.id, u.name) for u in Unit.query.filter_by(property_id=lease.unit.property_id)]
     
     if form.validate_on_submit():
+        # Get form data
+        start_datetime = datetime.combine(form.start.data, datetime.min.time())
+        end_datetime = datetime.combine(form.end.data, datetime.min.time())
+
+        # Additional validation
+        if start_datetime >= end_datetime:
+            flash('Start date must be before end date.', 'error')
+            return render_template("update_lease.html", user=current_user, form=form, lease=lease, properties=get_properties())
+
+        # Check for tenant overlap (excluding current lease)
+        if Lease.check_tenant_overlap(form.tenant.data, start_datetime, end_datetime, company_id, exclude_lease_id=lease.id):
+            flash('This tenant already has an overlapping lease during this time period.', 'error')
+            return render_template("update_lease.html", user=current_user, form=form, lease=lease, properties=get_properties())
+
+        # Check for unit overlap (excluding current lease)
+        if Lease.check_unit_overlap(form.unit.data, start_datetime, end_datetime, company_id, exclude_lease_id=lease.id):
+            flash('This unit is already leased to another tenant during this time period.', 'error')
+            return render_template("update_lease.html", user=current_user, form=form, lease=lease, properties=get_properties())
+
         form.populate_obj(lease)
-        lease.start = datetime.combine(form.start.data, datetime.min.time())
-        lease.end = datetime.combine(form.end.data, datetime.min.time())
+        lease.start = start_datetime
+        lease.end = end_datetime
+        lease.company_id = company_id  # Ensure company_id is set
         db.session.commit()
         return redirect(url_for('property.home', user=current_user, id=lease.unit.property_id))
     
@@ -65,8 +85,8 @@ def create(id):
         return page_not_found(404)
     
     form = LeaseForm()
-    form.tenant.choices = [(t.id, f"{t.first_name} {t.last_name}") for t in Tenant.query.filter_by(landlord=current_user.id)]
-    form.unit.choices = [(u.id, u.name) for u in Unit.query.filter_by(property=id)]
+    form.tenant.choices = [(t.id, f"{t.first_name} {t.last_name}") for t in Tenant.query.filter_by(company_id=company_id)]
+    form.unit.choices = [(u.id, u.name) for u in Unit.query.filter_by(property_id=id)]
     
     if form.validate_on_submit():
         tenant_id = form.tenant.data
@@ -81,12 +101,26 @@ def create(id):
             return render_template("create_lease.html", user=current_user, form=form, property=property)
 
         # Verify unit belongs to this property
-        unit = Unit.query.filter_by(id=unit_id, property=id).first()
+        unit = Unit.query.filter_by(id=unit_id, property_id=id).first()
         if not unit:
             flash('Invalid unit selected.', 'error')
             return render_template("create_lease.html", user=current_user, form=form, property=property)
 
-        new_lease = Lease(tenant_id=tenant_id, unit_id=unit_id, property_id=id, start=start, end=end, rent=rent)
+        # Convert dates to datetime for comparison
+        start_datetime = datetime.combine(start, datetime.min.time())
+        end_datetime = datetime.combine(end, datetime.min.time())
+
+        # Check for tenant overlap
+        if Lease.check_tenant_overlap(tenant_id, start_datetime, end_datetime, company_id):
+            flash('This tenant already has an overlapping lease during this time period.', 'error')
+            return render_template("create_lease.html", user=current_user, form=form, property=property)
+
+        # Check for unit overlap
+        if Lease.check_unit_overlap(unit_id, start_datetime, end_datetime, company_id):
+            flash('This unit is already leased to another tenant during this time period.', 'error')
+            return render_template("create_lease.html", user=current_user, form=form, property=property)
+
+        new_lease = Lease(tenant_id=tenant_id, unit_id=unit_id, property_id=id, company_id=company_id, start=start_datetime, end=end_datetime, rent=rent)
         db.session.add(new_lease)
         db.session.commit()
         

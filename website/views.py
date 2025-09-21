@@ -24,7 +24,7 @@ def get_properties():
 
 def get_units(id):
     company_id = current_user.get_company_id()
-    units = Unit.query.filter_by(company_id=company_id, property=id).order_by(Unit.name.asc()).all()
+    units = Unit.query.filter_by(company_id=company_id, property_id=id).order_by(Unit.name.asc()).all()
     return units
 
 def get_states():

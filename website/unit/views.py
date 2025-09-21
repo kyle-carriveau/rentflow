@@ -60,7 +60,7 @@ def create(id):
             return render_template("create_unit.html", user=current_user, property=property)
         
         company_id = current_user.get_company_id()
-        new_unit = Unit(name=name, bedrooms=bedrooms_int, bathrooms=bathrooms_int, sqft=sqft_int, property=id, rent=rent_int, company_id=company_id)
+        new_unit = Unit(name=name, bedrooms=bedrooms_int, bathrooms=bathrooms_int, sqft=sqft_int, property_id=id, rent=rent_int, company_id=company_id)
         db.session.add(new_unit)
         db.session.commit()
         flash('Unit created successfully!', 'success')
@@ -88,7 +88,7 @@ def edit(id):
         return page_not_found(404)
     
     # Get the property for validation
-    property = Property.query.filter_by(id=unit.property, company_id=company_id).first()
+    property = Property.query.filter_by(id=unit.property_id, company_id=company_id).first()
     if not property:
         return page_not_found(404)
     
@@ -151,7 +151,7 @@ def delete(id):
     if not unit:
         return page_not_found(404)
     
-    property_id = unit.property
+    property_id = unit.property_id
     unit_name = unit.name
     
     try:

@@ -14,7 +14,7 @@ def dashboard():
     company_id = current_user.get_company_id()
     properties = Property.query.filter_by(company_id=company_id).all()
     portfolios = Portfolio.query.filter_by(company_id=company_id).all()
-    tenants = Tenant.query.filter_by(landlord=current_user.id).all()
+    tenants = Tenant.query.filter_by(company_id=company_id).all()
     
     # Pass today's date for lease calculations
     today_date = datetime.now().date()

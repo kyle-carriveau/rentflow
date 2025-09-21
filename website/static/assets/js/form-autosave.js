@@ -427,7 +427,9 @@ document.addEventListener('DOMContentLoaded', function() {
         '#createPropertyForm',
         '#editPropertyForm',
         '#createLeaseForm',
-        '#editLeaseForm'
+        '#editLeaseForm',
+        '#inviteUserForm',
+        '#editUserForm'
     ];
 
     defaultForms.forEach(selector => {

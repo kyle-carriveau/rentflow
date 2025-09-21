@@ -30,7 +30,7 @@ def properties():
         portfolio = portfolio if portfolio else None
         
         company_id = current_user.get_company_id()
-        new_property = Property(name=name, owner=current_user.id, company_id=company_id, portfolio=portfolio)
+        new_property = Property(name=name, company_id=company_id, portfolio_id=portfolio)
         db.session.add(new_property)
         db.session.commit()
         flash('Property created successfully!', 'success')
@@ -44,8 +44,8 @@ def home(id):
     property = Property.query.filter_by(id=id, company_id=company_id).first()
     today = datetime.today()
     if property:
-        tenants = Tenant.query.filter_by(property=id, company_id=company_id)
-        leases = db.session.query(Unit, Lease, Tenant).filter_by(company_id=company_id, property=id).join(Lease, Lease.unit_id==Unit.id).join(Tenant, Tenant.id==Lease.tenant_id).all()     
+        tenants = Tenant.query.filter_by(property_id=id, company_id=company_id)
+        leases = db.session.query(Unit, Lease, Tenant).filter_by(company_id=company_id, property_id=id).join(Lease, Lease.unit_id==Unit.id).join(Tenant, Tenant.id==Lease.tenant_id).all()     
         return render_template("property.html", user=current_user, property=property, leases=leases, tenants=tenants, units=get_units(property.id), today=today)
     return page_not_found(404)
 
@@ -80,7 +80,7 @@ def create():
         zip_code = int(zip_code) if zip_code else None
 
         company_id = current_user.get_company_id()
-        new_property = Property(name=name, owner=current_user.id, company_id=company_id, portfolio=portfolio, type=type, address=address, city=city, state=state, zip_code=zip_code)
+        new_property = Property(name=name, company_id=company_id, portfolio_id=portfolio, type=type, address=address, city=city, state=state, zip_code=zip_code)
         db.session.add(new_property)
         db.session.commit()
         flash('Property created successfully!', 'success')
