@@ -21,7 +21,8 @@ def portfolios():
             flash('Portfolio name is required.', 'error')
             return render_template("portfolios.html", user=current_user, portfolios=get_enhanced_portfolios())
         
-        new_portfolio = Portfolio(name=name, owner=current_user.id)
+        company_id = current_user.get_company_id()
+        new_portfolio = Portfolio(name=name, owner=current_user.id, company_id=company_id)
         db.session.add(new_portfolio)
         db.session.commit()
         flash('Portfolio created successfully!', 'success')
@@ -33,13 +34,14 @@ def portfolios():
 @login_required
 def view(id):
     """View individual portfolio details."""
-    portfolio = Portfolio.query.filter_by(id=id, owner=current_user.id).first()
+    company_id = current_user.get_company_id()
+    portfolio = Portfolio.query.filter_by(id=id, company_id=company_id).first()
     if not portfolio:
         return page_not_found(404)
     
     # Get portfolio properties with metrics
-    properties = Property.query.filter_by(portfolio=id, owner=current_user.id).all()
-    unassigned_properties = Property.query.filter_by(portfolio=None, owner=current_user.id).all()
+    properties = Property.query.filter_by(portfolio=id, company_id=company_id).all()
+    unassigned_properties = Property.query.filter_by(portfolio=None, company_id=company_id).all()
     
     # Calculate portfolio metrics
     metrics = calculate_portfolio_metrics(portfolio)
@@ -55,7 +57,8 @@ def view(id):
 @login_required
 def edit(id):
     """Edit portfolio details."""
-    portfolio = Portfolio.query.filter_by(id=id, owner=current_user.id).first()
+    company_id = current_user.get_company_id()
+    portfolio = Portfolio.query.filter_by(id=id, company_id=company_id).first()
     if not portfolio:
         return page_not_found(404)
     
@@ -77,7 +80,8 @@ def edit(id):
 @login_required
 def delete(id):
     """Delete a portfolio (moves properties to unassigned)."""
-    portfolio = Portfolio.query.filter_by(id=id, owner=current_user.id).first()
+    company_id = current_user.get_company_id()
+    portfolio = Portfolio.query.filter_by(id=id, company_id=company_id).first()
     if not portfolio:
         return page_not_found(404)
     
@@ -85,7 +89,7 @@ def delete(id):
     
     try:
         # Move all properties in this portfolio to unassigned
-        Property.query.filter_by(portfolio=id, owner=current_user.id).update({'portfolio': None})
+        Property.query.filter_by(portfolio=id, company_id=company_id).update({'portfolio': None})
         db.session.delete(portfolio)
         db.session.commit()
         flash(f'Portfolio "{portfolio_name}" deleted. Properties moved to unassigned.', 'success')
@@ -99,12 +103,13 @@ def delete(id):
 @login_required
 def assign_property(id):
     """Assign a property to this portfolio."""
-    portfolio = Portfolio.query.filter_by(id=id, owner=current_user.id).first()
+    company_id = current_user.get_company_id()
+    portfolio = Portfolio.query.filter_by(id=id, company_id=company_id).first()
     if not portfolio:
         return page_not_found(404)
     
     property_id = request.form.get('property_id')
-    property = Property.query.filter_by(id=property_id, owner=current_user.id).first()
+    property = Property.query.filter_by(id=property_id, company_id=company_id).first()
     
     if not property:
         flash('Property not found.', 'error')
@@ -119,12 +124,13 @@ def assign_property(id):
 @login_required  
 def remove_property(id):
     """Remove a property from this portfolio."""
-    portfolio = Portfolio.query.filter_by(id=id, owner=current_user.id).first()
+    company_id = current_user.get_company_id()
+    portfolio = Portfolio.query.filter_by(id=id, company_id=company_id).first()
     if not portfolio:
         return page_not_found(404)
     
     property_id = request.form.get('property_id')
-    property = Property.query.filter_by(id=property_id, portfolio=id, owner=current_user.id).first()
+    property = Property.query.filter_by(id=property_id, portfolio=id, company_id=company_id).first()
     
     if not property:
         flash('Property not found in this portfolio.', 'error')
@@ -137,7 +143,8 @@ def remove_property(id):
 
 def get_enhanced_portfolios():
     """Get portfolios with enhanced metrics."""
-    portfolios = Portfolio.query.filter_by(owner=current_user.id).all()
+    company_id = current_user.get_company_id()
+    portfolios = Portfolio.query.filter_by(company_id=company_id).all()
     enhanced_portfolios = []
     
     for portfolio in portfolios:
@@ -157,7 +164,8 @@ def get_enhanced_portfolios():
 
 def calculate_portfolio_metrics(portfolio):
     """Calculate comprehensive metrics for a portfolio."""
-    properties = Property.query.filter_by(portfolio=portfolio.id, owner=current_user.id).all()
+    company_id = current_user.get_company_id()
+    properties = Property.query.filter_by(portfolio=portfolio.id, company_id=company_id).all()
     
     total_units = 0
     total_revenue = 0
@@ -165,7 +173,7 @@ def calculate_portfolio_metrics(portfolio):
     property_details = []
     
     for property in properties:
-        units = Unit.query.filter_by(property=property.id).all()
+        units = Unit.query.filter_by(property=property.id, company_id=company_id).all()
         property_revenue = 0
         property_occupied = 0
         

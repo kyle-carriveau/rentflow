@@ -5,8 +5,35 @@ from sqlalchemy import and_
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
+class Company(db.Model):
+    __tablename__ = 'company'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), nullable=False)
+    address = db.Column(db.String(150))
+    city = db.Column(db.String(150))
+    state = db.Column(db.String(150))
+    zip_code = db.Column(db.Integer)
+    phone = db.Column(db.String(20))
+    email = db.Column(db.String(150))
+    website = db.Column(db.String(150))
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    
+    # Relationships
+    users = db.relationship('User', backref='company_ref', lazy=True)
+    properties = db.relationship('Property', backref='company_ref', lazy=True)
+    tenants = db.relationship('Tenant', backref='company_ref', lazy=True)
+
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
+    
+    # Role constants
+    ROLE_OWNER = 'owner'
+    ROLE_MANAGER = 'manager'
+    ROLE_STAFF = 'staff'
+    ROLE_VIEWER = 'viewer'
+    
+    ROLES = [ROLE_OWNER, ROLE_MANAGER, ROLE_STAFF, ROLE_VIEWER]
+    
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(150), nullable=False)
     last_name = db.Column(db.String(150), nullable=False)
@@ -17,30 +44,97 @@ class User(db.Model, UserMixin):
     zip_code = db.Column(db.Integer)
     password_hash = db.Column(db.String(1500), nullable=False)
     company = db.Column(db.String(150))
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
+    role = db.Column(db.String(20), nullable=False, default=ROLE_OWNER)
+    
+    # Relationships
+    tenants = db.relationship('Tenant', backref='landlord_ref', lazy=True, foreign_keys='Tenant.landlord')
 
-    def __init__(self, first_name="", last_name="", email="", password=""):
+    def __init__(self, first_name="", last_name="", email="", password="", company_id=None, role=None):
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
-        self.password_hash = generate_password_hash(password)
+        self.company_id = company_id
+        self.role = role or self.ROLE_OWNER  # Default to owner role
+        if password:
+            self.password_hash = generate_password_hash(password)
         
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def get_or_create_company(self):
+        """Get user's company or create a default one for backward compatibility."""
+        if self.company_id:
+            return self.company_ref
+        
+        # Create a default company for users without one
+        from . import db
+        default_company = Company(
+            name=self.company or f"{self.first_name} {self.last_name} Properties",
+            email=self.email
+        )
+        db.session.add(default_company)
+        db.session.flush()  # Get the ID without committing
+        
+        # Assign user to the company
+        self.company_id = default_company.id
+        db.session.commit()
+        
+        return default_company
+    
+    def get_company_id(self):
+        """Get user's company_id, creating one if necessary."""
+        if self.company_id:
+            return self.company_id
+        company = self.get_or_create_company()
+        return company.id
+    
+    def has_role(self, role):
+        """Check if user has a specific role."""
+        return self.role == role
+    
+    def is_owner(self):
+        """Check if user is a company owner."""
+        return self.role == self.ROLE_OWNER
+    
+    def is_manager(self):
+        """Check if user is a manager or higher."""
+        return self.role in [self.ROLE_OWNER, self.ROLE_MANAGER]
+    
+    def is_staff(self):
+        """Check if user is staff or higher."""
+        return self.role in [self.ROLE_OWNER, self.ROLE_MANAGER, self.ROLE_STAFF]
+    
+    def can_create(self):
+        """Check if user can create new records."""
+        return self.role in [self.ROLE_OWNER, self.ROLE_MANAGER, self.ROLE_STAFF]
+    
+    def can_edit(self):
+        """Check if user can edit records."""
+        return self.role in [self.ROLE_OWNER, self.ROLE_MANAGER, self.ROLE_STAFF]
+    
+    def can_delete(self):
+        """Check if user can delete records."""
+        return self.role in [self.ROLE_OWNER, self.ROLE_MANAGER]
+    
+    def can_manage_users(self):
+        """Check if user can manage other users."""
+        return self.role == self.ROLE_OWNER
 
 class Portfolio(db.Model):
     __tablename__ = 'portfolio'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150))
-    owner = db.Column(db.Integer, db.ForeignKey('user.id'))
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
 class Property(db.Model):
     __tablename__ = 'property'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
-    owner = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     portfolio = db.Column(db.Integer, db.ForeignKey('portfolio.id'), nullable=True)
     address = db.Column(db.String(150))
     city = db.Column(db.String(150))
@@ -77,7 +171,7 @@ class Unit(db.Model):
     __tablename__ = 'unit'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150))
-    owner = db.Column(db.Integer, db.ForeignKey('user.id'))
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     property = db.Column(db.Integer, db.ForeignKey('property.id'))
     bedrooms = db.Column(db.Integer)
     bathrooms = db.Column(db.Integer)
@@ -140,6 +234,7 @@ class Tenant(db.Model):
     __tablename__ = 'tenant'
     id = db.Column(db.Integer, primary_key=True)
     landlord = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
     first_name = db.Column(db.String(150), nullable=False)
     last_name = db.Column(db.String(150), nullable=False)
     email = db.Column(db.String(150))
@@ -208,6 +303,7 @@ class Lease(db.Model):
     tenant_id = db.Column(db.Integer, db.ForeignKey('tenant.id'), nullable=False)
     unit_id = db.Column(db.Integer, db.ForeignKey('unit.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
     start = db.Column(db.DateTime, nullable=False)
     end = db.Column(db.DateTime, nullable=False)
     rent = db.Column(db.Integer, nullable=False)
@@ -261,6 +357,7 @@ class Payment(db.Model):
     lease_id = db.Column(db.Integer, db.ForeignKey('lease.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
     
     # Payment details
     amount = db.Column(db.Numeric(10, 2), nullable=False)
@@ -299,6 +396,7 @@ class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)  # Nullable for general expenses
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
     
     # Expense details
     amount = db.Column(db.Numeric(10, 2), nullable=False)

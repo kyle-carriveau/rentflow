@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block content %} 
+
+<form method="POST">
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row">
+                <div class="col">
+                    <h5 class="mb-2">{{ company.name }}</h5>
+                </div>
+                <div class="col-auto d-none d-sm-block">
+                    <h6 class="text-uppercase text-600">Company<span class="fas fa-building ms-2"></span></h6>
+                </div>
+            </div>
+        </div>
+        <div class="card-body border-top">
+            <div class="d-flex"><span class="fas fa-building text-success me-2" data-fa-transform="down-5"></span>
+                <div class="flex-1">
+                    <p class="fs--1 mb-0 text-600">Company created</p>
+                    <p class="fs--1 mb-0 text-600">{{ company.created_at.strftime('%b %d, %Y') if company.created_at else 'N/A' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Company Information</h5>
+                </div>
+                <div class="col-auto"></div>
+            </div>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">Company Name *</p>
+                        </div>
+                        <div class="col">
+                            <input class="form-control" type="text" name="name" id="name" value="{{ company.name }}" required/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">Email *</p>
+                        </div>
+                        <div class="col">
+                            <input class="form-control" type="email" name="email" id="email" value="{{ company.email }}" required/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">Phone</p>
+                        </div>
+                        <div class="col">
+                            <input class="form-control" type="tel" name="phone" id="phone" value="{{ company.phone or '' }}"/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">Website</p>
+                        </div>
+                        <div class="col">
+                            <input class="form-control" type="url" name="website" id="website" value="{{ company.website or '' }}" placeholder="https://example.com"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Address</h5>
+                </div>
+                <div class="col-auto"></div>
+            </div>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">Street Address</p>
+                        </div>
+                        <div class="col">
+                            <input class="form-control" type="text" name="address" id="address" value="{{ company.address or '' }}"/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">City</p>
+                        </div>
+                        <div class="col">
+                            <input class="form-control" type="text" name="city" id="city" value="{{ company.city or '' }}"/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">State</p>
+                        </div>
+                        <div class="col">
+                            <input class="form-control" type="text" name="state" id="state" value="{{ company.state or '' }}"/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">ZIP Code</p>
+                        </div>
+                        <div class="col">
+                            <input class="form-control" type="text" name="zip_code" id="zip_code" value="{{ company.zip_code or '' }}"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Description</h5>
+                </div>
+                <div class="col-auto"></div>
+            </div>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-12">
+                    <textarea class="form-control" name="description" id="description" rows="4" placeholder="Brief description of your company...">{{ company.description or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-auto">
+                    <button class="btn btn-falcon-primary" type="submit">Update Company</button>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ url_for('company.profile') }}" class="btn btn-falcon-default">Cancel</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% endblock %}

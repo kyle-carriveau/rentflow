@@ -9,16 +9,18 @@ unit = Blueprint('unit', __name__, template_folder='templates')
 @unit.route('/')
 @login_required
 def list_units():
-    """List all units for the current user."""
-    units = Unit.query.filter_by(owner=current_user.id).all()
+    """List all units for the current user's company."""
+    company_id = current_user.get_company_id()
+    units = Unit.query.filter_by(company_id=company_id).all()
     return render_template("units.html", user=current_user, units=units)
 
 @unit.route('/create/<int:id>', methods=['GET', 'POST'])
 @login_required
 def create(id):
     """Create a new unit for a property."""
-    # Verify property ownership
-    property = Property.query.filter_by(id=id, owner=current_user.id).first()
+    # Verify property ownership within company
+    company_id = current_user.get_company_id()
+    property = Property.query.filter_by(id=id, company_id=company_id).first()
     if not property:
         return page_not_found(404)
     
@@ -57,7 +59,8 @@ def create(id):
             flash('Please enter valid numbers for bedrooms, bathrooms, square footage, and rent.', 'error')
             return render_template("create_unit.html", user=current_user, property=property)
         
-        new_unit = Unit(name=name, bedrooms=bedrooms_int, bathrooms=bathrooms_int, sqft=sqft_int, property=id, rent=rent_int, owner=current_user.id)
+        company_id = current_user.get_company_id()
+        new_unit = Unit(name=name, bedrooms=bedrooms_int, bathrooms=bathrooms_int, sqft=sqft_int, property=id, rent=rent_int, company_id=company_id)
         db.session.add(new_unit)
         db.session.commit()
         flash('Unit created successfully!', 'success')
@@ -69,7 +72,8 @@ def create(id):
 @login_required
 def show(id):
     """Show unit details."""
-    unit = Unit.query.filter_by(id=id, owner=current_user.id).first()
+    company_id = current_user.get_company_id()
+    unit = Unit.query.filter_by(id=id, company_id=company_id).first()
     if not unit:
         return page_not_found(404)
     return render_template("unit.html", unit=unit, user=current_user)
@@ -78,12 +82,13 @@ def show(id):
 @login_required
 def edit(id):
     """Edit an existing unit."""
-    unit = Unit.query.filter_by(id=id, owner=current_user.id).first()
+    company_id = current_user.get_company_id()
+    unit = Unit.query.filter_by(id=id, company_id=company_id).first()
     if not unit:
         return page_not_found(404)
     
     # Get the property for validation
-    property = Property.query.filter_by(id=unit.property, owner=current_user.id).first()
+    property = Property.query.filter_by(id=unit.property, company_id=company_id).first()
     if not property:
         return page_not_found(404)
     
@@ -141,7 +146,8 @@ def edit(id):
 @login_required
 def delete(id):
     """Delete a unit."""
-    unit = Unit.query.filter_by(id=id, owner=current_user.id).first()
+    company_id = current_user.get_company_id()
+    unit = Unit.query.filter_by(id=id, company_id=company_id).first()
     if not unit:
         return page_not_found(404)
     

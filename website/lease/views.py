@@ -13,7 +13,7 @@ lease = Blueprint('lease', __name__, template_folder='templates')
 @login_required
 def leases():
     leases = get_all_leases_for_user()
-    today_date = datetime.now().date()
+    today_date = datetime.now()
     return render_template("leases.html", user=current_user, leases=leases, today_date=today_date)
 
 @lease.route('/<int:id>', methods=['GET', 'POST'])
@@ -21,22 +21,24 @@ def leases():
 def show(id):
     """View lease details."""
     # Only show leases for properties owned by current user
+    company_id = current_user.get_company_id()
     lease = db.session.query(Lease).join(Unit).join(Property).filter(
         Lease.id == id,
-        Property.owner == current_user.id
+        Property.company_id == company_id
     ).first()
     if not lease:
         return page_not_found(404)
-    today_date = datetime.now().date()
+    today_date = datetime.now()
     return render_template("lease.html", user=current_user, lease=lease, today_date=today_date)
 
 @lease.route('/update/<int:id>', methods=['GET', 'POST'])
 @login_required
 def update(id):
     # Only allow updating leases for properties owned by current user
+    company_id = current_user.get_company_id()
     lease = db.session.query(Lease).join(Unit).join(Property).filter(
         Lease.id == id,
-        Property.owner == current_user.id
+        Property.company_id == company_id
     ).first_or_404()
     form = LeaseForm(obj=lease)
     form.tenant.choices = [(t.id, f"{t.first_name} {t.last_name}") for t in Tenant.query.filter_by(landlord=current_user.id)]
@@ -57,7 +59,8 @@ def update(id):
 def create(id):
     """Create a new lease for a property."""
     # Verify property ownership
-    property = Property.query.filter_by(id=id, owner=current_user.id).first()
+    company_id = current_user.get_company_id()
+    property = Property.query.filter_by(id=id, company_id=company_id).first()
     if not property:
         return page_not_found(404)
     
@@ -86,8 +89,15 @@ def create(id):
         new_lease = Lease(tenant_id=tenant_id, unit_id=unit_id, property_id=id, start=start, end=end, rent=rent)
         db.session.add(new_lease)
         db.session.commit()
-        flash('Lease created successfully!', 'success')
-        return redirect(url_for('property.home', id=id))
+        
+        # Get tenant and unit info for the success message
+        tenant = Tenant.query.get(tenant_id)
+        unit = Unit.query.get(unit_id)
+        tenant_name = f"{tenant.first_name} {tenant.last_name}" if tenant else "Unknown"
+        unit_name = unit.name if unit else "Unknown"
+        
+        flash(f'Lease created successfully! {tenant_name} is now assigned to {unit_name} starting {start.strftime("%m/%d/%Y")}.', 'success')
+        return redirect(url_for('lease.show', id=new_lease.id))
     
     return render_template("create_lease.html", user=current_user, form=form, property=property)
 
@@ -96,9 +106,10 @@ def create(id):
 def delete(id):
     """Delete a lease."""
     # Only allow deleting leases for properties owned by current user
+    company_id = current_user.get_company_id()
     lease = db.session.query(Lease).join(Unit).join(Property).filter(
         Lease.id == id,
-        Property.owner == current_user.id
+        Property.company_id == company_id
     ).first()
     
     if not lease:
@@ -120,23 +131,25 @@ def delete(id):
 
 def get_all_leases_for_user():
     """Get all leases for properties owned by current user, ordered by most recent first."""
+    company_id = current_user.get_company_id()
     all_leases = db.session.query(Lease).join(Unit).join(Property).filter(
-        Property.owner == current_user.id
+        Property.company_id == company_id
     ).order_by(Lease.end.desc(), Lease.start.desc()).all()
     return all_leases
 
 def get_active_leases():
-    today = datetime.now().date()
+    today = datetime.now()
     # Only return leases for properties owned by current user
+    company_id = current_user.get_company_id()
     active_leases = db.session.query(Lease).join(Unit).join(Property).filter(
-        Property.owner == current_user.id,
+        Property.company_id == company_id,
         Lease.start <= today,
         Lease.end >= today
     ).all()
     return active_leases
 
 def get_active_leases_for_property(property_id):
-    today = datetime.now().date()
+    today = datetime.now()
     active_leases = Lease.query.join(Unit).join(Property).\
                     filter(Property.id == property_id, Lease.start <= today, Lease.end >= today).\
                     all()

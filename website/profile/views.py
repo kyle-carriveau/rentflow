@@ -11,8 +11,9 @@ def dashboard():
     from website.models import Property, Portfolio, Tenant
     
     # Get user's data
-    properties = Property.query.filter_by(owner=current_user.id).all()
-    portfolios = Portfolio.query.filter_by(owner=current_user.id).all()
+    company_id = current_user.get_company_id()
+    properties = Property.query.filter_by(company_id=company_id).all()
+    portfolios = Portfolio.query.filter_by(company_id=company_id).all()
     tenants = Tenant.query.filter_by(landlord=current_user.id).all()
     
     # Pass today's date for lease calculations

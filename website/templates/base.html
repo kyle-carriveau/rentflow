@@ -208,6 +208,22 @@
                       <span class="nav-link-text ps-1">Profile & Settings</span>
                     </div>
                   </a>
+                  
+                  {% if current_user.is_owner() %}
+                  <a class="nav-link {{ 'active' if request.endpoint and 'company.' in request.endpoint else '' }}" href="{{ url_for('company.profile') }}" role="button">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-icon"><span class="fas fa-building"></span></span>
+                      <span class="nav-link-text ps-1">Company Profile</span>
+                    </div>
+                  </a>
+                  
+                  <a class="nav-link {{ 'active' if request.endpoint and 'user_management.' in request.endpoint else '' }}" href="{{ url_for('user_management.users') }}" role="button">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-icon"><span class="fas fa-users-cog"></span></span>
+                      <span class="nav-link-text ps-1">Users</span>
+                    </div>
+                  </a>
+                  {% endif %}
                 </li>
               </ul>
             </div>
@@ -336,7 +352,6 @@
     <script src="{{ url_for('static', filename='vendors/choices/choices.min.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/flatpickr.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/form-validation.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/loading-states.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/confirmation-dialogs.js') }}"></script>
     
     {% block javascript %}{% endblock %}

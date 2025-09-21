@@ -11,7 +11,8 @@ tenant = Blueprint('tenant', __name__, template_folder='templates')
 @tenant.route('/', methods=['GET', 'POST'])
 @login_required
 def tenants(): 
-    tenants = db.session.query(Tenant).filter_by(landlord=current_user.id).all()
+    company_id = current_user.get_company_id()
+    tenants = db.session.query(Tenant).filter_by(company_id=company_id).all()
     return render_template("tenants.html", user=current_user, tenants=tenants)
 
 @tenant.route('/create', methods=['GET', 'POST'])
@@ -62,14 +63,30 @@ def create():
         # Convert empty strings to None for optional fields
         property = property if property else None
         zip_code = int(zip_code) if zip_code else None
-        phone = int(phone) if phone and phone.isdigit() else None
+        
+        # Clean phone number: remove all non-digit characters and convert to int
+        if phone:
+            phone_digits = ''.join(filter(str.isdigit, phone))
+            phone = int(phone_digits) if phone_digits else None
+        else:
+            phone = None
 
-        new_tenant = Tenant(first_name=first_name, last_name=last_name, email=email, phone=phone, property=property, address=address, city=city, state=state, zip_code=zip_code, landlord=current_user.id)
+        company_id = current_user.get_company_id()
+        new_tenant = Tenant(first_name=first_name, last_name=last_name, email=email, phone=phone, property=property, address=address, city=city, state=state, zip_code=zip_code, landlord=current_user.id, company_id=company_id)
 
         db.session.add(new_tenant)
         db.session.commit()
-        flash('Tenant created successfully!', 'success')
-        return redirect(url_for('tenant.tenants'))
+        
+        # Create detailed success message
+        tenant_name = f"{first_name} {last_name}"
+        property_info = ""
+        if property:
+            property_obj = Property.query.get(property)
+            if property_obj:
+                property_info = f" and assigned to {property_obj.name}"
+        
+        flash(f'Tenant "{tenant_name}" created successfully{property_info}!', 'success')
+        return redirect(url_for('tenant.home', id=new_tenant.id))
 
     return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
 
@@ -77,7 +94,8 @@ def create():
 @login_required
 def home(id):
     """View tenant details."""
-    tenant = Tenant.query.filter_by(id=id, landlord=current_user.id).first()
+    company_id = current_user.get_company_id()
+    tenant = Tenant.query.filter_by(id=id, company_id=company_id).first()
     if not tenant:
         return page_not_found(404)
     return render_template("/tenant.html", tenant=tenant, user=current_user)
@@ -86,7 +104,8 @@ def home(id):
 @login_required
 def edit(id):
     """Edit tenant information."""
-    tenant = Tenant.query.filter_by(id=id, landlord=current_user.id).first()
+    company_id = current_user.get_company_id()
+    tenant = Tenant.query.filter_by(id=id, company_id=company_id).first()
     if not tenant:
         return page_not_found(404)
     
@@ -135,7 +154,7 @@ def edit(id):
 
         # Validate property ownership if property is selected
         if property_id:
-            property_obj = Property.query.filter_by(id=property_id, owner=current_user.id).first()
+            property_obj = Property.query.filter_by(id=property_id, company_id=company_id).first()
             if not property_obj:
                 flash('Invalid property selected.', 'error')
                 return render_template("edit_tenant.html", tenant=tenant, user=current_user, properties=get_properties(), states=get_states())
@@ -143,7 +162,13 @@ def edit(id):
         # Convert empty strings to None for optional fields
         property_id = property_id if property_id else None
         zip_code = int(zip_code) if zip_code else None
-        phone = int(phone) if phone and phone.isdigit() else None
+        
+        # Clean phone number: remove all non-digit characters and convert to int
+        if phone:
+            phone_digits = ''.join(filter(str.isdigit, phone))
+            phone = int(phone_digits) if phone_digits else None
+        else:
+            phone = None
 
         # Update tenant
         tenant.first_name = first_name
@@ -166,7 +191,8 @@ def edit(id):
 @login_required
 def delete(id):
     """Delete a tenant."""
-    tenant = Tenant.query.filter_by(id=id, landlord=current_user.id).first()
+    company_id = current_user.get_company_id()
+    tenant = Tenant.query.filter_by(id=id, company_id=company_id).first()
     if not tenant:
         return page_not_found(404)
     

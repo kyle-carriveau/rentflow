@@ -4,6 +4,7 @@ from website import db
 from flask_login import login_required, current_user
 from website.views import get_properties, get_portfolios, get_states, get_units
 from website.errors import page_not_found
+from website.auth_utils import can_create_required, can_edit_required, can_delete_required
 from datetime import datetime
 
 property = Blueprint('property', __name__, template_folder='templates')
@@ -28,7 +29,8 @@ def properties():
         # Convert empty strings to None for optional fields
         portfolio = portfolio if portfolio else None
         
-        new_property = Property(name=name, owner=current_user.id, portfolio=portfolio)
+        company_id = current_user.get_company_id()
+        new_property = Property(name=name, owner=current_user.id, company_id=company_id, portfolio=portfolio)
         db.session.add(new_property)
         db.session.commit()
         flash('Property created successfully!', 'success')
@@ -38,16 +40,18 @@ def properties():
 @property.route('/<int:id>', methods=['GET', 'POST'])
 @login_required
 def home(id):
-    property = Property.query.filter_by(id=id, owner=current_user.id).first()
+    company_id = current_user.get_company_id()
+    property = Property.query.filter_by(id=id, company_id=company_id).first()
     today = datetime.today()
     if property:
-        tenants = Tenant.query.filter_by(property=id, landlord=current_user.id)
-        leases = db.session.query(Unit, Lease, Tenant).filter_by(owner=current_user.id, property=id).join(Lease, Lease.unit_id==Unit.id).join(Tenant, Tenant.id==Lease.tenant_id).all()     
+        tenants = Tenant.query.filter_by(property=id, company_id=company_id)
+        leases = db.session.query(Unit, Lease, Tenant).filter_by(company_id=company_id, property=id).join(Lease, Lease.unit_id==Unit.id).join(Tenant, Tenant.id==Lease.tenant_id).all()     
         return render_template("property.html", user=current_user, property=property, leases=leases, tenants=tenants, units=get_units(property.id), today=today)
     return page_not_found(404)
 
 @property.route('/create', methods=['GET', 'POST'])
 @login_required
+@can_create_required
 def create():
     if request.method == "POST":
         name = request.form.get('name', '').strip()
@@ -75,7 +79,8 @@ def create():
         portfolio = portfolio if portfolio else None
         zip_code = int(zip_code) if zip_code else None
 
-        new_property = Property(name=name, owner=current_user.id, portfolio=portfolio, type=type, address=address, city=city, state=state, zip_code=zip_code)
+        company_id = current_user.get_company_id()
+        new_property = Property(name=name, owner=current_user.id, company_id=company_id, portfolio=portfolio, type=type, address=address, city=city, state=state, zip_code=zip_code)
         db.session.add(new_property)
         db.session.commit()
         flash('Property created successfully!', 'success')
@@ -86,8 +91,10 @@ def create():
 
 @property.route('/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
+@can_edit_required
 def edit(id):
-    property = Property.query.filter_by(id=id, owner=current_user.id).first()
+    company_id = current_user.get_company_id()
+    property = Property.query.filter_by(id=id, company_id=company_id).first()
     if not property:
         return page_not_found(404)
         
@@ -128,9 +135,11 @@ def edit(id):
 
 @property.route('/<int:id>/delete', methods=['POST'])
 @login_required
+@can_delete_required
 def delete(id):
     """Delete a property and all associated data."""
-    property = Property.query.filter_by(id=id, owner=current_user.id).first()
+    company_id = current_user.get_company_id()
+    property = Property.query.filter_by(id=id, company_id=company_id).first()
     if not property:
         return page_not_found(404)
     

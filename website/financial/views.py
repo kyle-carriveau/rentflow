@@ -38,8 +38,9 @@ def dashboard():
     
     # Outstanding rent
     overdue_leases = []
+    company_id = current_user.get_company_id()
     current_leases = Lease.query.join(Property).filter(
-        Property.owner == current_user.id,
+        Property.company_id == company_id,
         Lease.start <= today,
         Lease.end >= today
     ).all()
@@ -96,7 +97,8 @@ def payments():
         page=page, per_page=20, error_out=False
     )
     
-    properties = Property.query.filter_by(owner=current_user.id).all()
+    company_id = current_user.get_company_id()
+    properties = Property.query.filter_by(company_id=company_id).all()
     
     return render_template('payments.html',
                          user=current_user,
@@ -141,7 +143,7 @@ def record_payment():
                 flash('The selected lease could not be found.', 'error')
                 return redirect(url_for('financial.record_payment'))
                 
-            if lease.lease_property_ref.owner != current_user.id:
+            if lease.lease_property_ref.company_id != current_user.get_company_id():
                 flash('You do not have permission to record payments for this lease.', 'error')
                 return redirect(url_for('financial.record_payment'))
             
@@ -190,15 +192,17 @@ def record_payment():
             return redirect(url_for('financial.record_payment'))
     
     # GET request - show form
+    company_id = current_user.get_company_id()
     active_leases = Lease.query.join(Property).filter(
-        Property.owner == current_user.id,
+        Property.company_id == company_id,
         Lease.start <= datetime.now(),
         Lease.end >= datetime.now()
     ).all()
     
     return render_template('record_payment.html',
                          user=current_user,
-                         leases=active_leases)
+                         leases=active_leases,
+                         today=datetime.now().strftime('%Y-%m-%d'))
 
 @financial.route('/expenses')
 @login_required
@@ -223,7 +227,8 @@ def expenses():
         page=page, per_page=20, error_out=False
     )
     
-    properties = Property.query.filter_by(owner=current_user.id).all()
+    company_id = current_user.get_company_id()
+    properties = Property.query.filter_by(company_id=company_id).all()
     categories = Expense.get_categories()
     
     return render_template('expenses.html',
@@ -281,7 +286,8 @@ def add_expense():
             return redirect(url_for('financial.add_expense'))
     
     # GET request - show form
-    properties = Property.query.filter_by(owner=current_user.id).all()
+    company_id = current_user.get_company_id()
+    properties = Property.query.filter_by(company_id=company_id).all()
     categories = Expense.get_categories()
     
     return render_template('add_expense.html',
