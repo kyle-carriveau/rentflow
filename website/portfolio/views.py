@@ -32,7 +32,7 @@ def portfolios():
 
 @portfolio.route('/<int:id>')
 @login_required
-def view(id):
+def home(id):
     """View individual portfolio details."""
     company_id = current_user.get_company_id()
     portfolio = Portfolio.query.filter_by(id=id, company_id=company_id).first()
@@ -72,7 +72,7 @@ def edit(id):
         portfolio.name = name
         db.session.commit()
         flash('Portfolio updated successfully!', 'success')
-        return redirect(url_for('portfolio.view', id=id))
+        return redirect(url_for('portfolio.home', id=id))
     
     return render_template("edit_portfolio.html", user=current_user, portfolio=portfolio)
 
@@ -113,12 +113,12 @@ def assign_property(id):
     
     if not property:
         flash('Property not found.', 'error')
-        return redirect(url_for('portfolio.view', id=id))
+        return redirect(url_for('portfolio.home', id=id))
     
     property.portfolio_id = id
     db.session.commit()
     flash(f'Property "{property.name}" assigned to portfolio "{portfolio.name}".', 'success')
-    return redirect(url_for('portfolio.view', id=id))
+    return redirect(url_for('portfolio.home', id=id))
 
 @portfolio.route('/<int:id>/remove-property', methods=['POST'])
 @login_required  
@@ -134,12 +134,12 @@ def remove_property(id):
     
     if not property:
         flash('Property not found in this portfolio.', 'error')
-        return redirect(url_for('portfolio.view', id=id))
+        return redirect(url_for('portfolio.home', id=id))
     
     property.portfolio_id = None
     db.session.commit()
     flash(f'Property "{property.name}" removed from portfolio.', 'success')
-    return redirect(url_for('portfolio.view', id=id))
+    return redirect(url_for('portfolio.home', id=id))
 
 def get_enhanced_portfolios():
     """Get portfolios with enhanced metrics."""
@@ -173,7 +173,7 @@ def calculate_portfolio_metrics(portfolio):
     property_details = []
     
     for property in properties:
-        units = Unit.query.filter_by(property=property.id, company_id=company_id).all()
+        units = Unit.query.filter_by(property_id=property.id, company_id=company_id).all()
         property_revenue = 0
         property_occupied = 0
         

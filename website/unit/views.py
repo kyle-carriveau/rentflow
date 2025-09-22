@@ -1,8 +1,9 @@
 from flask import render_template, Blueprint, request, redirect, url_for, flash
 from website.models import Unit, Property
-from website import db 
+from website import db
 from flask_login import login_required, current_user
 from website.errors import page_not_found
+from datetime import datetime
 
 unit = Blueprint('unit', __name__, template_folder='templates')
 
@@ -76,7 +77,8 @@ def show(id):
     unit = Unit.query.filter_by(id=id, company_id=company_id).first()
     if not unit:
         return page_not_found(404)
-    return render_template("unit.html", unit=unit, user=current_user)
+    today_date = datetime.now().date()
+    return render_template("unit.html", unit=unit, user=current_user, today_date=today_date)
 
 @unit.route('/<int:id>/edit', methods=['GET', 'POST'])
 @login_required

@@ -175,7 +175,7 @@
                         <div class="d-flex align-items-center mb-3">
                             <div class="avatar avatar-2xl me-3">
                                 <div class="avatar-name rounded-circle bg-success bg-soft d-flex align-items-center justify-content-center">
-                                    <span class="fas fa-check text-success"></span>
+                                    <span class="fas fa-home text-white"></span>
                                 </div>
                             </div>
                             <div>
@@ -188,7 +188,7 @@
                         <div class="d-flex align-items-center mb-3">
                             <div class="avatar avatar-2xl me-3">
                                 <div class="avatar-name rounded-circle bg-warning bg-soft d-flex align-items-center justify-content-center">
-                                    <span class="fas fa-door-open text-warning"></span>
+                                    <span class="fas fa-home text-white"></span>
                                 </div>
                             </div>
                             <div>
@@ -245,11 +245,6 @@
                             {% if loop.index <= 5 %}
                             <div class="list-group-item list-group-item-action">
                                 <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-sm me-3">
-                                        <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
-                                            <span class="fas fa-file-contract fs--2"></span>
-                                        </div>
-                                    </div>
                                     <div class="flex-1">
                                         <h6 class="mb-1">
                                             {% if lease.tenant_ref %}
@@ -280,11 +275,6 @@
                     </div>
                 {% else %}
                     <div class="text-center p-4">
-                        <div class="avatar avatar-2xl">
-                            <div class="avatar-name rounded-circle bg-200 text-600 d-flex align-items-center justify-content-center">
-                                <span class="fas fa-file-contract"></span>
-                            </div>
-                        </div>
                         <h6 class="mt-3 mb-1">No Recent Activity</h6>
                         <p class="text-600 mb-3">Create your first lease to see activity here.</p>
                         <a href="{{ url_for('lease.leases') }}" class="btn btn-falcon-primary btn-sm">
@@ -438,13 +428,12 @@
                             {% set revenue = item.revenue %}
                             <div class="list-group-item">
                                 <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-sm me-3">
-                                        <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
-                                            <span class="fas fa-building fs--2"></span>
-                                        </div>
-                                    </div>
                                     <div class="flex-1">
-                                        <h6 class="mb-1">{{ property.name }}</h6>
+                                        <h6 class="mb-1">
+                                            <a href="{{ url_for('property.home', id=property.id) }}" class="fw-semi-bold text-decoration-none">
+                                                {{ property.name }}
+                                            </a>
+                                        </h6>
                                         <p class="mb-0 text-600 fs--1">
                                             {{ property.units|length }} unit{% if property.units|length != 1 %}s{% endif %}
                                         </p>

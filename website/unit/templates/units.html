@@ -195,7 +195,7 @@
                         <td class="property">
                             {% if unit.property_ref %}
                                 <div>
-                                    <a href="{{ url_for('property.home', id=unit.property) }}" class="fw-semi-bold text-decoration-none">
+                                    <a href="{{ url_for('property.home', id=unit.property_id) }}" class="fw-semi-bold text-decoration-none">
                                         {{ unit.property_ref.name }}
                                     </a>
                                     {% if unit.property_ref.address %}
@@ -208,36 +208,22 @@
                         </td>
                         <td class="tenant">
                             {% if current_tenant %}
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-xs me-2">
-                                        <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
-                                            <span>{{ current_tenant.first_name[0] }}{{ current_tenant.last_name[0] }}</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <a href="{{ url_for('tenant.home', id=current_tenant.id) }}" class="fw-semi-bold text-decoration-none">
-                                            {{ current_tenant.first_name }} {{ current_tenant.last_name }}
-                                        </a>
-                                        {% if current_lease and current_lease.end %}
-                                            <div class="fs--2 text-600">Until {{ current_lease.end.strftime('%m/%d/%Y') }}</div>
-                                        {% endif %}
-                                    </div>
+                                <div>
+                                    <a href="{{ url_for('tenant.home', id=current_tenant.id) }}" class="fw-semi-bold text-decoration-none">
+                                        {{ current_tenant.first_name }} {{ current_tenant.last_name }}
+                                    </a>
+                                    {% if current_lease and current_lease.end %}
+                                        <div class="fs--2 text-600">Until {{ current_lease.end.strftime('%m/%d/%Y') }}</div>
+                                    {% endif %}
                                 </div>
                             {% elif lease_status == 'Reserved' %}
                                 {% set next_lease = unit.get_next_lease() %}
                                 {% if next_lease and next_lease.tenant_ref %}
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-xs me-2">
-                                            <div class="avatar-name rounded-circle bg-info text-white d-flex align-items-center justify-content-center">
-                                                <span>{{ next_lease.tenant_ref.first_name[0] }}{{ next_lease.tenant_ref.last_name[0] }}</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <a href="{{ url_for('tenant.home', id=next_lease.tenant_ref.id) }}" class="fw-semi-bold text-decoration-none">
-                                                {{ next_lease.tenant_ref.first_name }} {{ next_lease.tenant_ref.last_name }}
-                                            </a>
-                                            <div class="fs--2 text-info">Starts {{ next_lease.start.strftime('%m/%d/%Y') }}</div>
-                                        </div>
+                                    <div>
+                                        <a href="{{ url_for('tenant.home', id=next_lease.tenant_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                            {{ next_lease.tenant_ref.first_name }} {{ next_lease.tenant_ref.last_name }}
+                                        </a>
+                                        <div class="fs--2 text-info">Starts {{ next_lease.start.strftime('%m/%d/%Y') }}</div>
                                     </div>
                                 {% else %}
                                     <span class="text-400">Reserved</span>

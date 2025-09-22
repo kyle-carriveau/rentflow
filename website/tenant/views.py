@@ -19,6 +19,7 @@ def tenants():
 @login_required
 def create():
     if request.method == "POST":
+        print(f"DEBUG: Tenant creation attempt by user {current_user.email}")  # Debug logging
         first_name = request.form.get('first_name', '').strip()
         last_name = request.form.get('last_name', '').strip()
         email = request.form.get('email', '').strip()
@@ -29,12 +30,16 @@ def create():
         state = request.form.get('state')
         zip_code = request.form.get('zip_code', '').strip()
 
+        print(f"DEBUG: Form data - first_name: '{first_name}', last_name: '{last_name}', email: '{email}', phone: '{phone}'")  # Debug logging
+
         # Server-side validation
         if not first_name:
+            print("DEBUG: Validation failed - First name is required")
             flash('First name is required.', 'error')
             return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
-            
+
         if not last_name:
+            print("DEBUG: Validation failed - Last name is required")
             flash('Last name is required.', 'error')
             return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
 
@@ -53,40 +58,73 @@ def create():
             flash('Zip code must be exactly 5 digits.', 'error')
             return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
 
-        # Check if email is already in use
+        # Check if email is already in use (check both users and tenants)
         if email:
-            user = User.query.filter_by(email=email).first()
-            if user:
-                flash('Email is already in use.', 'error')
+            existing_user = User.query.filter_by(email=email).first()
+            existing_tenant = Tenant.query.filter_by(email=email).first()
+            if existing_user:
+                flash('Email is already in use by a system user.', 'error')
+                return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
+            if existing_tenant:
+                flash('Email is already in use by another tenant.', 'error')
+                return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
+
+        # Validate property ownership if property is selected
+        if property:
+            company_id = current_user.get_company_id()
+            property_obj = Property.query.filter_by(id=property, company_id=company_id).first()
+            if not property_obj:
+                flash('Invalid property selected.', 'error')
                 return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
 
         # Convert empty strings to None for optional fields
         property = property if property else None
         zip_code = int(zip_code) if zip_code else None
-        
-        # Clean phone number: remove all non-digit characters and convert to int
+
+        # Clean and validate phone number
         if phone:
             phone_digits = ''.join(filter(str.isdigit, phone))
-            phone = int(phone_digits) if phone_digits else None
+            if phone_digits:
+                if len(phone_digits) != 10:
+                    flash('Phone number must be exactly 10 digits.', 'error')
+                    return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
+
+                # Check if phone number is already in use
+                existing_tenant_phone = Tenant.query.filter_by(phone=int(phone_digits)).first()
+                if existing_tenant_phone:
+                    flash('Phone number is already in use by another tenant.', 'error')
+                    return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
+
+                phone = int(phone_digits)
+            else:
+                phone = None
         else:
             phone = None
 
         company_id = current_user.get_company_id()
+        print(f"DEBUG: All validations passed, creating tenant with company_id: {company_id}")
         new_tenant = Tenant(first_name=first_name, last_name=last_name, email=email, phone=phone, property_id=property, address=address, city=city, state=state, zip_code=zip_code, company_id=company_id)
 
-        db.session.add(new_tenant)
-        db.session.commit()
-        
-        # Create detailed success message
-        tenant_name = f"{first_name} {last_name}"
-        property_info = ""
-        if property:
-            property_obj = Property.query.get(property)
-            if property_obj:
-                property_info = f" and assigned to {property_obj.name}"
-        
-        flash(f'Tenant "{tenant_name}" created successfully{property_info}!', 'success')
-        return redirect(url_for('tenant.home', id=new_tenant.id))
+        try:
+            db.session.add(new_tenant)
+            db.session.commit()
+
+            # Create detailed success message
+            tenant_name = f"{first_name} {last_name}"
+            property_info = ""
+            if property:
+                property_obj = Property.query.get(property)
+                if property_obj:
+                    property_info = f" and assigned to {property_obj.name}"
+
+            print(f"DEBUG: Tenant {tenant_name} created successfully with ID {new_tenant.id}")  # Debug logging
+            flash(f'Tenant "{tenant_name}" created successfully{property_info}!', 'success')
+            return redirect(url_for('tenant.home', id=new_tenant.id))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating tenant: {str(e)}', 'error')
+            return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
 
     return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
 

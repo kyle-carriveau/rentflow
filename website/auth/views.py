@@ -9,7 +9,7 @@ auth = Blueprint('auth', __name__, template_folder="templates")
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("profile.home"))
+        return redirect(url_for("profile.dashboard"))
 
     login_form = LoginForm()
     if login_form.validate_on_submit():
@@ -19,7 +19,7 @@ def login():
             flash("Invalid username or password", category="danger")
             return redirect(url_for("auth.login"))
         login_user(user, remember=login_form.remember_me.data)
-        return redirect(url_for("profile.home"))
+        return redirect(url_for("profile.dashboard"))
     
     return render_template("login.html", form=login_form)
 
@@ -32,7 +32,7 @@ def logout():
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for("profile.home"))
+        return redirect(url_for("profile.dashboard"))
     register_form = RegistrationForm()
     print(register_form.validate_on_submit())
     if register_form.validate_on_submit():
@@ -55,38 +55,10 @@ def register():
         db.session.commit()
         login_user(user, remember=True)
         flash('Profile and company created successfully.', category="success")
-        return redirect(url_for("profile.home"))
+        return redirect(url_for("profile.dashboard"))
 
     return render_template("register.html", form=register_form)
 
-@auth.route('/modal-register', methods=['POST'])
-def modal_register():
-    if current_user.is_authenticated:
-        return jsonify({'success': False, 'error': 'Already logged in'})
-    
-    register_form = RegistrationForm()
-    if register_form.validate_on_submit():
-        first_name = register_form.first_name.data
-        last_name = register_form.last_name.data
-        company_name = register_form.company_name.data
-        email = register_form.email.data
-        password = register_form.password.data
-
-        # Create company with user-provided name
-        company = Company(name=company_name, email=email)
-        db.session.add(company)
-        db.session.flush()  # Get company ID without committing
-        
-        # Create user with owner role and assign to company
-        user = User(first_name=first_name, last_name=last_name, email=email, 
-                   company_id=company.id, role=User.ROLE_OWNER)
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-        login_user(user, remember=True)
-        return jsonify({'success': True, 'redirect': url_for("profile.home")})
-    else:
-        return jsonify({'success': False, 'errors': register_form.errors})
 
 @auth.route('/forgot', methods=['GET', 'POST'])
 def forgot():

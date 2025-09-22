@@ -10,7 +10,7 @@
                 <h5 class="mb-1">{{ unit.name }}</h5>
                 {% if unit.property_ref %}
                     <p class="text-600 mb-0">Property: 
-                        <a href="{{ url_for('property.home', id=unit.property) }}" class="text-decoration-none">
+                        <a href="{{ url_for('property.home', id=unit.property_id) }}" class="text-decoration-none">
                             {{ unit.property_ref.name }}
                         </a>
                     </p>
@@ -21,8 +21,8 @@
                     <a class="btn btn-falcon-default btn-sm" href="{{ url_for('unit.edit', id=unit.id) }}">
                         <span class="fas fa-edit fs--2 me-1"></span>Edit Unit
                     </a>
-                    {% if unit.property %}
-                        <a class="btn btn-falcon-default btn-sm" href="{{ url_for('property.home', id=unit.property) }}">
+                    {% if unit.property_id %}
+                        <a class="btn btn-falcon-default btn-sm" href="{{ url_for('property.home', id=unit.property_id) }}">
                             <span class="fas fa-arrow-left fs--2 me-1"></span>Back to Property
                         </a>
                     {% endif %}
@@ -305,7 +305,7 @@
         </div>
         <h5 class="text-warning">Available for Lease</h5>
         <p class="text-600 mb-3">This unit is currently available for new tenants.</p>
-        <a href="{{ url_for('lease.create', id=unit.property) }}?unit={{ unit.id }}" class="btn btn-falcon-success">
+        <a href="{{ url_for('lease.create', id=unit.property_id) }}?unit={{ unit.id }}" class="btn btn-falcon-success">
             <span class="fas fa-plus me-1"></span>Create New Lease
         </a>
     </div>
@@ -323,8 +323,8 @@
                 <p class="text-600 mb-0">All rental agreements for this unit</p>
             </div>
             <div class="col-auto">
-                {% if unit.property %}
-                    <a class="btn btn-falcon-primary btn-sm" href="{{ url_for('lease.create', id=unit.property) }}">
+                {% if unit.property_id %}
+                    <a class="btn btn-falcon-primary btn-sm" href="{{ url_for('lease.create', id=unit.property_id) }}">
                         <span class="fas fa-plus fs--2 me-1"></span>New Lease
                     </a>
                 {% endif %}
@@ -361,10 +361,9 @@
                             <td>{{ lease.start.strftime('%m/%d/%Y') }}</td>
                             <td>{{ lease.end.strftime('%m/%d/%Y') }}</td>
                             <td>
-                                {% set now = moment().utc() %}
-                                {% if lease.start <= now.date() <= lease.end %}
+                                {% if lease.start.date() <= today_date <= lease.end.date() %}
                                     <span class="badge badge-soft-success">Active</span>
-                                {% elif lease.end < now.date() %}
+                                {% elif lease.end.date() < today_date %}
                                     <span class="badge badge-soft-secondary">Expired</span>
                                 {% else %}
                                     <span class="badge badge-soft-warning">Future</span>
@@ -387,8 +386,8 @@
                 </div>
                 <h6 class="mb-2">No Leases Found</h6>
                 <p class="text-600 mb-3">This unit doesn't have any lease agreements yet.</p>
-                {% if unit.property %}
-                    <a href="{{ url_for('lease.create', id=unit.property) }}" class="btn btn-falcon-primary btn-sm">
+                {% if unit.property_id %}
+                    <a href="{{ url_for('lease.create', id=unit.property_id) }}" class="btn btn-falcon-primary btn-sm">
                         <span class="fas fa-plus fs--2 me-1"></span>Create First Lease
                     </a>
                 {% endif %}

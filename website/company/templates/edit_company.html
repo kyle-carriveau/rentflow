@@ -70,6 +70,137 @@
                             <input class="form-control" type="url" name="website" id="website" value="{{ company.website or '' }}" placeholder="https://example.com"/>
                         </div>
                     </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">Industry</p>
+                        </div>
+                        <div class="col">
+                            <select class="form-select" name="industry" id="industry">
+                                <option value="">Select Industry</option>
+                                <option value="Residential Property Management" {{ 'selected' if company.industry == 'Residential Property Management' else '' }}>Residential Property Management</option>
+                                <option value="Commercial Real Estate" {{ 'selected' if company.industry == 'Commercial Real Estate' else '' }}>Commercial Real Estate</option>
+                                <option value="Mixed-Use Properties" {{ 'selected' if company.industry == 'Mixed-Use Properties' else '' }}>Mixed-Use Properties</option>
+                                <option value="Vacation Rentals" {{ 'selected' if company.industry == 'Vacation Rentals' else '' }}>Vacation Rentals</option>
+                                <option value="Student Housing" {{ 'selected' if company.industry == 'Student Housing' else '' }}>Student Housing</option>
+                                <option value="Senior Living" {{ 'selected' if company.industry == 'Senior Living' else '' }}>Senior Living</option>
+                                <option value="Affordable Housing" {{ 'selected' if company.industry == 'Affordable Housing' else '' }}>Affordable Housing</option>
+                                <option value="Other" {{ 'selected' if company.industry == 'Other' else '' }}>Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">Company Size</p>
+                        </div>
+                        <div class="col">
+                            <select class="form-select" name="company_size" id="company_size">
+                                <option value="">Select Size</option>
+                                <option value="Small (1-10 employees)" {{ 'selected' if company.company_size == 'Small (1-10 employees)' else '' }}>Small (1-10 employees)</option>
+                                <option value="Medium (11-50 employees)" {{ 'selected' if company.company_size == 'Medium (11-50 employees)' else '' }}>Medium (11-50 employees)</option>
+                                <option value="Large (51-200 employees)" {{ 'selected' if company.company_size == 'Large (51-200 employees)' else '' }}>Large (51-200 employees)</option>
+                                <option value="Enterprise (200+ employees)" {{ 'selected' if company.company_size == 'Enterprise (200+ employees)' else '' }}>Enterprise (200+ employees)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Business Information Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Business Information</h5>
+                </div>
+                <div class="col-auto"></div>
+            </div>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">Tax ID / EIN</p>
+                        </div>
+                        <div class="col">
+                            <input class="form-control" type="text" name="tax_id" id="tax_id" value="{{ company.tax_id or '' }}" placeholder="XX-XXXXXXX"/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">License Number</p>
+                        </div>
+                        <div class="col">
+                            <input class="form-control" type="text" name="license_number" id="license_number" value="{{ company.license_number or '' }}" placeholder="Real estate license number"/>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">Established Date</p>
+                        </div>
+                        <div class="col">
+                            <input class="form-control" type="date" name="established_date" id="established_date" value="{{ company.established_date.strftime('%Y-%m-%d') if company.established_date else '' }}"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Preferences Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">System Preferences</h5>
+                </div>
+                <div class="col-auto"></div>
+            </div>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">Timezone</p>
+                        </div>
+                        <div class="col">
+                            <select class="form-select" name="timezone" id="timezone">
+                                <option value="America/New_York" {{ 'selected' if company.timezone == 'America/New_York' else '' }}>Eastern Time (US & Canada)</option>
+                                <option value="America/Chicago" {{ 'selected' if company.timezone == 'America/Chicago' else '' }}>Central Time (US & Canada)</option>
+                                <option value="America/Denver" {{ 'selected' if company.timezone == 'America/Denver' else '' }}>Mountain Time (US & Canada)</option>
+                                <option value="America/Los_Angeles" {{ 'selected' if company.timezone == 'America/Los_Angeles' else '' }}>Pacific Time (US & Canada)</option>
+                                <option value="America/Anchorage" {{ 'selected' if company.timezone == 'America/Anchorage' else '' }}>Alaska Time</option>
+                                <option value="Pacific/Honolulu" {{ 'selected' if company.timezone == 'Pacific/Honolulu' else '' }}>Hawaii Time</option>
+                                <option value="Europe/London" {{ 'selected' if company.timezone == 'Europe/London' else '' }}>London (GMT)</option>
+                                <option value="Europe/Paris" {{ 'selected' if company.timezone == 'Europe/Paris' else '' }}>Central European Time</option>
+                                <option value="Asia/Tokyo" {{ 'selected' if company.timezone == 'Asia/Tokyo' else '' }}>Japan Standard Time</option>
+                                <option value="Australia/Sydney" {{ 'selected' if company.timezone == 'Australia/Sydney' else '' }}>Australian Eastern Time</option>
+                            </select>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-5 col-sm-4">
+                            <p class="fw-semi-bold mb-1">Currency</p>
+                        </div>
+                        <div class="col">
+                            <select class="form-select" name="currency" id="currency">
+                                <option value="USD" {{ 'selected' if company.currency == 'USD' else '' }}>US Dollar (USD)</option>
+                                <option value="CAD" {{ 'selected' if company.currency == 'CAD' else '' }}>Canadian Dollar (CAD)</option>
+                                <option value="EUR" {{ 'selected' if company.currency == 'EUR' else '' }}>Euro (EUR)</option>
+                                <option value="GBP" {{ 'selected' if company.currency == 'GBP' else '' }}>British Pound (GBP)</option>
+                                <option value="AUD" {{ 'selected' if company.currency == 'AUD' else '' }}>Australian Dollar (AUD)</option>
+                                <option value="JPY" {{ 'selected' if company.currency == 'JPY' else '' }}>Japanese Yen (JPY)</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

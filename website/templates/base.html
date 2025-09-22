@@ -210,13 +210,24 @@
                   </a>
                   
                   {% if current_user.is_owner() %}
-                  <a class="nav-link {{ 'active' if request.endpoint and 'company.' in request.endpoint else '' }}" href="{{ url_for('company.profile') }}" role="button">
+                  <a class="nav-link {{ 'active' if request.endpoint and 'company.profile' in request.endpoint else '' }}" href="{{ url_for('company.profile') }}" role="button">
                     <div class="d-flex align-items-center">
                       <span class="nav-link-icon"><span class="fas fa-building"></span></span>
                       <span class="nav-link-text ps-1">Company Profile</span>
                     </div>
                   </a>
-                  
+                  {% endif %}
+
+                  {% if current_user.is_manager() or current_user.is_owner() %}
+                  <a class="nav-link {{ 'active' if request.endpoint and 'company.settings' in request.endpoint else '' }}" href="{{ url_for('company.settings') }}" role="button">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-icon"><span class="fas fa-cog"></span></span>
+                      <span class="nav-link-text ps-1">Company Settings</span>
+                    </div>
+                  </a>
+                  {% endif %}
+
+                  {% if current_user.is_owner() %}
                   <a class="nav-link {{ 'active' if request.endpoint and 'user_management.' in request.endpoint else '' }}" href="{{ url_for('user_management.users') }}" role="button">
                     <div class="d-flex align-items-center">
                       <span class="nav-link-icon"><span class="fas fa-users-cog"></span></span>

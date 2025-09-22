@@ -1,10 +1,9 @@
 from flask import render_template, Blueprint
-from website.auth.forms import LoginForm, RegistrationForm
+from website.auth.forms import LoginForm
 
 main = Blueprint('main', __name__, template_folder='templates')
 
 @main.route('/')
 def landing():
     login_form = LoginForm()
-    registration_form = RegistrationForm()
-    return render_template("landing.html", registration_form=registration_form, login_form=login_form)
+    return render_template("landing.html", login_form=login_form)

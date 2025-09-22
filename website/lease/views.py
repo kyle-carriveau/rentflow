@@ -42,7 +42,7 @@ def update(id):
     ).first_or_404()
     form = LeaseForm(obj=lease)
     form.tenant.choices = [(t.id, f"{t.first_name} {t.last_name}") for t in Tenant.query.filter_by(company_id=company_id)]
-    form.unit.choices = [(u.id, u.name) for u in Unit.query.filter_by(property_id=lease.unit.property_id)]
+    form.unit.choices = [(u.id, u.name) for u in Unit.query.filter_by(property_id=lease.property_id)]
     
     if form.validate_on_submit():
         # Get form data

@@ -1,19 +1,23 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
 
 {% block content %}
+<!-- Enhanced Company Header -->
 <div class="card mb-3">
     <div class="card-header position-relative min-vh-25 mb-7">
         <div class="bg-holder rounded-3 rounded-bottom-0" style="background-image:url(../static/assets/img/generic/4.jpg);">
         </div>
-        <!--/.bg-holder-->
 
         <div class="avatar avatar-5xl avatar-profile position-relative">
+            {% if company.logo_url %}
+            <img class="rounded-circle img-thumbnail shadow-sm" src="{{ company.logo_url }}" alt="{{ company.name }} Logo" style="width: 128px; height: 128px; object-fit: cover;">
+            {% else %}
             <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-sm img-thumbnail" style="width: 128px; height: 128px; font-size: 2rem; font-weight: 600;">
                 <span>{{ company.name[0] }}{% if company.name.split()|length > 1 %}{{ company.name.split()[1][0] }}{% endif %}</span>
             </div>
+            {% endif %}
             {% if user.is_owner() %}
-            <button class="btn btn-sm btn-primary rounded-circle position-absolute" style="bottom: 8px; right: 8px; width: 32px; height: 32px; padding: 0;">
-                <i class="fas fa-plus"></i>
+            <button class="btn btn-sm btn-primary rounded-circle position-absolute" style="bottom: 8px; right: 8px; width: 32px; height: 32px; padding: 0;" data-bs-toggle="tooltip" title="Upload Logo">
+                <i class="fas fa-camera"></i>
             </button>
             {% endif %}
         </div>
@@ -21,90 +25,360 @@
     <div class="card-body">
         <div class="row">
             <div class="col-lg-8">
-                <h4 class="mb-1">{{ company.name }}<span data-bs-toggle="tooltip" data-bs-placement="right" title="Verified"><small class="fa fa-check-circle text-primary" data-fa-transform="shrink-4 down-2"></small></span></h4>
-                {% if company.email %}
-                <h5 class="fs-0 fw-normal">{{ company.email }}</h5>
+                <div class="d-flex align-items-center mb-2">
+                    <h4 class="mb-0 me-2">{{ company.name }}</h4>
+                    <span data-bs-toggle="tooltip" data-bs-placement="right" title="Verified Company">
+                        <small class="fa fa-check-circle text-primary" data-fa-transform="shrink-4 down-2"></small>
+                    </span>
+                    {% if company.industry %}
+                    <span class="badge badge-soft-info ms-2">{{ company.industry }}</span>
+                    {% endif %}
+                </div>
+
+                {% if company.description %}
+                <p class="text-600 mb-2">{{ company.description }}</p>
                 {% endif %}
+
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+                    {% if company.email %}
+                    <div class="d-flex align-items-center">
+                        <span class="fas fa-envelope text-400 me-2"></span>
+                        <a href="mailto:{{ company.email }}" class="text-decoration-none">{{ company.email }}</a>
+                    </div>
+                    {% endif %}
+
+                    {% if company.phone %}
+                    <div class="d-flex align-items-center">
+                        <span class="fas fa-phone text-400 me-2"></span>
+                        <a href="tel:{{ company.phone }}" class="text-decoration-none">{{ company.phone }}</a>
+                    </div>
+                    {% endif %}
+
+                    {% if company.website %}
+                    <div class="d-flex align-items-center">
+                        <span class="fas fa-globe text-400 me-2"></span>
+                        <a href="{{ company.website }}" target="_blank" class="text-decoration-none">{{ company.website }}</a>
+                    </div>
+                    {% endif %}
+                </div>
+
                 {% if company.city and company.state %}
-                <p class="text-500">{{ company.city }}, {{ company.state }}{% if company.zip_code %} {{ company.zip_code }}{% endif %}</p>
+                <div class="d-flex align-items-center mb-3">
+                    <span class="fas fa-map-marker-alt text-400 me-2"></span>
+                    <span class="text-600">{{ company.city }}, {{ company.state }}{% if company.zip_code %} {{ company.zip_code }}{% endif %}</span>
+                </div>
                 {% endif %}
-                {% if user.is_owner() %}
-                <a href="{{ url_for('company.edit') }}"><button class="btn btn-falcon-primary btn-sm px-3" type="button">Edit Company Profile</button></a>
-                {% endif %}
+
+                <!-- Action Buttons -->
+                <div class="d-flex flex-wrap gap-2">
+                    {% if user.is_owner() %}
+                    <a href="{{ url_for('company.edit') }}" class="btn btn-falcon-primary btn-sm">
+                        <span class="fas fa-edit me-1"></span>Edit Profile
+                    </a>
+                    {% endif %}
+
+                    {% if user.is_manager() or user.is_owner() %}
+                    <a href="{{ url_for('company.settings') }}" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-cog me-1"></span>Settings
+                    </a>
+                    {% endif %}
+
+                    {% if user.is_owner() %}
+                    <a href="{{ url_for('user_management.invite') }}" class="btn btn-falcon-success btn-sm">
+                        <span class="fas fa-user-plus me-1"></span>Invite User
+                    </a>
+                    {% endif %}
+                </div>
+
                 <div class="border-dashed-bottom my-4 d-lg-none"></div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-0">
-    <div class="col-lg-8 pe-lg-2">
+<!-- Main Content Area -->
+<div class="row g-3">
+    <div class="col-lg-8">
+        <!-- Company Details Card -->
         <div class="card mb-3">
-            <div class="card-header bg-light">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Company Information</h5>
+                {% if user.is_owner() %}
+                <a href="{{ url_for('company.edit') }}" class="btn btn-falcon-default btn-sm">
+                    <span class="fas fa-edit fs--2 me-1"></span>Edit
+                </a>
+                {% endif %}
             </div>
             <div class="card-body">
                 <div class="row g-3">
+                    <!-- Basic Information -->
                     <div class="col-lg-6">
                         <label class="form-label text-700 fw-semi-bold">Company Name</label>
-                        <p class="fs-0">{{ company.name }}</p>
+                        <p class="fs-0 mb-0">{{ company.name }}</p>
                     </div>
                     <div class="col-lg-6">
                         <label class="form-label text-700 fw-semi-bold">Email</label>
-                        <p class="fs-0">{{ company.email or 'Not provided' }}</p>
+                        <p class="fs-0 mb-0">{{ company.email or 'Not provided' }}</p>
                     </div>
+
+                    {% if company.industry %}
+                    <div class="col-lg-6">
+                        <label class="form-label text-700 fw-semi-bold">Industry</label>
+                        <p class="fs-0 mb-0">{{ company.industry }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if company.company_size %}
+                    <div class="col-lg-6">
+                        <label class="form-label text-700 fw-semi-bold">Company Size</label>
+                        <p class="fs-0 mb-0">{{ company.company_size }}</p>
+                    </div>
+                    {% endif %}
+
                     {% if company.phone %}
                     <div class="col-lg-6">
                         <label class="form-label text-700 fw-semi-bold">Phone</label>
-                        <p class="fs-0">{{ company.phone }}</p>
+                        <p class="fs-0 mb-0">{{ company.phone }}</p>
                     </div>
                     {% endif %}
+
                     {% if company.website %}
                     <div class="col-lg-6">
                         <label class="form-label text-700 fw-semi-bold">Website</label>
-                        <p class="fs-0"><a href="{{ company.website }}" target="_blank">{{ company.website }}</a></p>
+                        <p class="fs-0 mb-0"><a href="{{ company.website }}" target="_blank" class="text-decoration-none">{{ company.website }}</a></p>
                     </div>
                     {% endif %}
+
+                    {% if company.established_date %}
+                    <div class="col-lg-6">
+                        <label class="form-label text-700 fw-semi-bold">Established</label>
+                        <p class="fs-0 mb-0">{{ company.established_date.strftime('%B %d, %Y') }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if company.timezone %}
+                    <div class="col-lg-6">
+                        <label class="form-label text-700 fw-semi-bold">Timezone</label>
+                        <p class="fs-0 mb-0">{{ company.timezone }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Address Section -->
                     {% if company.address or company.city or company.state %}
                     <div class="col-12">
                         <label class="form-label text-700 fw-semi-bold">Address</label>
-                        <p class="fs-0">
+                        <p class="fs-0 mb-0">
                             {% if company.address %}{{ company.address }}<br>{% endif %}
                             {% if company.city %}{{ company.city }}{% endif %}{% if company.state %}, {{ company.state }}{% endif %}{% if company.zip_code %} {{ company.zip_code }}{% endif %}
                         </p>
                     </div>
                     {% endif %}
+
+                    <!-- Business Information -->
+                    {% if company.tax_id or company.license_number %}
+                    <div class="col-12">
+                        <hr class="my-3">
+                        <h6 class="mb-2">Business Information</h6>
+                    </div>
+
+                    {% if company.tax_id %}
+                    <div class="col-lg-6">
+                        <label class="form-label text-700 fw-semi-bold">Tax ID</label>
+                        <p class="fs-0 mb-0">{{ company.tax_id }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if company.license_number %}
+                    <div class="col-lg-6">
+                        <label class="form-label text-700 fw-semi-bold">License Number</label>
+                        <p class="fs-0 mb-0">{{ company.license_number }}</p>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+
                     {% if company.description %}
                     <div class="col-12">
-                        <label class="form-label text-700 fw-semi-bold">Description</label>
-                        <p class="fs-0">{{ company.description }}</p>
+                        <hr class="my-3">
+                        <label class="form-label text-700 fw-semi-bold">About Us</label>
+                        <p class="fs-0 mb-0">{{ company.description }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Card -->
+        <div class="card mb-3">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline timeline-basic">
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <span class="fas fa-building text-primary"></span>
+                        </div>
+                        <div class="timeline-content">
+                            <h6 class="fs--1 mb-0">Company created</h6>
+                            <p class="fs--2 text-600 mb-0">{{ company.created_at.strftime('%B %d, %Y at %I:%M %p') if company.created_at else 'Unknown' }}</p>
+                        </div>
+                    </div>
+
+                    {% if company.properties %}
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <span class="fas fa-home text-success"></span>
+                        </div>
+                        <div class="timeline-content">
+                            <h6 class="fs--1 mb-0">{{ company.properties|length }} properties added</h6>
+                            <p class="fs--2 text-600 mb-0">Building your portfolio</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if company.users|length > 1 %}
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <span class="fas fa-users text-info"></span>
+                        </div>
+                        <div class="timeline-content">
+                            <h6 class="fs--1 mb-0">{{ company.users|length - 1 }} team members joined</h6>
+                            <p class="fs--2 text-600 mb-0">Growing your team</p>
+                        </div>
                     </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-lg-4 ps-lg-2">
+
+    <!-- Enhanced Sidebar -->
+    <div class="col-lg-4">
         <div class="sticky-sidebar">
+            <!-- Company Overview Stats -->
             <div class="card mb-3">
                 <div class="card-header bg-light">
-                    <h6 class="mb-0">Quick Stats</h6>
+                    <h6 class="mb-0">Company Overview</h6>
                 </div>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="text-600">Founded:</span>
-                        <span class="text-800">{{ company.created_at.strftime('%Y') if company.created_at else 'N/A' }}</span>
+                        <span class="text-800 fw-semi-bold">
+                            {{ company.established_date.strftime('%Y') if company.established_date else (company.created_at.strftime('%Y') if company.created_at else 'N/A') }}
+                        </span>
                     </div>
                     <hr class="my-2">
-                    <div class="d-flex justify-content-between">
-                        <span class="text-600">Total Users:</span>
-                        <span class="text-800">{{ company.users|length if company.users else '0' }}</span>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-600">Team Members:</span>
+                        <span class="text-800 fw-semi-bold">{{ company.users|length if company.users else '0' }}</span>
                     </div>
                     <hr class="my-2">
-                    <div class="d-flex justify-content-between">
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="text-600">Properties:</span>
-                        <span class="text-800">{{ company.properties|length if company.properties else '0' }}</span>
+                        <span class="text-800 fw-semi-bold">{{ company.properties|length if company.properties else '0' }}</span>
+                    </div>
+                    <hr class="my-2">
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-600">Portfolios:</span>
+                        <span class="text-800 fw-semi-bold">{{ company.portfolios|length if company.portfolios else '0' }}</span>
+                    </div>
+
+                    {% if company.currency %}
+                    <hr class="my-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-600">Currency:</span>
+                        <span class="text-800 fw-semi-bold">{{ company.currency }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions Card -->
+            {% if user.is_manager() or user.is_owner() %}
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('property.create') }}" class="btn btn-falcon-success btn-sm">
+                            <span class="fas fa-plus me-2"></span>Add Property
+                        </a>
+
+                        <a href="{{ url_for('tenant.create') }}" class="btn btn-falcon-info btn-sm">
+                            <span class="fas fa-user-plus me-2"></span>Add Tenant
+                        </a>
+
+                        {% if user.is_owner() %}
+                        <a href="{{ url_for('portfolio.create') }}" class="btn btn-falcon-warning btn-sm">
+                            <span class="fas fa-layer-group me-2"></span>Create Portfolio
+                        </a>
+                        {% endif %}
+
+                        <hr class="my-2">
+
+                        <a href="{{ url_for('property.properties') }}" class="btn btn-falcon-default btn-sm">
+                            <span class="fas fa-building me-2"></span>View Properties
+                        </a>
+
+                        <a href="{{ url_for('tenant.tenants') }}" class="btn btn-falcon-default btn-sm">
+                            <span class="fas fa-users me-2"></span>View Tenants
+                        </a>
+
+                        {% if user.is_owner() %}
+                        <a href="{{ url_for('user_management.users') }}" class="btn btn-falcon-default btn-sm">
+                            <span class="fas fa-user-cog me-2"></span>Manage Team
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- System Information -->
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">System Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-600">Account Type:</span>
+                        <span class="badge badge-soft-primary">{{ company.company_size or 'Standard' }}</span>
+                    </div>
+
+                    {% if company.timezone %}
+                    <hr class="my-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-600">Timezone:</span>
+                        <span class="text-800 fs--1">{{ company.timezone.replace('_', ' ') }}</span>
+                    </div>
+                    {% endif %}
+
+                    <hr class="my-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-600">Status:</span>
+                        <span class="badge badge-soft-success">Active</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Need Help Card -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Need Help?</h6>
+                </div>
+                <div class="card-body">
+                    <p class="fs--1 text-600 mb-3">Get help with your property management needs.</p>
+                    <div class="d-grid gap-2">
+                        <a href="#" class="btn btn-falcon-outline-primary btn-sm">
+                            <span class="fas fa-question-circle me-2"></span>Help Center
+                        </a>
+                        <a href="#" class="btn btn-falcon-outline-secondary btn-sm">
+                            <span class="fas fa-envelope me-2"></span>Contact Support
+                        </a>
                     </div>
                 </div>
             </div>

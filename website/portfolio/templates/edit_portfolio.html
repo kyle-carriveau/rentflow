@@ -16,7 +16,7 @@
                 </div>
             </div>
             <div class="col-auto">
-                <a href="{{ url_for('portfolio.view', id=portfolio.id) }}" class="btn btn-falcon-default btn-sm">
+                <a href="{{ url_for('portfolio.home', id=portfolio.id) }}" class="btn btn-falcon-default btn-sm">
                     <span class="fas fa-arrow-left fs--2 me-1"></span>Back to Portfolio
                 </a>
             </div>
@@ -53,7 +53,7 @@
                             <span class="fas fa-trash fs--2 me-1"></span>Delete Portfolio
                         </button>
                         <div>
-                            <a href="{{ url_for('portfolio.view', id=portfolio.id) }}" class="btn btn-secondary me-2">
+                            <a href="{{ url_for('portfolio.home', id=portfolio.id) }}" class="btn btn-secondary me-2">
                                 Cancel
                             </a>
                             <button type="submit" class="btn btn-primary">

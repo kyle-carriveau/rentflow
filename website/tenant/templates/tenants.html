@@ -48,12 +48,12 @@
         <table class="table table-hover table-striped overflow-hidden">
           <thead>
             <tr>
-              <th scope="col">Actions</th>
               <th scope="col">Tenant</th>
               <th scope="col">Contact</th>
               <th scope="col">Current Property</th>
               <th scope="col">Monthly Rent</th>
               <th scope="col">Status</th>
+              <th scope="col">Actions</th>
             </tr>
           </thead>
           <tbody class="list">
@@ -64,36 +64,16 @@
                 data-email="{{ tenant.email or '' }}"
                 data-phone="{{ tenant.phone or '' }}">
               <td class="text-nowrap">
-                <div class="dropdown text-sans-serif">
-                  <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal" 
-                          type="button" data-bs-toggle="dropdown" data-bs-auto-close="true" 
-                          aria-haspopup="true" aria-expanded="false">
-                      <span class="fas fa-ellipsis-h fs--1"></span>
-                  </button>
-                  <div class="dropdown-menu dropdown-menu-end border py-0">
-                      <div class="py-2">
-                          <a class="dropdown-item" href="{{ url_for('tenant.home', id=tenant.id) }}">
-                              <span class="fas fa-eye me-1"></span>View Details
-                          </a>
-                          <a class="dropdown-item" href="{{ url_for('tenant.edit', id=tenant.id) }}">
-                              <span class="fas fa-edit me-1"></span>Edit Tenant
-                          </a>
-                          <div class="dropdown-divider"></div>
-                          <a class="dropdown-item text-danger" href="#" 
-                             onclick="deleteTenant({{ tenant.id }}, '{{ tenant.first_name }} {{ tenant.last_name }}')">
-                              <span class="fas fa-trash me-1"></span>Delete Tenant
-                          </a>
-                      </div>
-                  </div>
-                </div>
-              </td>
-              <td class="text-nowrap">
                 <div class="d-flex align-items-center">
                   <div class="avatar avatar-xl">
                     <div class="avatar-name rounded-circle d-flex align-items-center justify-content-center"><span>{{ tenant.first_name[0] }}{{ tenant.last_name[0] }}</span></div>
                   </div>
                   <div class="ms-2">
-                    <div class="fw-semi-bold">{{ tenant.first_name }} {{ tenant.last_name }}</div>
+                    <div class="fw-semi-bold">
+                      <a href="{{ url_for('tenant.home', id=tenant.id) }}" class="text-decoration-none">
+                        {{ tenant.first_name }} {{ tenant.last_name }}
+                      </a>
+                    </div>
                     {% if tenant.address %}
                       <div class="fs--2 text-600">{{ tenant.address }}</div>
                     {% endif %}
@@ -169,6 +149,29 @@
                     Prospect<span class="ms-1 fas fa-user-plus" data-fa-transform="shrink-2"></span>
                   </span>
                 {% endif %}
+              </td>
+              <td class="text-nowrap">
+                <div class="dropdown text-sans-serif">
+                  <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal"
+                          type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span class="fas fa-ellipsis-h fs--1"></span>
+                  </button>
+                  <div class="dropdown-menu dropdown-menu-end border py-0">
+                    <div class="py-2">
+                      <a class="dropdown-item" href="{{ url_for('tenant.home', id=tenant.id) }}">
+                        <span class="fas fa-eye me-1"></span>View Details
+                      </a>
+                      <a class="dropdown-item" href="{{ url_for('tenant.edit', id=tenant.id) }}">
+                        <span class="fas fa-edit me-1"></span>Edit Tenant
+                      </a>
+                      <div class="dropdown-divider"></div>
+                      <a class="dropdown-item text-danger" href="#"
+                         onclick="deleteTenant({{ tenant.id }}, '{{ tenant.first_name }} {{ tenant.last_name }}')">
+                        <span class="fas fa-trash me-1"></span>Delete Tenant
+                      </a>
+                    </div>
+                  </div>
+                </div>
               </td>
             </tr>
             {% endfor %} 

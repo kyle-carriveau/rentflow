@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Company Settings Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="mb-1">Company Settings</h3>
+        <p class="text-600 mb-0">Manage your company preferences and configurations</p>
+    </div>
+    <div>
+        <a href="{{ url_for('company.profile') }}" class="btn btn-falcon-default btn-sm">
+            <span class="fas fa-arrow-left me-1"></span>Back to Profile
+        </a>
+    </div>
+</div>
+
+<!-- Settings Navigation Tabs -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <ul class="nav nav-pills card-header-pills" id="settingsTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button" role="tab">
+                    <span class="fas fa-tachometer-alt me-2"></span>Overview
+                </button>
+            </li>
+            {% if user.is_manager() or user.is_owner() %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="business-tab" data-bs-toggle="pill" data-bs-target="#business" type="button" role="tab">
+                    <span class="fas fa-building me-2"></span>Business Rules
+                </button>
+            </li>
+            {% endif %}
+            {% if user.is_owner() %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="financial-tab" data-bs-toggle="pill" data-bs-target="#financial" type="button" role="tab">
+                    <span class="fas fa-dollar-sign me-2"></span>Financial
+                </button>
+            </li>
+            {% endif %}
+            {% if user.is_manager() or user.is_owner() %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="communication-tab" data-bs-toggle="pill" data-bs-target="#communication" type="button" role="tab">
+                    <span class="fas fa-envelope me-2"></span>Communication
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="system-tab" data-bs-toggle="pill" data-bs-target="#system" type="button" role="tab">
+                    <span class="fas fa-cog me-2"></span>System
+                </button>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+</div>
+
+<!-- Settings Content -->
+<div class="tab-content" id="settingsTabContent">
+    <!-- Overview Tab -->
+    <div class="tab-pane fade show active" id="overview" role="tabpanel">
+        <div class="row g-3">
+            <!-- Settings Categories -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Settings Categories</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {% if user.is_manager() or user.is_owner() %}
+                            <div class="col-md-6">
+                                <div class="card border h-100">
+                                    <div class="card-body text-center">
+                                        <div class="avatar avatar-3xl mx-auto mb-3">
+                                            <div class="avatar-name rounded-circle bg-primary text-white">
+                                                <span class="fas fa-building"></span>
+                                            </div>
+                                        </div>
+                                        <h6 class="mb-2">Business Rules</h6>
+                                        <p class="text-600 fs--1 mb-3">Configure lease terms, fees, and property management policies</p>
+                                        <a href="{{ url_for('company.business_settings') }}" class="btn btn-falcon-primary btn-sm">
+                                            Manage Settings
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if user.is_owner() %}
+                            <div class="col-md-6">
+                                <div class="card border h-100">
+                                    <div class="card-body text-center">
+                                        <div class="avatar avatar-3xl mx-auto mb-3">
+                                            <div class="avatar-name rounded-circle bg-success text-white">
+                                                <span class="fas fa-dollar-sign"></span>
+                                            </div>
+                                        </div>
+                                        <h6 class="mb-2">Financial Settings</h6>
+                                        <p class="text-600 fs--1 mb-3">Configure accounting periods, tax settings, and payment processing</p>
+                                        <a href="{{ url_for('company.financial_settings') }}" class="btn btn-falcon-success btn-sm">
+                                            Manage Settings
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if user.is_manager() or user.is_owner() %}
+                            <div class="col-md-6">
+                                <div class="card border h-100">
+                                    <div class="card-body text-center">
+                                        <div class="avatar avatar-3xl mx-auto mb-3">
+                                            <div class="avatar-name rounded-circle bg-info text-white">
+                                                <span class="fas fa-envelope"></span>
+                                            </div>
+                                        </div>
+                                        <h6 class="mb-2">Communication</h6>
+                                        <p class="text-600 fs--1 mb-3">Configure notifications, templates, and communication preferences</p>
+                                        <a href="{{ url_for('company.communication_settings') }}" class="btn btn-falcon-info btn-sm">
+                                            Manage Settings
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card border h-100">
+                                    <div class="card-body text-center">
+                                        <div class="avatar avatar-3xl mx-auto mb-3">
+                                            <div class="avatar-name rounded-circle bg-warning text-white">
+                                                <span class="fas fa-cog"></span>
+                                            </div>
+                                        </div>
+                                        <h6 class="mb-2">System Preferences</h6>
+                                        <p class="text-600 fs--1 mb-3">Configure display formats, timezone, and system preferences</p>
+                                        <button class="btn btn-falcon-warning btn-sm" disabled>
+                                            Coming Soon
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Configuration Status</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-600">Company Profile:</span>
+                            <span class="badge badge-soft-success">Complete</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-600">Business Rules:</span>
+                            {% if settings.business %}
+                            <span class="badge badge-soft-success">Configured</span>
+                            {% else %}
+                            <span class="badge badge-soft-warning">Pending</span>
+                            {% endif %}
+                        </div>
+
+                        {% if user.is_owner() %}
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-600">Financial Setup:</span>
+                            {% if settings.financial %}
+                            <span class="badge badge-soft-success">Configured</span>
+                            {% else %}
+                            <span class="badge badge-soft-warning">Pending</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-600">Communication:</span>
+                            {% if settings.communication %}
+                            <span class="badge badge-soft-success">Configured</span>
+                            {% else %}
+                            <span class="badge badge-soft-warning">Pending</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Recent Changes</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center py-3">
+                            <span class="fas fa-clock text-300 fa-2x mb-2"></span>
+                            <p class="text-600 fs--1 mb-0">No recent changes</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Business Rules Tab -->
+    {% if user.is_manager() or user.is_owner() %}
+    <div class="tab-pane fade" id="business" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Business Rules & Policies</h5>
+                <a href="{{ url_for('company.business_settings') }}" class="btn btn-falcon-primary btn-sm">
+                    <span class="fas fa-edit me-1"></span>Edit Settings
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <h6 class="mb-3">Lease Management</h6>
+                        <div class="bg-light p-3 rounded">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-600">Default Lease Term:</span>
+                                <span class="fw-semi-bold">{{ settings.business.default_lease_term.value if settings.business and settings.business.default_lease_term else '12' }} months</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-600">Grace Period:</span>
+                                <span class="fw-semi-bold">{{ settings.business.grace_period_days.value if settings.business and settings.business.grace_period_days else '5' }} days</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-600">Security Deposit:</span>
+                                <span class="fw-semi-bold">{{ settings.business.security_deposit_multiplier.value if settings.business and settings.business.security_deposit_multiplier else '1' }}x monthly rent</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <h6 class="mb-3">Fees & Charges</h6>
+                        <div class="bg-light p-3 rounded">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-600">Late Fee:</span>
+                                <span class="fw-semi-bold">${{ settings.business.late_fee_amount.value if settings.business and settings.business.late_fee_amount else '50' }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-600">Application Fee:</span>
+                                <span class="fw-semi-bold">${{ settings.business.application_fee.value if settings.business and settings.business.application_fee else '25' }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-600">Pet Deposit:</span>
+                                <span class="fw-semi-bold">${{ settings.business.pet_deposit_amount.value if settings.business and settings.business.pet_deposit_amount else '200' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Financial Tab -->
+    {% if user.is_owner() %}
+    <div class="tab-pane fade" id="financial" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Financial Settings</h5>
+                <a href="{{ url_for('company.financial_settings') }}" class="btn btn-falcon-success btn-sm">
+                    <span class="fas fa-edit me-1"></span>Edit Settings
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <h6 class="mb-3">Accounting Configuration</h6>
+                        <div class="bg-light p-3 rounded">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-600">Accounting Period:</span>
+                                <span class="fw-semi-bold text-capitalize">{{ settings.financial.accounting_period.value if settings.financial and settings.financial.accounting_period else 'Monthly' }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-600">Tax Year Type:</span>
+                                <span class="fw-semi-bold text-capitalize">{{ settings.financial.tax_year_type.value if settings.financial and settings.financial.tax_year_type else 'Calendar' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <h6 class="mb-3">Payment Processing</h6>
+                        <div class="bg-light p-3 rounded">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-600">Default Currency:</span>
+                                <span class="fw-semi-bold">{{ company.currency or 'USD' }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-600">Late Payment Interest:</span>
+                                <span class="fw-semi-bold">{{ settings.financial.late_payment_interest.value if settings.financial and settings.financial.late_payment_interest else '0' }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Communication Tab -->
+    {% if user.is_manager() or user.is_owner() %}
+    <div class="tab-pane fade" id="communication" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Communication Preferences</h5>
+                <a href="{{ url_for('company.communication_settings') }}" class="btn btn-falcon-info btn-sm">
+                    <span class="fas fa-edit me-1"></span>Edit Settings
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <h6 class="mb-3">Notification Methods</h6>
+                        <div class="bg-light p-3 rounded">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-600">Email Notifications:</span>
+                                {% if settings.communication and settings.communication.email_notifications and settings.communication.email_notifications.value == 'true' %}
+                                <span class="badge badge-soft-success">Enabled</span>
+                                {% else %}
+                                <span class="badge badge-soft-secondary">Disabled</span>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-600">SMS Notifications:</span>
+                                {% if settings.communication and settings.communication.sms_notifications and settings.communication.sms_notifications.value == 'true' %}
+                                <span class="badge badge-soft-success">Enabled</span>
+                                {% else %}
+                                <span class="badge badge-soft-secondary">Disabled</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <h6 class="mb-3">Reminder Settings</h6>
+                        <div class="bg-light p-3 rounded">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-600">Rent Reminder:</span>
+                                <span class="fw-semi-bold">{{ settings.communication.rent_reminder_days.value if settings.communication and settings.communication.rent_reminder_days else '3' }} days before</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-600">Lease Expiry Notice:</span>
+                                <span class="fw-semi-bold">{{ settings.communication.lease_expiry_notice_days.value if settings.communication and settings.communication.lease_expiry_notice_days else '60' }} days before</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- System Tab -->
+    {% if user.is_manager() or user.is_owner() %}
+    <div class="tab-pane fade" id="system" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">System Preferences</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <h6 class="mb-3">Regional Settings</h6>
+                        <div class="bg-light p-3 rounded">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-600">Timezone:</span>
+                                <span class="fw-semi-bold">{{ company.timezone or 'America/New_York' }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-600">Currency:</span>
+                                <span class="fw-semi-bold">{{ company.currency or 'USD' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <h6 class="mb-3">Display Preferences</h6>
+                        <div class="bg-light p-3 rounded text-center py-4">
+                            <span class="fas fa-tools text-300 fa-2x mb-2"></span>
+                            <p class="text-600 fs--1 mb-0">Advanced system preferences</p>
+                            <p class="text-600 fs--1 mb-0">Coming in future update</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+
+{% endblock %}

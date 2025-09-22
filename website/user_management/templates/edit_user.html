@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Edit User - RentFlow{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0">Edit User</h2>
+        <p class="mb-0 text-700">Update team member information</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('user_management.users') }}" class="btn btn-falcon-default btn-sm">
+            <span class="fas fa-arrow-left me-1"></span>Back to Users
+        </a>
+    </div>
+</div>
+
+<!-- Edit Form -->
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-user-edit me-2"></span>User Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <form id="editUserForm" method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label">First Name *</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" 
+                                   value="{{ target_user.first_name }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label">Last Name *</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" 
+                                   value="{{ target_user.last_name }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email Address *</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ target_user.email }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="role" class="form-label">Role *</label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="">Select Role</option>
+                                {% for role in roles %}
+                                <option value="{{ role }}" {% if role == target_user.role %}selected{% endif %}>{{ role.title() }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Role Descriptions -->
+                    <div class="mb-4">
+                        <h6 class="text-700 mb-2">Role Permissions:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <strong class="text-success">Owner:</strong> 
+                                    <span class="text-600">Full access including user management</span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong class="text-primary">Manager:</strong> 
+                                    <span class="text-600">Create, edit, delete records</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <strong class="text-info">Staff:</strong> 
+                                    <span class="text-600">Create and edit records</span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong class="text-secondary">Viewer:</strong> 
+                                    <span class="text-600">Read-only access</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('user_management.users') }}" class="btn btn-falcon-default">Cancel</a>
+                        <button type="submit" class="btn btn-falcon-primary">
+                            <span class="fas fa-save me-1"></span>Update User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

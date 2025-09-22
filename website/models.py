@@ -17,7 +17,18 @@ class Company(db.Model):
     email = db.Column(db.String(150))
     website = db.Column(db.String(150))
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    
+
+    # Enhanced company fields
+    description = db.Column(db.Text)
+    industry = db.Column(db.String(100))
+    company_size = db.Column(db.String(50))  # Small, Medium, Large, Enterprise
+    tax_id = db.Column(db.String(50))
+    license_number = db.Column(db.String(100))
+    established_date = db.Column(db.Date)
+    timezone = db.Column(db.String(50), default='America/New_York')
+    currency = db.Column(db.String(10), default='USD')
+    logo_url = db.Column(db.String(200))
+
     # Relationships
     users = db.relationship('User', backref='company_ref', lazy=True)
     portfolios = db.relationship('Portfolio', backref='company_ref', lazy=True)
@@ -27,6 +38,23 @@ class Company(db.Model):
     leases = db.relationship('Lease', backref='company_ref', lazy=True)
     payments = db.relationship('Payment', backref='company_ref', lazy=True)
     expenses = db.relationship('Expense', backref='company_ref', lazy=True)
+
+class CompanySettings(db.Model):
+    __tablename__ = 'company_settings'
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    setting_key = db.Column(db.String(100), nullable=False)
+    setting_value = db.Column(db.Text)
+    setting_type = db.Column(db.String(50), default='string')  # string, integer, boolean, json
+    category = db.Column(db.String(50))  # business, financial, communication, system
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Composite unique constraint
+    __table_args__ = (db.UniqueConstraint('company_id', 'setting_key', name='unique_company_setting'),)
+
+    # Relationship
+    company = db.relationship('Company', backref='settings', lazy=True)
 
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
@@ -143,16 +171,49 @@ class Property(db.Model):
     name = db.Column(db.String(150), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolio.id'), nullable=True)
+
+    # Basic Address Information
     address = db.Column(db.String(150))
     city = db.Column(db.String(150))
     state = db.Column(db.String(150))
     zip_code = db.Column(db.String(10))
+    neighborhood = db.Column(db.String(150))
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+
+    # Property Details
     type = db.Column(db.String(150))
+    year_built = db.Column(db.Integer)
+    lot_size = db.Column(db.Integer)  # in square feet
+    building_sqft = db.Column(db.Integer)
+    stories = db.Column(db.Integer)
+    parking_spaces = db.Column(db.Integer)
+    description = db.Column(db.Text)
+
+    # Financial Information
+    purchase_price = db.Column(db.Numeric(12, 2))
+    purchase_date = db.Column(db.Date)
+    current_market_value = db.Column(db.Numeric(12, 2))
+    annual_property_tax = db.Column(db.Numeric(10, 2))
+    annual_insurance = db.Column(db.Numeric(10, 2))
+    monthly_hoa_fees = db.Column(db.Numeric(8, 2))
+
+    # Management & Operations
+    property_manager = db.Column(db.String(150))
+    acquisition_method = db.Column(db.String(50))  # Purchase, Inheritance, Gift, Other
+    property_status = db.Column(db.String(50), default='Active')  # Active, Inactive, Under Renovation, For Sale
+    maintenance_priority = db.Column(db.String(20), default='Medium')  # High, Medium, Low
+
+    # Metadata (optional for existing properties)
+    created_date = db.Column(db.DateTime, nullable=True)
+    updated_date = db.Column(db.DateTime, nullable=True)
     
     # Relationships with cascade delete
     units = db.relationship('Unit', backref='property_ref', cascade='all, delete-orphan')
     tenants = db.relationship('Tenant', backref='tenant_property_ref', cascade='all, delete-orphan')
     leases = db.relationship('Lease', backref='lease_property_ref', cascade='all, delete-orphan')
+    photos = db.relationship('PropertyPhoto', backref='property', cascade='all, delete-orphan')
+    documents = db.relationship('PropertyDocument', backref='property', cascade='all, delete-orphan')
     
     def get_lease_status(self):
         """Returns the lease status of this property"""
@@ -172,6 +233,32 @@ class Property(db.Model):
             return "Leased"
         else:
             return "Vacant"
+
+class PropertyPhoto(db.Model):
+    __tablename__ = 'property_photo'
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    file_size = db.Column(db.Integer)
+    mime_type = db.Column(db.String(100))
+    is_primary = db.Column(db.Boolean, default=False)
+    caption = db.Column(db.String(500))
+    uploaded_date = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+class PropertyDocument(db.Model):
+    __tablename__ = 'property_document'
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    file_size = db.Column(db.Integer)
+    mime_type = db.Column(db.String(100))
+    document_type = db.Column(db.String(100))  # Deed, Permit, Insurance, etc.
+    description = db.Column(db.String(500))
+    uploaded_date = db.Column(db.DateTime, default=db.func.current_timestamp())
 
 class Unit(db.Model):
     __tablename__ = 'unit'

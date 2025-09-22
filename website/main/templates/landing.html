@@ -91,59 +91,11 @@
                   </div>
                 </div>
               </li>
-              <li class="nav-item"><a class="nav-link" href="#!" data-bs-toggle="modal" data-bs-target="#exampleModal">Register</a></li>
+              <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.register') }}">Register</a></li>
             </ul>
           </div>
         </div>
       </nav>
-      <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-          <div class="modal-content">
-            <div class="modal-body p-4">
-              <div class="row text-start justify-content-between align-items-center mb-2">
-                <div class="col-auto">
-                  <h5 id="modalLabel">Register</h5>
-                </div>
-                <div class="col-auto">
-                  <p class="fs--1 text-600 mb-0">Have an account? <a href="{{ url_for('auth.login') }}">Login</a></p>
-                </div>
-              </div>
-              <form id="modal-register-form" method="POST">
-                {{ registration_form.csrf_token }}
-                <div class="mb-3">
-                  {{ registration_form.first_name(class="form-control", placeholder="First Name") }}
-                  <div class="invalid-feedback" id="first_name-error"></div>
-                </div>
-                <div class="mb-3">
-                  {{ registration_form.last_name(class="form-control", placeholder="Last Name") }}
-                  <div class="invalid-feedback" id="last_name-error"></div>
-                </div>
-                <div class="mb-3">
-                  {{ registration_form.email(class="form-control", placeholder="Email") }}
-                  <div class="invalid-feedback" id="email-error"></div>
-                </div>
-                <div class="row gx-2">
-                  <div class="mb-3 col-sm-6">
-                    {{ registration_form.password(class="form-control", placeholder="Password") }}
-                    <div class="invalid-feedback" id="password-error"></div>
-                  </div>
-                  <div class="mb-3 col-sm-6">
-                    {{ registration_form.password_confirm(class="form-control", placeholder="Password confirm") }}
-                    <div class="invalid-feedback" id="password_confirm-error"></div>
-                  </div>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="modal-register-checkbox" />
-                  <label class="form-label" for="modal-register-checkbox">I accept the <a href="#!">terms </a>and <a href="#!">privacy policy</a></label>
-                </div>
-                <div class="mb-3">
-                  {{ registration_form.submit(class="btn btn-primary d-block w-100 mt-3") }}
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
       <!-- ============================================-->
       <!-- <section> begin ============================-->
       <section class="py-0 overflow-hidden light" id="banner">
@@ -350,48 +302,6 @@
         </div>
       </section>
       <!-- <section> close ============================-->
-      <div class="modal fade" id="authentication-modal" tabindex="-1" role="dialog" aria-labelledby="authentication-modal-label" aria-hidden="true">
-        <div class="modal-dialog mt-6" role="document">
-          <div class="modal-content border-0">
-            <div class="modal-header px-5 position-relative modal-shape-header bg-shape">
-              <div class="position-relative z-index-1 light">
-                <h4 class="mb-0 text-white" id="authentication-modal-label">Register</h4>
-                <p class="fs--1 mb-0 text-white">Please create your free Falcon account</p>
-              </div>
-              <button class="btn-close btn-close-white position-absolute top-0 end-0 mt-2 me-2" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body py-4 px-5">
-              <form>
-                <div class="mb-3">
-                  <label class="form-label" for="modal-auth-name">Name</label>
-                  <input class="form-control" type="text" autocomplete="on" id="modal-auth-name" />
-                </div>
-                <div class="mb-3">
-                  <label class="form-label" for="modal-auth-email">Email address</label>
-                  <input class="form-control" type="email" autocomplete="on" id="modal-auth-email" />
-                </div>
-                <div class="row gx-2">
-                  <div class="mb-3 col-sm-6">
-                    <label class="form-label" for="modal-auth-password">Password</label>
-                    <input class="form-control" type="password" autocomplete="on" id="modal-auth-password" />
-                  </div>
-                  <div class="mb-3 col-sm-6">
-                    <label class="form-label" for="modal-auth-confirm-password">Confirm Password</label>
-                    <input class="form-control" type="password" autocomplete="on" id="modal-auth-confirm-password" />
-                  </div>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="modal-auth-register-checkbox" />
-                  <label class="form-label" for="modal-auth-register-checkbox">I accept the <a href="#!">terms </a>and <a href="#!">privacy policy</a></label>
-                </div>
-                <div class="mb-3">
-                  <button class="btn btn-primary d-block w-100 mt-3" type="submit" name="submit">Register</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
     </main>
     <!-- ===============================================-->
     <!--    End of Main Content-->
@@ -407,53 +317,5 @@
     <script src="https://polyfill.io/v3/polyfill.min.js?features=window.scroll"></script>
     <script src="../static/vendors/list.js/list.min.js"></script>
     <script src="../static/assets/js/theme.js"></script>
-    <script>
-      document.getElementById('modal-register-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // Clear previous errors
-        document.querySelectorAll('.invalid-feedback').forEach(el => {
-          el.textContent = '';
-          el.previousElementSibling.classList.remove('is-invalid');
-        });
-        
-        // Get form data
-        const formData = new FormData(this);
-        
-        fetch('{{ url_for("auth.modal_register") }}', {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-          }
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            // Close modal and redirect
-            const modal = bootstrap.Modal.getInstance(document.getElementById('exampleModal'));
-            modal.hide();
-            window.location.href = data.redirect;
-          } else {
-            // Display errors
-            if (data.errors) {
-              Object.keys(data.errors).forEach(field => {
-                const errorElement = document.getElementById(field + '-error');
-                const inputElement = document.querySelector(`[name="${field}"]`);
-                if (errorElement && inputElement) {
-                  errorElement.textContent = data.errors[field][0];
-                  errorElement.style.display = 'block';
-                  inputElement.classList.add('is-invalid');
-                }
-              });
-            }
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('An error occurred. Please try again.');
-        });
-      });
-    </script>
   </body>
 </html>

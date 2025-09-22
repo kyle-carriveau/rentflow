@@ -73,7 +73,7 @@
                     <div class="row g-3">
                         {% for portfolio in portfolios %}
                         <div class="col-md-6">
-                            <div class="card border portfolio-card h-100" onclick="window.location.href='{{ url_for('portfolio.view', id=portfolio.id) }}'" style="cursor: pointer;">
+                            <div class="card border portfolio-card h-100" onclick="window.location.href='{{ url_for('portfolio.home', id=portfolio.id) }}'" style="cursor: pointer;">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                         <h6 class="mb-0">{{ portfolio.name }}</h6>
@@ -82,7 +82,7 @@
                                                 <span class="fas fa-ellipsis-h fs--2"></span>
                                             </button>
                                             <div class="dropdown-menu dropdown-menu-end">
-                                                <a class="dropdown-item" href="{{ url_for('portfolio.view', id=portfolio.id) }}" onclick="event.stopPropagation();">
+                                                <a class="dropdown-item" href="{{ url_for('portfolio.home', id=portfolio.id) }}" onclick="event.stopPropagation();">
                                                     <span class="fas fa-eye me-1"></span>View Details
                                                 </a>
                                                 <a class="dropdown-item" href="{{ url_for('portfolio.edit', id=portfolio.id) }}" onclick="event.stopPropagation();">

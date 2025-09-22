@@ -1,0 +1,793 @@
+{% extends "base.html" %}
+
+{% block title %}Create Property - RentFlow{% endblock %}
+
+{% block content %}
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="mb-3">
+      {% for category, message in messages %}
+        {% if category == 'success' %}
+          <div class="alert alert-success border-1 d-flex align-items-center" role="alert">
+            <div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-3"></span></div>
+            <p class="mb-0 flex-1">{{ message }}</p>
+            <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% elif category == 'error' %}
+          <div class="alert alert-danger border-1 d-flex align-items-center" role="alert">
+            <div class="bg-danger me-3 icon-item"><span class="fas fa-times-circle text-white fs-3"></span></div>
+            <p class="mb-0 flex-1">{{ message }}</p>
+            <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- Property Creation Wizard -->
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h4 class="mb-0">Create New Property</h4>
+                <p class="mb-0 text-600">Add a property to your portfolio with comprehensive details</p>
+            </div>
+            <div class="col-auto">
+                <a href="{{ url_for('property.properties') }}" class="btn btn-falcon-default btn-sm">
+                    <span class="fas fa-arrow-left me-1"></span>Back to Properties
+                </a>
+            </div>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div class="mt-4">
+            <div class="progress-nav">
+                <div class="progress-nav-item active" data-step="1">
+                    <div class="progress-nav-icon">
+                        <span class="fas fa-info-circle"></span>
+                    </div>
+                    <span class="progress-nav-label">Basic Info</span>
+                </div>
+                <div class="progress-nav-item" data-step="2">
+                    <div class="progress-nav-icon">
+                        <span class="fas fa-map-marker-alt"></span>
+                    </div>
+                    <span class="progress-nav-label">Location</span>
+                </div>
+                <div class="progress-nav-item" data-step="3">
+                    <div class="progress-nav-icon">
+                        <span class="fas fa-home"></span>
+                    </div>
+                    <span class="progress-nav-label">Details</span>
+                </div>
+                <div class="progress-nav-item" data-step="4">
+                    <div class="progress-nav-icon">
+                        <span class="fas fa-dollar-sign"></span>
+                    </div>
+                    <span class="progress-nav-label">Financial</span>
+                </div>
+                <div class="progress-nav-item" data-step="5">
+                    <div class="progress-nav-icon">
+                        <span class="fas fa-cog"></span>
+                    </div>
+                    <span class="progress-nav-label">Management</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('property.create_enhanced') }}" id="propertyWizardForm" enctype="multipart/form-data">
+        <div class="card-body">
+            <!-- Step 1: Basic Information -->
+            <div class="wizard-step active" id="step-1">
+                <h5 class="mb-4">
+                    <span class="fas fa-info-circle text-primary me-2"></span>Basic Information
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="name">Property Name <span class="text-danger">*</span></label>
+                            <input class="form-control" type="text" name="name" id="name" required
+                                   placeholder="e.g., Sunset Apartments" maxlength="150">
+                            <div class="form-text">A unique name to identify this property</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="type">Property Type</label>
+                            <select class="form-select" name="type" id="type">
+                                <option value="">Select Property Type</option>
+                                <option value="Single Family">Single Family Home</option>
+                                <option value="Duplex">Duplex</option>
+                                <option value="Triplex">Triplex</option>
+                                <option value="4 Plex">4-Plex</option>
+                                <option value="Multi Family">Multi-Family (5+ units)</option>
+                                <option value="Apartment">Apartment Building</option>
+                                <option value="Condominium">Condominium</option>
+                                <option value="Townhouse">Townhouse</option>
+                                <option value="Commercial">Commercial Property</option>
+                                <option value="Mixed Use">Mixed Use</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="portfolio_id">Portfolio Assignment</label>
+                            <select class="form-select" name="portfolio_id" id="portfolio_id">
+                                <option value="">No Portfolio (Unassigned)</option>
+                                {% for portfolio in portfolios %}
+                                <option value="{{ portfolio.id }}">{{ portfolio.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Organize properties into portfolios for better management</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="description">Property Description</label>
+                            <textarea class="form-control" name="description" id="description" rows="4"
+                                      placeholder="Brief description of the property..."></textarea>
+                            <div class="form-text">Optional description for internal reference</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="property_status">Property Status</label>
+                            <select class="form-select" name="property_status" id="property_status">
+                                <option value="Active" selected>Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Under Renovation">Under Renovation</option>
+                                <option value="For Sale">For Sale</option>
+                                <option value="Pending Sale">Pending Sale</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="maintenance_priority">Maintenance Priority</label>
+                            <select class="form-select" name="maintenance_priority" id="maintenance_priority">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                            <div class="form-text">Helps prioritize maintenance scheduling</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Location & Address -->
+            <div class="wizard-step" id="step-2">
+                <h5 class="mb-4">
+                    <span class="fas fa-map-marker-alt text-primary me-2"></span>Location & Address
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="address">Street Address</label>
+                            <input class="form-control" type="text" name="address" id="address"
+                                   placeholder="123 Main Street" maxlength="150">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label" for="city">City</label>
+                                    <input class="form-control" type="text" name="city" id="city"
+                                           placeholder="City name" maxlength="150">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label" for="state">State</label>
+                                    <select class="form-select" name="state" id="state">
+                                        <option value="">Select State</option>
+                                        {% for state in states %}
+                                        <option value="{{ state }}">{{ state }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label" for="zip_code">Zip Code</label>
+                                    <input class="form-control" type="text" name="zip_code" id="zip_code"
+                                           pattern="[0-9]{5}" maxlength="5" placeholder="12345">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label" for="neighborhood">Neighborhood</label>
+                                    <input class="form-control" type="text" name="neighborhood" id="neighborhood"
+                                           placeholder="e.g., Downtown, Westside" maxlength="150">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">GPS Coordinates (Optional)</label>
+                            <div class="row">
+                                <div class="col-6">
+                                    <input class="form-control" type="number" name="latitude" id="latitude"
+                                           step="any" placeholder="Latitude" min="-90" max="90">
+                                </div>
+                                <div class="col-6">
+                                    <input class="form-control" type="number" name="longitude" id="longitude"
+                                           step="any" placeholder="Longitude" min="-180" max="180">
+                                </div>
+                            </div>
+                            <div class="form-text">For precise mapping and location services</div>
+                        </div>
+
+                        <!-- Future: Interactive Map Widget -->
+                        <div class="border rounded p-3 bg-light">
+                            <div class="text-center py-4">
+                                <span class="fas fa-map fa-2x text-300 mb-2"></span>
+                                <p class="text-600 mb-0">Interactive Map</p>
+                                <small class="text-500">Coming soon - Click to set location</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Property Details -->
+            <div class="wizard-step" id="step-3">
+                <h5 class="mb-4">
+                    <span class="fas fa-home text-primary me-2"></span>Property Details
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label" for="year_built">Year Built</label>
+                                    <input class="form-control" type="number" name="year_built" id="year_built"
+                                           min="1800" max="2030" placeholder="e.g., 1995">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label" for="stories">Number of Stories</label>
+                                    <input class="form-control" type="number" name="stories" id="stories"
+                                           min="1" max="50" placeholder="e.g., 2">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label" for="building_sqft">Building Sq Ft</label>
+                                    <input class="form-control" type="number" name="building_sqft" id="building_sqft"
+                                           min="0" placeholder="e.g., 2500">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label" for="lot_size">Lot Size (Sq Ft)</label>
+                                    <input class="form-control" type="number" name="lot_size" id="lot_size"
+                                           min="0" placeholder="e.g., 8000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="parking_spaces">Parking Spaces</label>
+                            <input class="form-control" type="number" name="parking_spaces" id="parking_spaces"
+                                   min="0" placeholder="e.g., 4">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="property_photos">Property Photos</label>
+                            <div class="dropzone border-dashed border-2 border-300 rounded p-4 text-center" id="photo-dropzone">
+                                <span class="fas fa-cloud-upload-alt fa-2x text-300 mb-2"></span>
+                                <p class="mb-2">Drag photos here or <a href="#" class="text-decoration-none">browse</a></p>
+                                <small class="text-500">Supports: JPG, PNG, WebP (Max 5MB each)</small>
+                                <input type="file" name="property_photos" id="property_photos" multiple
+                                       accept="image/*" class="d-none">
+                            </div>
+                            <div id="photo-preview" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Financial Information -->
+            <div class="wizard-step" id="step-4">
+                <h5 class="mb-4">
+                    <span class="fas fa-dollar-sign text-primary me-2"></span>Financial Information
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="purchase_price">Purchase Price</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input class="form-control" type="number" name="purchase_price" id="purchase_price"
+                                       step="0.01" min="0" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="purchase_date">Purchase Date</label>
+                            <input class="form-control" type="date" name="purchase_date" id="purchase_date">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="current_market_value">Current Market Value</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input class="form-control" type="number" name="current_market_value" id="current_market_value"
+                                       step="0.01" min="0" placeholder="0.00">
+                            </div>
+                            <div class="form-text">Estimated current market value</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="acquisition_method">Acquisition Method</label>
+                            <select class="form-select" name="acquisition_method" id="acquisition_method">
+                                <option value="">Select Method</option>
+                                <option value="Purchase">Purchase</option>
+                                <option value="Inheritance">Inheritance</option>
+                                <option value="Gift">Gift</option>
+                                <option value="Exchange">Exchange</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="annual_property_tax">Annual Property Tax</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input class="form-control" type="number" name="annual_property_tax" id="annual_property_tax"
+                                       step="0.01" min="0" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="annual_insurance">Annual Insurance</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input class="form-control" type="number" name="annual_insurance" id="annual_insurance"
+                                       step="0.01" min="0" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="monthly_hoa_fees">Monthly HOA Fees</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input class="form-control" type="number" name="monthly_hoa_fees" id="monthly_hoa_fees"
+                                       step="0.01" min="0" placeholder="0.00">
+                            </div>
+                            <div class="form-text">Leave blank if no HOA</div>
+                        </div>
+
+                        <!-- Investment Metrics Preview -->
+                        <div class="bg-light border rounded p-3">
+                            <h6 class="text-700 mb-2">Quick Investment Metrics</h6>
+                            <div class="row fs--1">
+                                <div class="col-6">
+                                    <div class="text-600">Annual Expenses:</div>
+                                    <div class="fw-semi-bold" id="annual-expenses">$0</div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-600">Monthly Costs:</div>
+                                    <div class="fw-semi-bold" id="monthly-costs">$0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Management & Operations -->
+            <div class="wizard-step" id="step-5">
+                <h5 class="mb-4">
+                    <span class="fas fa-cog text-primary me-2"></span>Management & Operations
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="property_manager">Property Manager</label>
+                            <input class="form-control" type="text" name="property_manager" id="property_manager"
+                                   placeholder="Manager name or company" maxlength="150">
+                            <div class="form-text">Person or company managing this property</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="property_documents">Property Documents</label>
+                            <div class="dropzone border-dashed border-2 border-300 rounded p-4 text-center" id="document-dropzone">
+                                <span class="fas fa-file-upload fa-2x text-300 mb-2"></span>
+                                <p class="mb-2">Drag documents here or <a href="#" class="text-decoration-none">browse</a></p>
+                                <small class="text-500">Deeds, permits, insurance docs, etc. (PDF, DOC, etc.)</small>
+                                <input type="file" name="property_documents" id="property_documents" multiple
+                                       accept=".pdf,.doc,.docx,.txt,.jpg,.png" class="d-none">
+                            </div>
+                            <div id="document-preview" class="mt-3"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="bg-light border rounded p-4">
+                            <h6 class="text-700 mb-3">
+                                <span class="fas fa-clipboard-check me-2"></span>Property Summary
+                            </h6>
+                            <div id="property-summary">
+                                <div class="mb-2">
+                                    <strong>Name:</strong> <span id="summary-name">-</span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Type:</strong> <span id="summary-type">-</span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Address:</strong> <span id="summary-address">-</span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Portfolio:</strong> <span id="summary-portfolio">Unassigned</span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Status:</strong> <span id="summary-status">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Footer -->
+        <div class="card-footer bg-light border-top">
+            <div class="d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-falcon-default" id="prev-btn" style="display: none;">
+                    <span class="fas fa-arrow-left me-1"></span>Previous
+                </button>
+
+                <div class="d-flex align-items-center">
+                    <span class="text-600 me-3" id="step-indicator">Step 1 of 5</span>
+                    <div class="progress" style="width: 200px; height: 8px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: 20%" id="progress-bar"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="button" class="btn btn-falcon-primary me-2" id="next-btn">
+                        Next<span class="fas fa-arrow-right ms-1"></span>
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submit-btn" style="display: none;">
+                        <span class="fas fa-check me-1"></span>Create Property
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Wizard Navigation & Auto-save JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const steps = document.querySelectorAll('.wizard-step');
+    const navItems = document.querySelectorAll('.progress-nav-item');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    const stepIndicator = document.getElementById('step-indicator');
+    const progressBar = document.getElementById('progress-bar');
+
+    let currentStep = 1;
+    const totalSteps = 5;
+
+    // Auto-save functionality
+    let autoSaveTimeout;
+    const formData = new FormData();
+
+    function autoSave() {
+        clearTimeout(autoSaveTimeout);
+        autoSaveTimeout = setTimeout(() => {
+            // Save form data to localStorage
+            const form = document.getElementById('propertyWizardForm');
+            const data = new FormData(form);
+            const savedData = {};
+            for (let [key, value] of data.entries()) {
+                savedData[key] = value;
+            }
+            localStorage.setItem('propertyWizardData', JSON.stringify(savedData));
+        }, 1000);
+    }
+
+    // Load saved data
+    function loadSavedData() {
+        const saved = localStorage.getItem('propertyWizardData');
+        if (saved) {
+            const data = JSON.parse(saved);
+            Object.keys(data).forEach(key => {
+                const field = document.querySelector(`[name="${key}"]`);
+                if (field) {
+                    field.value = data[key];
+                }
+            });
+        }
+    }
+
+    // Form field change listeners for auto-save
+    document.querySelectorAll('input, select, textarea').forEach(field => {
+        field.addEventListener('input', autoSave);
+        field.addEventListener('change', autoSave);
+    });
+
+    function updateStepDisplay() {
+        // Hide all steps
+        steps.forEach((step, index) => {
+            step.classList.toggle('active', index + 1 === currentStep);
+        });
+
+        // Update navigation
+        navItems.forEach((item, index) => {
+            item.classList.toggle('active', index + 1 === currentStep);
+            item.classList.toggle('completed', index + 1 < currentStep);
+        });
+
+        // Update buttons
+        prevBtn.style.display = currentStep === 1 ? 'none' : 'block';
+        nextBtn.style.display = currentStep === totalSteps ? 'none' : 'block';
+        submitBtn.style.display = currentStep === totalSteps ? 'block' : 'none';
+
+        // Update progress
+        stepIndicator.textContent = `Step ${currentStep} of ${totalSteps}`;
+        progressBar.style.width = `${(currentStep / totalSteps) * 100}%`;
+
+        // Update summary on last step
+        if (currentStep === 5) {
+            updateSummary();
+        }
+    }
+
+    function updateSummary() {
+        document.getElementById('summary-name').textContent =
+            document.getElementById('name').value || '-';
+
+        const typeSelect = document.getElementById('type');
+        document.getElementById('summary-type').textContent =
+            typeSelect.selectedOptions[0]?.text || '-';
+
+        const address = [
+            document.getElementById('address').value,
+            document.getElementById('city').value,
+            document.getElementById('state').value
+        ].filter(v => v).join(', ') || '-';
+        document.getElementById('summary-address').textContent = address;
+
+        const portfolioSelect = document.getElementById('portfolio_id');
+        document.getElementById('summary-portfolio').textContent =
+            portfolioSelect.selectedOptions[0]?.text || 'Unassigned';
+
+        const statusSelect = document.getElementById('property_status');
+        document.getElementById('summary-status').textContent =
+            statusSelect.selectedOptions[0]?.text || '-';
+    }
+
+    function validateStep(step) {
+        const stepElement = document.getElementById(`step-${step}`);
+        const requiredFields = stepElement.querySelectorAll('[required]');
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+
+        return isValid;
+    }
+
+    // Navigation event listeners
+    nextBtn.addEventListener('click', () => {
+        if (validateStep(currentStep) && currentStep < totalSteps) {
+            currentStep++;
+            updateStepDisplay();
+        }
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (currentStep > 1) {
+            currentStep--;
+            updateStepDisplay();
+        }
+    });
+
+    // Step navigation clicks
+    navItems.forEach((item, index) => {
+        item.addEventListener('click', () => {
+            const targetStep = index + 1;
+            if (targetStep <= currentStep + 1) { // Allow going to next step or any previous step
+                currentStep = targetStep;
+                updateStepDisplay();
+            }
+        });
+    });
+
+    // Financial calculations
+    function updateFinancialMetrics() {
+        const tax = parseFloat(document.getElementById('annual_property_tax').value) || 0;
+        const insurance = parseFloat(document.getElementById('annual_insurance').value) || 0;
+        const hoa = parseFloat(document.getElementById('monthly_hoa_fees').value) || 0;
+
+        const annualExpenses = tax + insurance + (hoa * 12);
+        const monthlyExpenses = annualExpenses / 12;
+
+        document.getElementById('annual-expenses').textContent =
+            '$' + annualExpenses.toLocaleString();
+        document.getElementById('monthly-costs').textContent =
+            '$' + monthlyExpenses.toLocaleString();
+    }
+
+    // Financial field listeners
+    ['annual_property_tax', 'annual_insurance', 'monthly_hoa_fees'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updateFinancialMetrics);
+    });
+
+    // Photo upload handling
+    const photoDropzone = document.getElementById('photo-dropzone');
+    const photoInput = document.getElementById('property_photos');
+    const photoPreview = document.getElementById('photo-preview');
+
+    photoDropzone.addEventListener('click', () => photoInput.click());
+
+    photoDropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        photoDropzone.classList.add('border-primary');
+    });
+
+    photoDropzone.addEventListener('dragleave', () => {
+        photoDropzone.classList.remove('border-primary');
+    });
+
+    photoDropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        photoDropzone.classList.remove('border-primary');
+        photoInput.files = e.dataTransfer.files;
+        handlePhotoUpload();
+    });
+
+    photoInput.addEventListener('change', handlePhotoUpload);
+
+    function handlePhotoUpload() {
+        photoPreview.innerHTML = '';
+        Array.from(photoInput.files).forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+                const preview = document.createElement('div');
+                preview.className = 'photo-preview-item d-inline-block me-2 mb-2';
+                preview.innerHTML = `
+                    <div class="border rounded p-2 bg-light">
+                        <img src="${URL.createObjectURL(file)}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;">
+                        <div class="fs--2 text-truncate mt-1" style="width: 80px;">${file.name}</div>
+                    </div>
+                `;
+                photoPreview.appendChild(preview);
+            }
+        });
+    }
+
+    // Initialize
+    loadSavedData();
+    updateStepDisplay();
+    updateFinancialMetrics();
+
+    // Clear auto-save on successful submit
+    document.getElementById('propertyWizardForm').addEventListener('submit', () => {
+        localStorage.removeItem('propertyWizardData');
+    });
+});
+</script>
+
+<!-- Custom CSS for Wizard -->
+<style>
+.wizard-step {
+    display: none;
+}
+
+.wizard-step.active {
+    display: block;
+}
+
+.progress-nav {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin: 0;
+    padding: 0;
+}
+
+.progress-nav::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 40px;
+    right: 40px;
+    height: 2px;
+    background: #e3e6e9;
+    z-index: 1;
+}
+
+.progress-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.progress-nav-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e3e6e9;
+    color: #9da9bb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.progress-nav-item.active .progress-nav-icon {
+    background: #2c7be5;
+    color: white;
+}
+
+.progress-nav-item.completed .progress-nav-icon {
+    background: #00d27a;
+    color: white;
+}
+
+.progress-nav-label {
+    font-size: 0.875rem;
+    color: #9da9bb;
+    font-weight: 500;
+}
+
+.progress-nav-item.active .progress-nav-label,
+.progress-nav-item.completed .progress-nav-label {
+    color: #344050;
+}
+
+.dropzone {
+    transition: border-color 0.3s ease;
+}
+
+.dropzone:hover {
+    border-color: #2c7be5 !important;
+}
+
+.photo-preview-item img {
+    border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+    .progress-nav-label {
+        font-size: 0.75rem;
+    }
+
+    .progress-nav-icon {
+        width: 32px;
+        height: 32px;
+    }
+}
+</style>
+
+{% endblock %}
