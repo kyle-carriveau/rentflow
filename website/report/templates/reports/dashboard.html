@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+
+{% block title %}Reports Dashboard - RentFlow{% endblock %}
+
+{% block content %}
+
+<!-- Reports Dashboard Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0">Reports & Analytics</h2>
+        <p class="mb-0 text-700">Comprehensive insights into your real estate portfolio performance.</p>
+    </div>
+    <div class="col-auto">
+        <div class="row g-2">
+            <div class="col-auto">
+                <select class="form-select form-select-sm" id="yearSelect" onchange="changeYear()">
+                    {% for y in range(2020, 2030) %}
+                    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <div class="btn-group" role="group">
+                    <button class="btn btn-falcon-default btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="fas fa-download me-1"></span>Export
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="exportToPDF()">
+                            <span class="fas fa-file-pdf me-2"></span>Export to PDF
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" onclick="exportToExcel()">
+                            <span class="fas fa-file-excel me-2"></span>Export to Excel
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Performance Indicators -->
+<div class="row g-3 mb-4">
+    <!-- Portfolio Performance Summary -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-1.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-layer-group"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">{{ portfolio_data|length }}</h4>
+                        <p class="text-800 fs--1 mb-0">Active Portfolios</p>
+                        <small class="text-600">
+                            {{ portfolio_data|sum(attribute='properties_count') }} properties total
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Occupancy Rate -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-2.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-percentage"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">{{ "%.1f"|format(occupancy_rate) }}%</h4>
+                        <p class="text-800 fs--1 mb-0">Occupancy Rate</p>
+                        <small class="text-success">
+                            {{ occupied_units }}/{{ total_units }} units occupied
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Revenue -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-3.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-info text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-dollar-sign"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">${{ "%.0f"|format((monthly_data|sum(attribute='revenue') or 0)|float) }}</h4>
+                        <p class="text-800 fs--1 mb-0">Annual Revenue</p>
+                        <small class="text-info">
+                            {{ year }} total
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Net Profit -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-4.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-chart-line"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        {% set annual_profit = monthly_data|sum(attribute='profit') %}
+                        <h4 class="mb-0 {% if annual_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            ${{ "%.0f"|format((annual_profit or 0)|float) }}
+                        </h4>
+                        <p class="text-800 fs--1 mb-0">Net Profit</p>
+                        <small class="{% if annual_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ year }} total
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Revenue Trends Chart -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">Revenue & Expense Trends</h5>
+                        <p class="mb-0 text-600">Monthly performance for {{ year }}</p>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{{ url_for('report.financial_trends') }}" class="btn btn-falcon-default btn-sm">
+                            <span class="fas fa-external-link-alt me-1"></span>View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Portfolio Performance -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">Portfolio Performance</h5>
+                        <p class="mb-0 text-600">Revenue by portfolio</p>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{{ url_for('report.portfolio_performance') }}" class="btn btn-falcon-default btn-sm">
+                            <span class="fas fa-external-link-alt me-1"></span>Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if portfolio_data %}
+                    {% for data in portfolio_data %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-1">
+                            <h6 class="mb-0">{{ data.portfolio.name }}</h6>
+                            <small class="text-600">{{ data.properties_count }} properties, {{ data.units_count }} units</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="text-700 fw-semi-bold">${{ "%.0f"|format((data.revenue or 0)|float) }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <span class="fas fa-layer-group fa-2x text-300 mb-2"></span>
+                        <p class="text-600 mb-0">No portfolios found</p>
+                        <small class="text-500">Create portfolios to see performance data</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Reports Links -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Detailed Reports</h5>
+                <p class="mb-0 text-600">Access comprehensive analytics and insights</p>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- Portfolio Performance -->
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card border border-200 h-100">
+                            <div class="card-body text-center">
+                                <div class="avatar avatar-xl mx-auto mb-3">
+                                    <div class="avatar-name rounded-circle bg-soft-primary text-primary d-flex align-items-center justify-content-center">
+                                        <span class="fas fa-layer-group fa-lg"></span>
+                                    </div>
+                                </div>
+                                <h6 class="mb-2">Portfolio Performance</h6>
+                                <p class="mb-3 text-600 fs--1">Detailed analysis of ROI, occupancy, and revenue</p>
+                                <a href="{{ url_for('report.portfolio_performance') }}" class="btn btn-outline-primary btn-sm">
+                                    View Report
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Financial Trends -->
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card border border-200 h-100">
+                            <div class="card-body text-center">
+                                <div class="avatar avatar-xl mx-auto mb-3">
+                                    <div class="avatar-name rounded-circle bg-soft-success text-success d-flex align-items-center justify-content-center">
+                                        <span class="fas fa-chart-line fa-lg"></span>
+                                    </div>
+                                </div>
+                                <h6 class="mb-2">Financial Trends</h6>
+                                <p class="mb-3 text-600 fs--1">Revenue and expense trends with period comparisons</p>
+                                <a href="{{ url_for('report.financial_trends') }}" class="btn btn-outline-success btn-sm">
+                                    View Report
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Occupancy Tracking -->
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card border border-200 h-100">
+                            <div class="card-body text-center">
+                                <div class="avatar avatar-xl mx-auto mb-3">
+                                    <div class="avatar-name rounded-circle bg-soft-info text-info d-flex align-items-center justify-content-center">
+                                        <span class="fas fa-home fa-lg"></span>
+                                    </div>
+                                </div>
+                                <h6 class="mb-2">Occupancy Tracking</h6>
+                                <p class="mb-3 text-600 fs--1">Property-by-property occupancy rates and vacancy analysis</p>
+                                <a href="{{ url_for('report.occupancy_tracking') }}" class="btn btn-outline-info btn-sm">
+                                    View Report
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tenant Payments -->
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card border border-200 h-100">
+                            <div class="card-body text-center">
+                                <div class="avatar avatar-xl mx-auto mb-3">
+                                    <div class="avatar-name rounded-circle bg-soft-warning text-warning d-flex align-items-center justify-content-center">
+                                        <span class="fas fa-users fa-lg"></span>
+                                    </div>
+                                </div>
+                                <h6 class="mb-2">Tenant Payments</h6>
+                                <p class="mb-3 text-600 fs--1">Payment history, late payments, and outstanding balances</p>
+                                <a href="{{ url_for('report.tenant_payments') }}" class="btn btn-outline-warning btn-sm">
+                                    View Report
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Performing Properties -->
+{% if property_performance %}
+<div class="row g-3">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Top Performing Properties</h5>
+                <p class="mb-0 text-600">Highest revenue generators for {{ year }}</p>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th>Portfolio</th>
+                                <th>Location</th>
+                                <th class="text-end">Total Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for property, total_revenue in property_performance %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('property.home', uuid=property.uuid) }}" class="text-decoration-none">
+                                        {{ property.name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if property.portfolio_ref %}
+                                        <span class="badge badge-soft-primary">{{ property.portfolio_ref.name }}</span>
+                                    {% else %}
+                                        <span class="text-400">No portfolio</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if property.city and property.state %}
+                                        {{ property.city }}, {{ property.state }}
+                                    {% elif property.address %}
+                                        {{ property.address }}
+                                    {% else %}
+                                        <span class="text-400">No location</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-success fw-bold">${{ "%.2f"|format((total_revenue or 0)|float) }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Revenue Trends Chart
+const ctx = document.getElementById('revenueChart').getContext('2d');
+const monthlyData = {{ monthly_data|tojson }};
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: monthlyData.map(d => d.month),
+        datasets: [
+            {
+                label: 'Revenue',
+                data: monthlyData.map(d => d.revenue),
+                borderColor: '#3874CB',
+                backgroundColor: 'rgba(56, 116, 203, 0.1)',
+                fill: true,
+                tension: 0.4
+            },
+            {
+                label: 'Expenses',
+                data: monthlyData.map(d => d.expenses),
+                borderColor: '#E74C3C',
+                backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                fill: true,
+                tension: 0.4
+            },
+            {
+                label: 'Profit',
+                data: monthlyData.map(d => d.profit),
+                borderColor: '#2ECC71',
+                backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                fill: true,
+                tension: 0.4
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value.toLocaleString();
+                    }
+                }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        }
+    }
+});
+
+// Year selector function
+function changeYear() {
+    const year = document.getElementById('yearSelect').value;
+    window.location.href = `{{ url_for('report.dashboard') }}?year=${year}`;
+}
+
+// Export functions (placeholder)
+function exportToPDF() {
+    alert('PDF export functionality will be implemented');
+}
+
+function exportToExcel() {
+    alert('Excel export functionality will be implemented');
+}
+</script>
+
+{% endblock %}

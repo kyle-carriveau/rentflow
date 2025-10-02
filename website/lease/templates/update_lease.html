@@ -2,7 +2,7 @@
 
 {% block content %}
   <h1>Update Lease</h1>
-  <form method="post" action="{{ url_for('lease.update', id=lease.id) }}">
+  <form method="post" action="{{ url_for('lease.update', uuid=lease.uuid) }}">
     {{ form.csrf_token }}
 
     <div class="form-group">

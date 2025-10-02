@@ -4,6 +4,14 @@
 
 {% block content %}
 
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('profile.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Financial Dashboard</li>
+  </ol>
+</nav>
+
 <!-- Financial Dashboard Header -->
 <div class="row align-items-center justify-content-between g-3 mb-4">
     <div class="col-auto">
@@ -30,7 +38,7 @@
     <!-- Monthly Income -->
     <div class="col-sm-6 col-lg-3">
         <div class="card overflow-hidden h-100">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-1.png') }});"></div>
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-1.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -51,7 +59,7 @@
     <!-- Monthly Expenses -->
     <div class="col-sm-6 col-lg-3">
         <div class="card overflow-hidden h-100">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-2.png') }});"></div>
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-2.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -72,7 +80,7 @@
     <!-- Net Income -->
     <div class="col-sm-6 col-lg-3">
         <div class="card overflow-hidden h-100">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-3.png') }});"></div>
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-3.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -93,7 +101,7 @@
     <!-- Outstanding Rent -->
     <div class="col-sm-6 col-lg-3">
         <div class="card overflow-hidden h-100">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-4.png') }});"></div>
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-4.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -153,14 +161,14 @@
                                             </div>
                                         </div>
                                         <div>
-                                            <a href="{{ url_for('tenant.home', id=item.tenant.id) }}" class="fw-semi-bold text-decoration-none">
+                                            <a href="{{ url_for('tenant.home', uuid=item.tenant.uuid) }}" class="fw-semi-bold text-decoration-none">
                                                 {{ item.tenant.first_name }} {{ item.tenant.last_name }}
                                             </a>
                                         </div>
                                     </div>
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('property.home', id=item.lease_property_ref.id) }}" class="text-decoration-none">
+                                    <a href="{{ url_for('property.home', uuid=item.lease_property_ref.uuid) }}" class="text-decoration-none">
                                         {{ item.lease_property_ref.name }}
                                     </a>
                                 </td>
@@ -168,7 +176,7 @@
                                     <span class="fw-bold text-warning">${{ "{:,.2f}".format(item.balance) }}</span>
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('financial.record_payment') }}?lease={{ item.lease.id }}" class="btn btn-sm btn-falcon-success">
+                                    <a href="{{ url_for('financial.record_payment') }}?lease={{ item.lease.uuid }}" class="btn btn-sm btn-falcon-success">
                                         <span class="fas fa-plus me-1"></span>Record Payment
                                     </a>
                                 </td>

@@ -2,12 +2,19 @@
 
 {% block content %}
 
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('profile.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Properties</li>
+  </ol>
+</nav>
+
 <!-- Property Summary Cards -->
-{% if properties %}
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4" style="align-items: stretch;">
     <div class="col-sm-6 col-lg-3">
-        <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-1.png') }});"></div>
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-1.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -16,7 +23,7 @@
                         </div>
                     </div>
                     <div class="ms-3">
-                        <h4 class="mb-0">{{ properties|length }}</h4>
+                        <h4 class="mb-0">{{ properties|length if properties else 0 }}</h4>
                         <p class="text-800 fs--1 mb-0">Total Properties</p>
                     </div>
                 </div>
@@ -25,8 +32,8 @@
     </div>
 
     <div class="col-sm-6 col-lg-3">
-        <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-2.png') }});"></div>
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-2.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -36,9 +43,11 @@
                     </div>
                     <div class="ms-3">
                         {% set total_units = 0 %}
-                        {% for property in properties %}
-                            {% set total_units = total_units + property.units|length %}
-                        {% endfor %}
+                        {% if properties %}
+                            {% for property in properties %}
+                                {% set total_units = total_units + property.units|length %}
+                            {% endfor %}
+                        {% endif %}
                         <h4 class="mb-0">{{ total_units }}</h4>
                         <p class="text-800 fs--1 mb-0">Total Units</p>
                     </div>
@@ -48,8 +57,8 @@
     </div>
 
     <div class="col-sm-6 col-lg-3">
-        <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-3.png') }});"></div>
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-3.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -59,11 +68,13 @@
                     </div>
                     <div class="ms-3">
                         {% set portfolios = [] %}
-                        {% for property in properties %}
-                            {% if property.portfolio_ref and property.portfolio_ref not in portfolios %}
-                                {% set _ = portfolios.append(property.portfolio_ref) %}
-                            {% endif %}
-                        {% endfor %}
+                        {% if properties %}
+                            {% for property in properties %}
+                                {% if property.portfolio_ref and property.portfolio_ref not in portfolios %}
+                                    {% set _ = portfolios.append(property.portfolio_ref) %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
                         <h4 class="mb-0">{{ portfolios|length }}</h4>
                         <p class="text-800 fs--1 mb-0">Portfolios</p>
                     </div>
@@ -73,8 +84,8 @@
     </div>
 
     <div class="col-sm-6 col-lg-3">
-        <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-4.png') }});"></div>
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-4.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -84,14 +95,16 @@
                     </div>
                     <div class="ms-3">
                         {% set total_revenue = 0 %}
-                        {% for property in properties %}
-                            {% for unit in property.units %}
-                                {% set current_lease = unit.get_current_lease() %}
-                                {% if current_lease and current_lease.rent %}
-                                    {% set total_revenue = total_revenue + current_lease.rent %}
-                                {% endif %}
+                        {% if properties %}
+                            {% for property in properties %}
+                                {% for unit in property.units %}
+                                    {% set current_lease = unit.get_current_lease() %}
+                                    {% if current_lease and current_lease.rent %}
+                                        {% set total_revenue = total_revenue + current_lease.rent %}
+                                    {% endif %}
+                                {% endfor %}
                             {% endfor %}
-                        {% endfor %}
+                        {% endif %}
                         <h4 class="mb-0">${{ "{:,}".format(total_revenue) }}</h4>
                         <p class="text-800 fs--1 mb-0">Monthly Revenue</p>
                     </div>
@@ -100,7 +113,6 @@
         </div>
     </div>
 </div>
-{% endif %}
 
 <!-- Properties Table -->
 <div class="card mb-3" id="propertiesTable" data-list='{"valueNames":["property","portfolio","address","units","occupancy","revenue"],"page":10,"pagination":true}'>
@@ -119,7 +131,7 @@
             </div>
             <div class="col-8 col-sm-auto text-end ps-2">
                 <div id="table-properties-replace-element" class="d-flex align-items-center justify-content-end gap-2">
-                    <a href="{{ url_for('property.create_enhanced') }}" class="btn btn-falcon-primary btn-sm">
+                    <a href="{{ url_for('property.create') }}" class="btn btn-falcon-primary btn-sm">
                         <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                         <span class="d-none d-sm-inline-block ms-1">New Property</span>
                     </a>
@@ -163,7 +175,7 @@
                     <tr class="align-middle property-row">
                         <td class="property">
                             <div>
-                                <a href="{{ url_for('property.home', id=property.id) }}" class="fw-semi-bold text-decoration-none">
+                                <a href="{{ url_for('property.home', uuid=property.uuid) }}" class="fw-semi-bold text-decoration-none">
                                     {{ property.name }}
                                 </a>
                                 {% if property.description %}
@@ -174,7 +186,7 @@
                         <td class="portfolio">
                             {% if property.portfolio_ref %}
                                 <div>
-                                    <a href="{{ url_for('portfolio.home', id=property.portfolio_id) }}" class="fw-semi-bold text-decoration-none">
+                                    <a href="{{ url_for('portfolio.home', uuid=property.portfolio_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
                                         {{ property.portfolio_ref.name }}
                                     </a>
                                 </div>
@@ -197,7 +209,7 @@
                             {% endif %}
                         </td>
                         <td class="units">
-                            <div class="d-flex align-items-center">
+                            <div class="d-flex align-items-center" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ occupied_units|length }} of {{ total_property_units }} units occupied">
                                 <span class="fw-semi-bold">{{ total_property_units }}</span>
                                 {% if total_property_units > 0 %}
                                     <span class="ms-2 badge badge-soft-info">
@@ -209,9 +221,9 @@
                         <td class="occupancy">
                             {% if total_property_units > 0 %}
                                 {% set occupancy_rate = (occupied_units|length / total_property_units * 100)|round(1) %}
-                                <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ occupied_units|length }}/{{ total_property_units }} units occupied ({{ occupancy_rate }}%)">
                                     <div class="progress me-2" style="width: 60px; height: 8px;">
-                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ occupancy_rate }}%"></div>
+                                        <div class="progress-bar {% if occupancy_rate >= 90 %}bg-success{% elif occupancy_rate >= 70 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width: {{ occupancy_rate }}%"></div>
                                     </div>
                                     <span class="text-600 fs--1">{{ occupancy_rate }}%</span>
                                 </div>
@@ -221,8 +233,10 @@
                         </td>
                         <td class="revenue">
                             {% if property_revenue > 0 %}
-                                <span class="text-success fw-bold">${{ "{:,}".format(property_revenue) }}</span>
-                                <div class="fs--2 text-600">monthly</div>
+                                <div data-bs-toggle="tooltip" data-bs-placement="top" title="${{ "{:,}".format(property_revenue * 12) }} annual revenue">
+                                    <span class="text-success fw-bold">${{ "{:,}".format(property_revenue) }}</span>
+                                    <div class="fs--2 text-600">monthly</div>
+                                </div>
                             {% else %}
                                 <span class="text-400">$0</span>
                             {% endif %}
@@ -235,18 +249,18 @@
                                 </button>
                                 <div class="dropdown-menu dropdown-menu-end border py-0">
                                     <div class="py-2">
-                                        <a class="dropdown-item" href="{{ url_for('property.home', id=property.id) }}">
+                                        <a class="dropdown-item" href="{{ url_for('property.home', uuid=property.uuid) }}">
                                             <span class="fas fa-eye me-1"></span>View Details
                                         </a>
-                                        <a class="dropdown-item" href="{{ url_for('property.edit', id=property.id) }}">
+                                        <a class="dropdown-item" href="{{ url_for('property.edit', uuid=property.uuid) }}">
                                             <span class="fas fa-edit me-1"></span>Edit Property
                                         </a>
-                                        <a class="dropdown-item" href="{{ url_for('unit.create', id=property.id) }}">
+                                        <a class="dropdown-item" href="{{ url_for('unit.create', uuid=property.uuid) }}">
                                             <span class="fas fa-plus me-1"></span>Add Unit
                                         </a>
                                         <div class="dropdown-divider"></div>
                                         <a class="dropdown-item text-danger" href="#"
-                                           onclick="deleteProperty({{ property.id }}, '{{ property.name }}')">
+                                           onclick="deleteProperty('{{ property.uuid }}', '{{ property.name }}');">
                                             <span class="fas fa-trash me-1"></span>Delete Property
                                         </a>
                                     </div>
@@ -275,9 +289,18 @@
 
 <!-- Delete form -->
 <form id="deleteForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 </form>
 
 <script>
+// Initialize tooltips when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
 function deleteProperty(propertyId, propertyName) {
     if (confirm(`Are you sure you want to delete property "${propertyName}"? This action cannot be undone and will delete all associated units and leases.`)) {
         const form = document.getElementById('deleteForm');

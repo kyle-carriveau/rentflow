@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+
+{% block title %}Portfolio Performance - RentFlow{% endblock %}
+
+{% block content %}
+
+<!-- Portfolio Performance Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('report.dashboard') }}">Reports</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Portfolio Performance</li>
+            </ol>
+        </nav>
+        <h2 class="mb-0">Portfolio Performance Analysis</h2>
+        <p class="mb-0 text-700">Detailed ROI, occupancy, and revenue analysis by portfolio.</p>
+    </div>
+    <div class="col-auto">
+        <div class="row g-2">
+            <div class="col-auto">
+                <form method="GET" class="d-flex align-items-center gap-2">
+                    <label class="form-label mb-0 text-nowrap fs--1">Date Range:</label>
+                    <input type="date" class="form-control form-control-sm" name="start_date" value="{{ start_date }}" style="width: 140px;">
+                    <span class="text-600">to</span>
+                    <input type="date" class="form-control form-control-sm" name="end_date" value="{{ end_date }}" style="width: 140px;">
+                    <button type="submit" class="btn btn-falcon-primary btn-sm">
+                        <span class="fas fa-filter me-1"></span>Filter
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Portfolio Performance Summary -->
+{% if portfolio_analysis %}
+<div class="row g-3 mb-4">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">Portfolio Comparison</h5>
+                        <p class="mb-0 text-600">Performance metrics from {{ start_date }} to {{ end_date }}</p>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-falcon-default btn-sm" onclick="exportPortfolioData()">
+                            <span class="fas fa-download me-1"></span>Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="portfolioTable">
+                        <thead>
+                            <tr>
+                                <th>Portfolio</th>
+                                <th class="text-center">Properties</th>
+                                <th class="text-center">Total Units</th>
+                                <th class="text-center">Occupancy Rate</th>
+                                <th class="text-end">Revenue</th>
+                                <th class="text-end">Expenses</th>
+                                <th class="text-end">Net Income</th>
+                                <th class="text-center">ROI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in portfolio_analysis %}
+                            <tr>
+                                <td>
+                                    <div>
+                                        <a href="{{ url_for('portfolio.home', uuid=data.portfolio.uuid) }}" class="fw-semi-bold text-decoration-none">
+                                            {{ data.portfolio.name }}
+                                        </a>
+                                        {% if data.portfolio.description %}
+                                            <div class="fs--2 text-600">{{ data.portfolio.description[:50] }}{% if data.portfolio.description|length > 50 %}...{% endif %}</div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge badge-soft-info">{{ data.properties_count }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <div>
+                                        <span class="fw-semi-bold">{{ data.total_units }}</span>
+                                        <div class="fs--2 text-600">{{ data.occupied_units }} occupied</div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <div class="progress me-2" style="width: 50px; height: 6px;">
+                                            {% if data.occupancy_rate >= 90 %}
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ data.occupancy_rate }}%"></div>
+                                            {% elif data.occupancy_rate >= 70 %}
+                                                <div class="progress-bar bg-warning" role="progressbar" style="width: {{ data.occupancy_rate }}%"></div>
+                                            {% else %}
+                                                <div class="progress-bar bg-danger" role="progressbar" style="width: {{ data.occupancy_rate }}%"></div>
+                                            {% endif %}
+                                        </div>
+                                        <span class="fs--1 fw-semi-bold">{{ data.occupancy_rate }}%</span>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-success fw-bold">${{ "%.2f"|format((data.revenue or 0)|float) }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-danger">${{ "%.2f"|format((data.expenses or 0)|float) }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="fw-bold {% if data.net_income >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        ${{ "%.2f"|format((data.net_income or 0)|float) }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge {% if data.roi >= 15 %}badge-soft-success{% elif data.roi >= 5 %}badge-soft-warning{% else %}badge-soft-danger{% endif %}">
+                                        {{ data.roi }}%
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th>Totals</th>
+                                <th class="text-center">{{ portfolio_analysis|sum(attribute='properties_count') }}</th>
+                                <th class="text-center">{{ portfolio_analysis|sum(attribute='total_units') }}</th>
+                                <th class="text-center">
+                                    {% set total_units = portfolio_analysis|sum(attribute='total_units') %}
+                                    {% set total_occupied = portfolio_analysis|sum(attribute='occupied_units') %}
+                                    {% if total_units > 0 %}
+                                        {{ "%.1f"|format((total_occupied / total_units * 100)) }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </th>
+                                <th class="text-end fw-bold text-success">${{ "%.2f"|format((portfolio_analysis|sum(attribute='revenue') or 0)|float) }}</th>
+                                <th class="text-end fw-bold text-danger">${{ "%.2f"|format((portfolio_analysis|sum(attribute='expenses') or 0)|float) }}</th>
+                                <th class="text-end fw-bold {% if portfolio_analysis|sum(attribute='net_income') >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    ${{ "%.2f"|format((portfolio_analysis|sum(attribute='net_income') or 0)|float) }}
+                                </th>
+                                <th class="text-center">
+                                    {% set total_revenue = portfolio_analysis|sum(attribute='revenue') %}
+                                    {% set total_net = portfolio_analysis|sum(attribute='net_income') %}
+                                    {% if total_revenue > 0 %}
+                                        <span class="badge badge-soft-primary">{{ "%.1f"|format((total_net / total_revenue * 100)) }}%</span>
+                                    {% else %}
+                                        <span class="badge badge-soft-secondary">0%</span>
+                                    {% endif %}
+                                </th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Portfolio Performance Charts -->
+<div class="row g-3 mb-4">
+    <!-- Revenue by Portfolio Chart -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Revenue by Portfolio</h5>
+                <p class="mb-0 text-600">Revenue distribution across portfolios</p>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueByPortfolioChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Occupancy Rates Chart -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Occupancy Rates</h5>
+                <p class="mb-0 text-600">Occupancy comparison by portfolio</p>
+            </div>
+            <div class="card-body">
+                <canvas id="occupancyChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Insights -->
+<div class="row g-3">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Performance Insights</h5>
+                <p class="mb-0 text-600">Key insights and recommendations</p>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- Best Performing Portfolio -->
+                    {% set best_portfolio = portfolio_analysis|sort(attribute='roi', reverse=true)|first %}
+                    {% if best_portfolio %}
+                    <div class="col-md-4">
+                        <div class="card border border-success">
+                            <div class="card-body text-center">
+                                <div class="avatar avatar-xl mx-auto mb-3">
+                                    <div class="avatar-name rounded-circle bg-soft-success text-success d-flex align-items-center justify-content-center">
+                                        <span class="fas fa-trophy"></span>
+                                    </div>
+                                </div>
+                                <h6 class="text-success">Best Performing</h6>
+                                <p class="mb-2">{{ best_portfolio.portfolio.name }}</p>
+                                <p class="mb-0 fs--1 text-600">{{ best_portfolio.roi }}% ROI</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Highest Occupancy -->
+                    {% set highest_occupancy = portfolio_analysis|sort(attribute='occupancy_rate', reverse=true)|first %}
+                    {% if highest_occupancy %}
+                    <div class="col-md-4">
+                        <div class="card border border-info">
+                            <div class="card-body text-center">
+                                <div class="avatar avatar-xl mx-auto mb-3">
+                                    <div class="avatar-name rounded-circle bg-soft-info text-info d-flex align-items-center justify-content-center">
+                                        <span class="fas fa-chart-line"></span>
+                                    </div>
+                                </div>
+                                <h6 class="text-info">Highest Occupancy</h6>
+                                <p class="mb-2">{{ highest_occupancy.portfolio.name }}</p>
+                                <p class="mb-0 fs--1 text-600">{{ highest_occupancy.occupancy_rate }}% occupied</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Highest Revenue -->
+                    {% set highest_revenue = portfolio_analysis|sort(attribute='revenue', reverse=true)|first %}
+                    {% if highest_revenue %}
+                    <div class="col-md-4">
+                        <div class="card border border-warning">
+                            <div class="card-body text-center">
+                                <div class="avatar avatar-xl mx-auto mb-3">
+                                    <div class="avatar-name rounded-circle bg-soft-warning text-warning d-flex align-items-center justify-content-center">
+                                        <span class="fas fa-dollar-sign"></span>
+                                    </div>
+                                </div>
+                                <h6 class="text-warning">Highest Revenue</h6>
+                                <p class="mb-2">{{ highest_revenue.portfolio.name }}</p>
+                                <p class="mb-0 fs--1 text-600">${{ "%.0f"|format((highest_revenue.revenue or 0)|float) }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- No Data State -->
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <span class="fas fa-layer-group fa-3x text-300"></span>
+                </div>
+                <h5 class="mb-2">No Portfolio Data Available</h5>
+                <p class="text-600 mb-4">Create portfolios and add properties to see performance analysis.</p>
+                <a href="{{ url_for('portfolio.portfolios') }}" class="btn btn-falcon-primary">
+                    <span class="fas fa-plus me-1"></span>Create Portfolio
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% if portfolio_analysis %}
+// Revenue by Portfolio Chart
+const revenueCtx = document.getElementById('revenueByPortfolioChart').getContext('2d');
+const portfolioData = {{ portfolio_analysis|tojson }};
+
+new Chart(revenueCtx, {
+    type: 'doughnut',
+    data: {
+        labels: portfolioData.map(d => d.portfolio.name),
+        datasets: [{
+            data: portfolioData.map(d => d.revenue),
+            backgroundColor: [
+                '#3874CB',
+                '#2ECC71',
+                '#E74C3C',
+                '#F39C12',
+                '#9B59B6',
+                '#1ABC9C',
+                '#34495E',
+                '#95A5A6'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    usePointStyle: true
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.label + ': $' + context.parsed.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Occupancy Rates Chart
+const occupancyCtx = document.getElementById('occupancyChart').getContext('2d');
+
+new Chart(occupancyCtx, {
+    type: 'bar',
+    data: {
+        labels: portfolioData.map(d => d.portfolio.name),
+        datasets: [{
+            label: 'Occupancy Rate (%)',
+            data: portfolioData.map(d => d.occupancy_rate),
+            backgroundColor: portfolioData.map(d => {
+                if (d.occupancy_rate >= 90) return '#2ECC71';
+                if (d.occupancy_rate >= 70) return '#F39C12';
+                return '#E74C3C';
+            })
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: function(value) {
+                        return value + '%';
+                    }
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return 'Occupancy: ' + context.parsed.y + '%';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Export function
+function exportPortfolioData() {
+    const table = document.getElementById('portfolioTable');
+    let csv = 'Portfolio,Properties,Total Units,Occupied Units,Occupancy Rate,Revenue,Expenses,Net Income,ROI\n';
+
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const portfolioName = cells[0].querySelector('a').textContent.trim();
+        const properties = cells[1].textContent.trim();
+        const totalUnits = cells[2].querySelector('.fw-semi-bold').textContent.trim();
+        const occupiedUnits = cells[2].querySelector('.fs--2').textContent.split(' ')[0];
+        const occupancyRate = cells[3].querySelector('.fs--1').textContent.trim();
+        const revenue = cells[4].textContent.trim();
+        const expenses = cells[5].textContent.trim();
+        const netIncome = cells[6].textContent.trim();
+        const roi = cells[7].textContent.trim();
+
+        csv += `"${portfolioName}","${properties}","${totalUnits}","${occupiedUnits}","${occupancyRate}","${revenue}","${expenses}","${netIncome}","${roi}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'portfolio_performance.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+{% endif %}
+</script>
+
+{% endblock %}

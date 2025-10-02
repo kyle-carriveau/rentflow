@@ -2,7 +2,8 @@
 
 {% block content %} 
 
-<form method="POST">
+<form method="POST" id="editTenantForm" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <div class="card mb-3">
         <div class="card-header">
             <div class="row align-items-center">
@@ -79,7 +80,7 @@
                 </div>
             </div>
         </div>
-        <div class="card-footer border-top text-end"><button type="submit" class="btn btn-falcon-default btn-sm ms-2" ><span class="fas fa-check fs--2 me-1"></span>Save changes</button></div>
+        <div class="card-footer border-top text-end"><button type="submit" class="btn btn-falcon-default btn-sm ms-2"><span class="fas fa-check fs--2 me-1"></span>Save changes</button></div>
     </div>
 </form>
 

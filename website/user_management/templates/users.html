@@ -56,7 +56,7 @@
                                 </div>
                                 <div>
                                     <div class="fw-semi-bold">{{ company_user.first_name }} {{ company_user.last_name }}</div>
-                                    {% if company_user.id == user.id %}
+                                    {% if company_user.uuid == user.uuid %}
                                         <span class="badge bg-info fs--2">You</span>
                                     {% endif %}
                                 </div>
@@ -78,19 +78,24 @@
                             <span class="badge bg-success">Active</span>
                         </td>
                         <td>
-                            {% if company_user.id != user.id %}
+                            {% if company_user.uuid != user.uuid %}
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-falcon-default dropdown-toggle" type="button" 
                                         data-bs-toggle="dropdown" aria-expanded="false">
                                     <span class="fas fa-ellipsis-h"></span>
                                 </button>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{{ url_for('user_management.edit_user', user_id=company_user.id) }}">
+                                    <li><a class="dropdown-item" href="{{ url_for('user_management.edit_user', user_uuid=company_user.uuid) }}">
                                         <span class="fas fa-edit me-2"></span>Edit User
                                     </a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" href="#" 
-                                           onclick="deleteUser({{ company_user.id }}, '{{ company_user.first_name }} {{ company_user.last_name }}')">
+                                    <li><a class="dropdown-item text-danger" href="#"
+                                           data-confirm="Are you sure you want to delete user &quot;{{ company_user.first_name }} {{ company_user.last_name }}&quot;? This action cannot be undone."
+                                           data-confirm-title="Delete User"
+                                           data-confirm-text="Delete User"
+                                           data-confirm-type="danger"
+                                           data-confirm-icon="fas fa-user-times"
+                                           data-confirm-action="deleteUser('{{ company_user.uuid }}', '{{ company_user.first_name }} {{ company_user.last_name }}')"
                                         <span class="fas fa-trash me-2"></span>Delete User
                                     </a></li>
                                 </ul>
@@ -124,15 +129,14 @@
 
 <!-- Delete Form -->
 <form id="deleteForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 </form>
 
 <script>
-function deleteUser(userId, userName) {
-    if (confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
-        const form = document.getElementById('deleteForm');
-        form.action = `/users/${userId}/delete`;
-        form.submit();
-    }
+function deleteUser(userUuid, userName) {
+    const form = document.getElementById('deleteForm');
+    form.action = `/users/${userUuid}/delete`;
+    form.submit();
 }
 
 // Handle dropdown positioning to prevent cut-off

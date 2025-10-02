@@ -1,60 +1,737 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
 
-{% block content %} 
+{% block content %}
 
-<form method="POST">
+<form method="POST" action="{% if property %}{{ url_for('unit.create_for_property', uuid=property.uuid) }}{% else %}{{ url_for('unit.create') }}{% endif %}" id="createUnitForm" class="needs-validation" novalidate>
+    {{ form.csrf_token }}
+
+    <!-- Basic Information Section -->
     <div class="card mb-3">
         <div class="card-header">
             <div class="row align-items-center">
                 <div class="col">
-                    <h5 class="mb-0">Create Unit</h5>
+                    <h5 class="mb-0">Create New Unit</h5>
+                    {% if property %}
+                        <p class="mb-0 text-700">Creating unit for {{ property.name }}</p>
+                    {% else %}
+                        <p class="mb-0 text-700">Select a property and create a new unit</p>
+                    {% endif %}
                 </div>
-            <div class="col-auto"></div>
+                <div class="col-auto">
+                    {% if property %}
+                        <a href="{{ url_for('property.home', uuid=property.uuid) }}" class="btn btn-falcon-default btn-sm">
+                            <span class="fas fa-arrow-left me-1"></span>Back to Property
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('unit.list_units') }}" class="btn btn-falcon-default btn-sm">
+                            <span class="fas fa-arrow-left me-1"></span>Back to Units
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
         <div class="card-body bg-light border-top">
             <div class="row">
                 <div class="col-lg col-xxl-5">
+                    {% if not property %}
                     <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="name">Name</label>
+                        {{ form.property_id.label(class="form-label") }}
                         <div class="col">
-                            <input class="form-control" type="text" name="name" id="name"/>
+                            {{ form.property_id(class="form-control", required=true) }}
+                            <div class="invalid-feedback">Please select a property.</div>
+                        </div>
+                    </div>
+                    <br />
+                    {% endif %}
+                    <div class="row">
+                        {{ form.name.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.name(class="form-control", required=true) }}
+                            <div class="invalid-feedback">Please enter a unit name or number.</div>
                         </div>
                     </div>
                     <br />
                     <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="bedrooms">Bedrooms</label>
+                        {{ form.bedrooms.label(class="form-label") }}
                         <div class="col">
-                            <input class="form-control" type="number" min="0" name="bedrooms" id="bedrooms"/>
+                            {{ form.bedrooms(class="form-control", min="0", max="20") }}
                         </div>
                     </div>
-                    <br/>
+                    <br />
                     <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="bathrooms">Bathrooms</label>
+                        {{ form.bathrooms.label(class="form-label") }}
                         <div class="col">
-                            <input class="form-control" type="number" min="0" name="bathrooms" id="bathrooms"/>
+                            {{ form.bathrooms(class="form-control", min="0", max="10") }}
                         </div>
                     </div>
                 </div>
                 <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
                     <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="sqft">SQ Feet</label>
+                        {{ form.sqft.label(class="form-label") }}
                         <div class="col">
-                            <input class="form-control" type="number" name="sqft" id="sqft"/>
+                            {{ form.sqft(class="form-control", min="1") }}
+                            <small class="form-text text-muted">Total square footage</small>
                         </div>
                     </div>
                     <br />
                     <div class="row">
-                        <label class="col-5 col-sm-4 col-form-label" for="rent">Monthly Rent</label>
+                        {{ form.rent.label(class="form-label") }}
                         <div class="col input-group">
-                            <span class="input-group-text">$</span><input class="form-control" type="number" min="0" name="rent" id="rent" />
+                            <span class="input-group-text">$</span>{{ form.rent(class="form-control currency-field", min="0", step="1") }}
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        {{ form.description.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.description(class="form-control") }}
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="card-footer border-top text-end"><button type="submit" class="btn btn-falcon-default btn-sm ms-2" ><span class="fas fa-check fs--2 me-1"></span>Save changes</button></div>
+    </div>
+
+    <!-- HVAC & Climate Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <span class="fas fa-thermometer-half me-2"></span>HVAC & Climate Control
+            </h6>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-check">
+                                {{ form.air_conditioning(class="form-check-input") }}
+                                {{ form.air_conditioning.label(class="form-check-label") }}
+                            </div>
+                            <small class="form-text text-muted">Central AC, window units, etc.</small>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        {{ form.heating_type.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.heating_type(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        {{ form.thermostat_type.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.thermostat_type(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Appliances & Kitchen Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <span class="fas fa-utensils me-2"></span>Appliances & Kitchen
+            </h6>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        {{ form.appliances_included.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.appliances_included(class="form-control") }}
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-check">
+                                {{ form.dishwasher(class="form-check-input") }}
+                                {{ form.dishwasher.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check">
+                                {{ form.garbage_disposal(class="form-check-input") }}
+                                {{ form.garbage_disposal.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-check">
+                                {{ form.microwave(class="form-check-input") }}
+                                {{ form.microwave.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check">
+                                {{ form.refrigerator(class="form-check-input") }}
+                                {{ form.refrigerator.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-check">
+                                {{ form.range_oven(class="form-check-input") }}
+                                {{ form.range_oven.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        {{ form.washer_dryer.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.washer_dryer(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flooring & Interior Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <span class="fas fa-home me-2"></span>Flooring & Interior
+            </h6>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        {{ form.flooring_type.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.flooring_type(class="form-control") }}
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        {{ form.ceiling_height.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.ceiling_height(class="form-control", min="6", max="20") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        {{ form.windows_type.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.windows_type(class="form-control") }}
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        {{ form.natural_light.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.natural_light(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Storage & Space Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <span class="fas fa-boxes me-2"></span>Storage & Space
+            </h6>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        {{ form.closet_space.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.closet_space(class="form-control") }}
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        {{ form.storage_units.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.storage_units(class="form-control", min="0") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-check">
+                                {{ form.balcony_patio(class="form-check-input") }}
+                                {{ form.balcony_patio.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            {{ form.balcony_sqft.label(class="form-label") }}
+                            {{ form.balcony_sqft(class="form-control", min="1") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parking & Access Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <span class="fas fa-car me-2"></span>Parking & Access
+            </h6>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        {{ form.parking_type.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.parking_type(class="form-control") }}
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        {{ form.parking_spaces.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.parking_spaces(class="form-control", min="0") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        {{ form.garage_type.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.garage_type(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bathroom Features Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <span class="fas fa-bath me-2"></span>Bathroom Features
+            </h6>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        {{ form.bathroom_features.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.bathroom_features(class="form-control") }}
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-check">
+                                {{ form.master_bath(class="form-check-input") }}
+                                {{ form.master_bath.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check">
+                                {{ form.bathtub(class="form-check-input") }}
+                                {{ form.bathtub.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        {{ form.shower_type.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.shower_type(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Condition & Maintenance Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <span class="fas fa-tools me-2"></span>Condition & Maintenance
+            </h6>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        {{ form.last_renovated.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.last_renovated(class="form-control") }}
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        {{ form.condition_rating.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.condition_rating(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        {{ form.recent_updates.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.recent_updates(class="form-control") }}
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        {{ form.upcoming_maintenance.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.upcoming_maintenance(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accessibility & Compliance Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <span class="fas fa-universal-access me-2"></span>Accessibility & Compliance
+            </h6>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-check">
+                                {{ form.ada_compliant(class="form-check-input") }}
+                                {{ form.ada_compliant.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check">
+                                {{ form.wheelchair_accessible(class="form-check-input") }}
+                                {{ form.wheelchair_accessible.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        {{ form.accessibility_features.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.accessibility_features(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Utilities & Energy Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <span class="fas fa-plug me-2"></span>Utilities & Energy
+            </h6>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        {{ form.utilities_included.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.utilities_included(class="form-control") }}
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        {{ form.utility_cost_estimate.label(class="form-label") }}
+                        <div class="col input-group">
+                            <span class="input-group-text">$</span>{{ form.utility_cost_estimate(class="form-control", min="0") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        {{ form.energy_efficiency_rating.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.energy_efficiency_rating(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pet Policy Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <span class="fas fa-dog me-2"></span>Pet Policy
+            </h6>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-check">
+                                {{ form.pets_allowed(class="form-check-input") }}
+                                {{ form.pets_allowed.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        {{ form.pet_restrictions.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.pet_restrictions(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        {{ form.pet_fee_monthly.label(class="form-label") }}
+                        <div class="col input-group">
+                            <span class="input-group-text">$</span>{{ form.pet_fee_monthly(class="form-control", min="0") }}
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        {{ form.pet_deposit.label(class="form-label") }}
+                        <div class="col input-group">
+                            <span class="input-group-text">$</span>{{ form.pet_deposit(class="form-control", min="0") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Features Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <span class="fas fa-shield-alt me-2"></span>Security Features
+            </h6>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        {{ form.security_features.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.security_features(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-check">
+                                {{ form.alarm_system(class="form-check-input") }}
+                                {{ form.alarm_system.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check">
+                                {{ form.secure_entry(class="form-check-input") }}
+                                {{ form.secure_entry.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technology & Internet Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <span class="fas fa-wifi me-2"></span>Technology & Internet
+            </h6>
+        </div>
+        <div class="card-body bg-light border-top">
+            <div class="row">
+                <div class="col-lg col-xxl-5">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-check">
+                                {{ form.internet_included(class="form-check-input") }}
+                                {{ form.internet_included.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check">
+                                {{ form.cable_ready(class="form-check-input") }}
+                                {{ form.cable_ready.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        {{ form.internet_speed.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.internet_speed(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
+                    <div class="row">
+                        {{ form.smart_home_features.label(class="form-label") }}
+                        <div class="col">
+                            {{ form.smart_home_features(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer border-top text-end">
+            <button type="submit" class="btn btn-falcon-primary btn-sm ms-2">
+                <span class="fas fa-check fs--2 me-1"></span>Create Unit
+            </button>
+        </div>
     </div>
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Real-time validation functions
+    function validateField(field, isValid, errorMessage) {
+        const feedback = field.nextElementSibling;
+        if (isValid) {
+            field.classList.remove('is-invalid');
+            field.classList.add('is-valid');
+            if (feedback && feedback.classList.contains('invalid-feedback')) {
+                feedback.style.display = 'none';
+            }
+        } else {
+            field.classList.remove('is-valid');
+            field.classList.add('is-invalid');
+            if (feedback && feedback.classList.contains('invalid-feedback')) {
+                feedback.textContent = errorMessage;
+                feedback.style.display = 'block';
+            }
+        }
+    }
+
+    // Initialize form validation
+    if (typeof FormValidator !== 'undefined') {
+        const validator = new FormValidator('#createUnitForm', {
+            validateOnBlur: true,
+            validateOnInput: true,
+            showSuccessIcons: true
+        });
+    }
+
+    // Currency formatting for rent field
+    const rentField = document.querySelector('.currency-field');
+    if (rentField) {
+        rentField.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^0-9.]/g, '');
+            // Ensure only one decimal point
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            // Limit to 2 decimal places
+            if (parts[1] && parts[1].length > 2) {
+                value = parts[0] + '.' + parts[1].slice(0, 2);
+            }
+            e.target.value = value;
+
+            // Validate rent amount
+            const numValue = parseFloat(value) || 0;
+            if (value === '') {
+                rentField.classList.remove('is-valid', 'is-invalid');
+            } else {
+                validateField(rentField, numValue > 0, 'Please enter a valid rent amount.');
+            }
+        });
+    }
+
+    // Required field validation
+    const requiredFields = document.querySelectorAll('input[required]');
+    requiredFields.forEach(field => {
+        field.addEventListener('blur', function(e) {
+            const value = e.target.value.trim();
+            validateField(field, value !== '', 'This field is required.');
+        });
+    });
+
+    // Numeric field validation
+    const numericFields = document.querySelectorAll('input[type="number"]');
+    numericFields.forEach(field => {
+        field.addEventListener('blur', function(e) {
+            const value = parseFloat(e.target.value);
+            const min = parseFloat(e.target.min) || 0;
+            const max = parseFloat(e.target.max) || Infinity;
+
+            if (e.target.value !== '' && (isNaN(value) || value < min || value > max)) {
+                validateField(field, false, `Please enter a number between ${min} and ${max}.`);
+            } else if (e.target.value !== '') {
+                validateField(field, true, '');
+            }
+        });
+    });
+
+    // Form submission validation
+    const form = document.getElementById('createUnitForm');
+    form.addEventListener('submit', function(e) {
+        let isFormValid = true;
+
+        // Validate all required fields
+        requiredFields.forEach(field => {
+            const value = field.value.trim();
+            if (value === '') {
+                validateField(field, false, 'This field is required.');
+                isFormValid = false;
+            }
+        });
+
+        // Validate numeric fields
+        numericFields.forEach(field => {
+            const value = parseFloat(field.value);
+            const min = parseFloat(field.min) || 0;
+            const max = parseFloat(field.max) || Infinity;
+
+            if (field.value !== '' && (isNaN(value) || value < min || value > max)) {
+                validateField(field, false, `Please enter a number between ${min} and ${max}.`);
+                isFormValid = false;
+            }
+        });
+
+        if (!isFormValid) {
+            e.preventDefault();
+            // Scroll to first invalid field
+            const firstInvalid = document.querySelector('.is-invalid');
+            if (firstInvalid) {
+                firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstInvalid.focus();
+            }
+        } else if (typeof loadingManager !== 'undefined') {
+            loadingManager.showToast('Creating unit...', 'info', 3000);
+        }
+    });
+});
+</script>
 
 {% endblock %}

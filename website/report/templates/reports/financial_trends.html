@@ -1,0 +1,448 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Trends - RentFlow{% endblock %}
+
+{% block content %}
+
+<!-- Financial Trends Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('report.dashboard') }}">Reports</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Financial Trends</li>
+            </ol>
+        </nav>
+        <h2 class="mb-0">Financial Trends Analysis</h2>
+        <p class="mb-0 text-700">Revenue and expense trends with period comparisons.</p>
+    </div>
+    <div class="col-auto">
+        <div class="row g-2">
+            <div class="col-auto">
+                <form method="GET" class="d-flex align-items-center gap-2">
+                    <select class="form-select form-select-sm" name="period" onchange="this.form.submit()">
+                        <option value="monthly" {% if period == 'monthly' %}selected{% endif %}>Monthly</option>
+                        <option value="quarterly" {% if period == 'quarterly' %}selected{% endif %}>Quarterly</option>
+                    </select>
+                    <select class="form-select form-select-sm" name="year" onchange="this.form.submit()">
+                        {% for y in range(2020, 2030) %}
+                        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-falcon-default btn-sm" onclick="exportTrendsData()">
+                    <span class="fas fa-download me-1"></span>Export
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Financial Metrics -->
+<div class="row g-3 mb-4">
+    <!-- Total Revenue -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-1.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-arrow-up"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">${{ "%.0f"|format((trends_data|sum(attribute='revenue') or 0)|float) }}</h4>
+                        <p class="text-800 fs--1 mb-0">Total Revenue</p>
+                        <small class="text-success">{{ year }} {{ period }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Expenses -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-2.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-danger text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-arrow-down"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">${{ "%.0f"|format((trends_data|sum(attribute='expenses') or 0)|float) }}</h4>
+                        <p class="text-800 fs--1 mb-0">Total Expenses</p>
+                        <small class="text-danger">{{ year }} {{ period }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Net Profit -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-3.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        {% set total_profit = trends_data|sum(attribute='profit') %}
+                        <div class="avatar-name rounded-circle {% if total_profit >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-chart-line"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0 {% if total_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            ${{ "%.0f"|format((total_profit or 0)|float) }}
+                        </h4>
+                        <p class="text-800 fs--1 mb-0">Net Profit</p>
+                        <small class="{% if total_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ year }} total
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profit Margin -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-4.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-info text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-percentage"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        {% set total_revenue = trends_data|sum(attribute='revenue') %}
+                        {% set profit_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else 0 %}
+                        <h4 class="mb-0 {% if profit_margin >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ "%.1f"|format(profit_margin) }}%
+                        </h4>
+                        <p class="text-800 fs--1 mb-0">Profit Margin</p>
+                        <small class="text-info">{{ year }} average</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Trends Chart -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">{{ period|title }} Financial Trends</h5>
+                        <p class="mb-0 text-600">Revenue, expenses, and profit trends for {{ year }}</p>
+                    </div>
+                    <div class="col-auto">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="chartType" id="lineChart" autocomplete="off" checked onclick="changeChartType('line')">
+                            <label class="btn btn-outline-secondary" for="lineChart">
+                                <span class="fas fa-chart-line me-1"></span>Line
+                            </label>
+
+                            <input type="radio" class="btn-check" name="chartType" id="barChart" autocomplete="off" onclick="changeChartType('bar')">
+                            <label class="btn btn-outline-secondary" for="barChart">
+                                <span class="fas fa-chart-bar me-1"></span>Bar
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="trendsChart" style="height: 400px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Trends Table -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Detailed Financial Data</h5>
+                <p class="mb-0 text-600">{{ period|title }} breakdown for {{ year }}</p>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="trendsTable">
+                        <thead>
+                            <tr>
+                                <th>Period</th>
+                                <th class="text-end">Revenue</th>
+                                <th class="text-end">Expenses</th>
+                                <th class="text-end">Profit/Loss</th>
+                                <th class="text-center">Profit Margin</th>
+                                <th class="text-center">Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in trends_data %}
+                            <tr>
+                                <td>
+                                    <span class="fw-semi-bold">{{ data.period }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-success fw-bold">${{ "%.2f"|format((data.revenue or 0)|float) }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-danger">${{ "%.2f"|format((data.expenses or 0)|float) }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="fw-bold {% if data.profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        ${{ "%.2f"|format((data.profit or 0)|float) }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    {% set margin = (data.profit / data.revenue * 100) if data.revenue > 0 else 0 %}
+                                    <span class="badge {% if margin >= 20 %}badge-soft-success{% elif margin >= 10 %}badge-soft-warning{% elif margin >= 0 %}badge-soft-info{% else %}badge-soft-danger{% endif %}">
+                                        {{ "%.1f"|format(margin) }}%
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    {% if loop.index > 1 %}
+                                        {% set prev_profit = trends_data[loop.index0 - 1].profit %}
+                                        {% if data.profit > prev_profit %}
+                                            <span class="text-success"><i class="fas fa-arrow-up"></i></span>
+                                        {% elif data.profit < prev_profit %}
+                                            <span class="text-danger"><i class="fas fa-arrow-down"></i></span>
+                                        {% else %}
+                                            <span class="text-600"><i class="fas fa-minus"></i></span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-600">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th>Total/Average</th>
+                                <th class="text-end fw-bold text-success">${{ "%.2f"|format((trends_data|sum(attribute='revenue') or 0)|float) }}</th>
+                                <th class="text-end fw-bold text-danger">${{ "%.2f"|format((trends_data|sum(attribute='expenses') or 0)|float) }}</th>
+                                <th class="text-end fw-bold {% if trends_data|sum(attribute='profit') >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    ${{ "%.2f"|format((trends_data|sum(attribute='profit') or 0)|float) }}
+                                </th>
+                                <th class="text-center">
+                                    {% set total_revenue = trends_data|sum(attribute='revenue') %}
+                                    {% set total_profit = trends_data|sum(attribute='profit') %}
+                                    {% if total_revenue > 0 %}
+                                        <span class="badge badge-soft-primary">{{ "%.1f"|format((total_profit / total_revenue * 100)) }}%</span>
+                                    {% else %}
+                                        <span class="badge badge-soft-secondary">0%</span>
+                                    {% endif %}
+                                </th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Insights -->
+<div class="row g-3">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Financial Insights</h5>
+                <p class="mb-0 text-600">Key trends and recommendations</p>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% if trends_data|length > 1 %}
+                    <!-- Revenue Trend -->
+                    <div class="col-md-4">
+                        <div class="card border border-200">
+                            <div class="card-body text-center">
+                                {% set first_revenue = trends_data[0].revenue %}
+                                {% set last_revenue = trends_data[-1].revenue %}
+                                {% set revenue_growth = ((last_revenue - first_revenue) / first_revenue * 100) if first_revenue > 0 else 0 %}
+
+                                <div class="avatar avatar-xl mx-auto mb-3">
+                                    <div class="avatar-name rounded-circle {% if revenue_growth > 0 %}bg-soft-success text-success{% elif revenue_growth < 0 %}bg-soft-danger text-danger{% else %}bg-soft-secondary text-secondary{% endif %} d-flex align-items-center justify-content-center">
+                                        <span class="fas {% if revenue_growth > 0 %}fa-arrow-up{% elif revenue_growth < 0 %}fa-arrow-down{% else %}fa-minus{% endif %}"></span>
+                                    </div>
+                                </div>
+                                <h6>Revenue Trend</h6>
+                                <p class="mb-2 {% if revenue_growth > 0 %}text-success{% elif revenue_growth < 0 %}text-danger{% else %}text-secondary{% endif %}">
+                                    {{ "%.1f"|format(revenue_growth) }}%
+                                </p>
+                                <p class="mb-0 fs--1 text-600">
+                                    {% if revenue_growth > 0 %}Growth{% elif revenue_growth < 0 %}Decline{% else %}Stable{% endif %}
+                                    from {{ trends_data[0].period }} to {{ trends_data[-1].period }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Best Month/Quarter -->
+                    {% set best_period = trends_data|sort(attribute='profit', reverse=true)|first %}
+                    <div class="col-md-4">
+                        <div class="card border border-200">
+                            <div class="card-body text-center">
+                                <div class="avatar avatar-xl mx-auto mb-3">
+                                    <div class="avatar-name rounded-circle bg-soft-success text-success d-flex align-items-center justify-content-center">
+                                        <span class="fas fa-star"></span>
+                                    </div>
+                                </div>
+                                <h6>Best Period</h6>
+                                <p class="mb-2">{{ best_period.period }}</p>
+                                <p class="mb-0 fs--1 text-600">${{ "%.0f"|format((best_period.profit or 0)|float) }} profit</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Expense Ratio -->
+                    <div class="col-md-4">
+                        <div class="card border border-200">
+                            <div class="card-body text-center">
+                                {% set avg_expense_ratio = (trends_data|sum(attribute='expenses') / trends_data|sum(attribute='revenue') * 100) if trends_data|sum(attribute='revenue') > 0 else 0 %}
+                                <div class="avatar avatar-xl mx-auto mb-3">
+                                    <div class="avatar-name rounded-circle {% if avg_expense_ratio <= 70 %}bg-soft-success text-success{% elif avg_expense_ratio <= 85 %}bg-soft-warning text-warning{% else %}bg-soft-danger text-danger{% endif %} d-flex align-items-center justify-content-center">
+                                        <span class="fas fa-calculator"></span>
+                                    </div>
+                                </div>
+                                <h6>Expense Ratio</h6>
+                                <p class="mb-2">{{ "%.1f"|format(avg_expense_ratio) }}%</p>
+                                <p class="mb-0 fs--1 text-600">of revenue</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const trendsData = {{ trends_data|tojson }};
+let currentChart;
+
+// Initialize chart
+function initChart(type = 'line') {
+    const ctx = document.getElementById('trendsChart').getContext('2d');
+
+    if (currentChart) {
+        currentChart.destroy();
+    }
+
+    currentChart = new Chart(ctx, {
+        type: type,
+        data: {
+            labels: trendsData.map(d => d.period),
+            datasets: [
+                {
+                    label: 'Revenue',
+                    data: trendsData.map(d => d.revenue),
+                    borderColor: '#2ECC71',
+                    backgroundColor: type === 'bar' ? '#2ECC71' : 'rgba(46, 204, 113, 0.1)',
+                    fill: type === 'line',
+                    tension: 0.4
+                },
+                {
+                    label: 'Expenses',
+                    data: trendsData.map(d => d.expenses),
+                    borderColor: '#E74C3C',
+                    backgroundColor: type === 'bar' ? '#E74C3C' : 'rgba(231, 76, 60, 0.1)',
+                    fill: type === 'line',
+                    tension: 0.4
+                },
+                {
+                    label: 'Profit',
+                    data: trendsData.map(d => d.profit),
+                    borderColor: '#3874CB',
+                    backgroundColor: type === 'bar' ? '#3874CB' : 'rgba(56, 116, 203, 0.1)',
+                    fill: type === 'line',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+}
+
+function changeChartType(type) {
+    initChart(type);
+}
+
+// Initialize chart on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initChart();
+});
+
+// Export function
+function exportTrendsData() {
+    const table = document.getElementById('trendsTable');
+    let csv = 'Period,Revenue,Expenses,Profit/Loss,Profit Margin\n';
+
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const period = cells[0].textContent.trim();
+        const revenue = cells[1].textContent.trim();
+        const expenses = cells[2].textContent.trim();
+        const profit = cells[3].textContent.trim();
+        const margin = cells[4].textContent.trim();
+
+        csv += `"${period}","${revenue}","${expenses}","${profit}","${margin}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'financial_trends.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+
+{% endblock %}

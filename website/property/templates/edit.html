@@ -1,123 +1,459 @@
 {% extends "base.html" %}
-{% block content %} 
 
-<form method="POST">
-    <div class="card mb-3">
-        <div class="card-header">
-        <div class="row">
-            <div class="col">
-            <h5 class="mb-2">{{ property.name }}</h5>
-            </div>
-            <div class="col-auto d-none d-sm-block">
-            <h6 class="text-uppercase text-600">Property<span class="fas fa-building ms-2"></span></h6>
-            </div>
-        </div>
-        </div>
-        <div class="card-body border-top">
-        <div class="d-flex"><span class="fas fa-building text-success me-2" data-fa-transform="down-5"></span>
-            <div class="flex-1">
-            <p class="fs--1 mb-0 text-600">Property owned since</p>
-            <p class="fs--1 mb-0 text-600">Jan 12, 2022</p>
-            </div>
-        </div>
-        </div>
-    </div>
-    <div class="card mb-3">
+{% block content %}
+
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('profile.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('property.properties') }}">Properties</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('property.home', uuid=property.uuid) }}">{{ property.name }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Edit Property</li>
+  </ol>
+</nav>
+
+<!-- Property Header -->
+<div class="card mb-3">
     <div class="card-header">
         <div class="row align-items-center">
-        <div class="col">
-            <h5 class="mb-0">Property Details</h5>
-        </div>
-        <div class="col-auto"></div>
-        </div>
-    </div>
-    <div class="card-body bg-light border-top">
-        <div class="row">
-            <div class="col-lg col-xxl-5">
-                <div class="row">
-                    <div class="col-5 col-sm-4">
-                        <p class="fw-semi-bold mb-1">Name</p>
-                    </div>
-                    <div class="col">
-                        <input class="form-control" type="text" name="name" id="name" value="{{property.name}}"/>
-                    </div>
-                </div>
-                <br />
-                <div class="row">
-                    <div class="col-5 col-sm-4">
-                        <p class="fw-semi-bold mb-1">Property Type</p>
-                    </div>
-                    <div class="col">
-                        <select class="form-select" name="type" aria-label="Select Property Type">
-                            {% if property.type %}
-                            <option value="{{ property.type }}">{{ property.type }}</option>
-                            {% else %} 
-                            <option value=""></option>
-                            {% endif %} 
-                            <option value="Single Family">Single Family</option>
-                            <option value="Duplex">Duplex</option>
-                            <option value="Multi Family">Multi Family</option>
-                            <option value="4 Plex">4 Plex</option>
-                            <option value="Apartment">Apartment</option>
-                        </select>
-                    </div>
-                </div>
+            <div class="col">
+                <h4 class="mb-0">Edit Property</h4>
+                <p class="text-600 mb-0">{{ property.name }}</p>
             </div>
-            <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
-                <div class="row">
-                    <div class="col-5 col-sm-4">
-                        <p class="fw-semi-bold mb-1">Address</p>
-                    </div>
-                    <div class="col"><input class="form-control" type="text" name="address" id="address" value="{% if property.address %}{{property.address}}{% endif %}"/></div>
-                </div>
-                <br />
-                <div class="row">
-                    <div class="col-5 col-sm-4">
-                        <p class="fw-semi-bold mb-1">City</p>
-                    </div>
-                    <div class="col"><input class="form-control" type="text" name="city" id="city" value="{% if property.city %}{{property.city}}{% endif %}"/></div>
-                </div>
-                <br />
-                <div class="row">
-                    <div class="col-5 col-sm-4">
-                        <p class="fw-semi-bold mb-1">State</p>
-                    </div>
-                    <div class="col">
-                        <select class="form-select" name="state" aria-label="Select State">
-                            {% if property.state %}
-                            <option value="{{ property.state }}">{{ property.state }}</option>
-                            {% else %} 
-                            <option value=""></option>
-                            {% endif %}
-                            {% for state in states %}
-                            <option value="{{ state }}">{{ state }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <br />
-                <div class="row">
-                    <div class="col-5 col-sm-4">
-                        <p class="fw-semi-bold mb-1">Zip Code</p>
-                    </div>
-                    <div class="col"><input class="form-control" type="number" min="0" name="zip_code" id="zip_code" value="{{property.zip_code}}"/></div>
-                </div>
+            <div class="col-auto">
+                <a href="{{ url_for('property.home', uuid=property.uuid) }}" class="btn btn-falcon-default btn-sm">
+                    <span class="fas fa-arrow-left me-1"></span>Back to Property
+                </a>
             </div>
         </div>
     </div>
-        <div class="card-footer border-top text-end">
-            <button type="button" class="btn btn-danger btn-sm" onclick="confirmDelete()">
-                <span class="fas fa-trash fs--2 me-1"></span>Delete Property
-            </button>
-            <button type="submit" class="btn btn-falcon-default btn-sm ms-2">
-                <span class="fas fa-check fs--2 me-1"></span>Save Changes
-            </button>
+</div>
+
+<form method="POST" id="propertyEditForm">
+    {{ form.hidden_tag() }}
+
+    <!-- Basic Information Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">
+                        <span class="fas fa-info-circle text-primary me-2"></span>Basic Information
+                    </h5>
+                    <p class="text-600 fs--1 mb-0">Property name, type, and general details</p>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control") }}
+                        {% if form.name.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.name.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.type.label(class="form-label") }}
+                        {{ form.type(class="form-select") }}
+                        {% if form.type.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.type.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.property_status.label(class="form-label") }}
+                        {{ form.property_status(class="form-select") }}
+                        {% if form.property_status.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.property_status.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.maintenance_priority.label(class="form-label") }}
+                        {{ form.maintenance_priority(class="form-select") }}
+                        {% if form.maintenance_priority.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.maintenance_priority.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.portfolio_id.label(class="form-label") }}
+                        {{ form.portfolio_id(class="form-select") }}
+                        {% if form.portfolio_id.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.portfolio_id.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="3") }}
+                        {% if form.description.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.description.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Location & Address Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">
+                        <span class="fas fa-map-marker-alt text-danger me-2"></span>Location & Address
+                    </h5>
+                    <p class="text-600 fs--1 mb-0">Property address and location details</p>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="mb-3">
+                        {{ form.address.label(class="form-label") }}
+                        {{ form.address(class="form-control") }}
+                        {% if form.address.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.address.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                        {{ form.city.label(class="form-label") }}
+                        {{ form.city(class="form-control") }}
+                        {% if form.city.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.city.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                        {{ form.state.label(class="form-label") }}
+                        {{ form.state(class="form-select") }}
+                        {% if form.state.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.state.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                        {{ form.zip_code.label(class="form-label") }}
+                        {{ form.zip_code(class="form-control") }}
+                        {% if form.zip_code.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.zip_code.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.neighborhood.label(class="form-label") }}
+                        {{ form.neighborhood(class="form-control") }}
+                        {% if form.neighborhood.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.neighborhood.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <div class="mb-3">
+                        {{ form.latitude.label(class="form-label") }}
+                        {{ form.latitude(class="form-control", step="any") }}
+                        {% if form.latitude.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.latitude.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <div class="mb-3">
+                        {{ form.longitude.label(class="form-label") }}
+                        {{ form.longitude(class="form-control", step="any") }}
+                        {% if form.longitude.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.longitude.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Property Details Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">
+                        <span class="fas fa-building text-info me-2"></span>Property Details
+                    </h5>
+                    <p class="text-600 fs--1 mb-0">Building specifications and physical characteristics</p>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.year_built.label(class="form-label") }}
+                        {{ form.year_built(class="form-control") }}
+                        {% if form.year_built.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.year_built.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.stories.label(class="form-label") }}
+                        {{ form.stories(class="form-control") }}
+                        {% if form.stories.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.stories.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.lot_size.label(class="form-label") }}
+                        {{ form.lot_size(class="form-control") }}
+                        {% if form.lot_size.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.lot_size.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.building_sqft.label(class="form-label") }}
+                        {{ form.building_sqft(class="form-control") }}
+                        {% if form.building_sqft.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.building_sqft.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.parking_spaces.label(class="form-label") }}
+                        {{ form.parking_spaces(class="form-control") }}
+                        {% if form.parking_spaces.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.parking_spaces.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Information Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">
+                        <span class="fas fa-dollar-sign text-success me-2"></span>Financial Information
+                    </h5>
+                    <p class="text-600 fs--1 mb-0">Purchase details, valuation, and ongoing costs</p>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.purchase_price.label(class="form-label") }}
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ form.purchase_price(class="form-control", step="0.01") }}
+                        </div>
+                        {% if form.purchase_price.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.purchase_price.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.purchase_date.label(class="form-label") }}
+                        {{ form.purchase_date(class="form-control") }}
+                        {% if form.purchase_date.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.purchase_date.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.current_market_value.label(class="form-label") }}
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ form.current_market_value(class="form-control", step="0.01") }}
+                        </div>
+                        {% if form.current_market_value.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.current_market_value.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.acquisition_method.label(class="form-label") }}
+                        {{ form.acquisition_method(class="form-select") }}
+                        {% if form.acquisition_method.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.acquisition_method.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                        {{ form.annual_property_tax.label(class="form-label") }}
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ form.annual_property_tax(class="form-control", step="0.01") }}
+                        </div>
+                        {% if form.annual_property_tax.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.annual_property_tax.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                        {{ form.annual_insurance.label(class="form-label") }}
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ form.annual_insurance(class="form-control", step="0.01") }}
+                        </div>
+                        {% if form.annual_insurance.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.annual_insurance.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                        {{ form.monthly_hoa_fees.label(class="form-label") }}
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ form.monthly_hoa_fees(class="form-control", step="0.01") }}
+                        </div>
+                        {% if form.monthly_hoa_fees.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.monthly_hoa_fees.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management & Operations Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">
+                        <span class="fas fa-users-cog text-warning me-2"></span>Management & Operations
+                    </h5>
+                    <p class="text-600 fs--1 mb-0">Property management and operational details</p>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        {{ form.property_manager.label(class="form-label") }}
+                        {{ form.property_manager(class="form-control") }}
+                        {% if form.property_manager.errors %}
+                            <div class="text-danger fs--1 mt-1">
+                                {% for error in form.property_manager.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Section -->
+    <div class="card">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col">
+                    <div class="d-flex align-items-center">
+                        <span class="fas fa-exclamation-triangle text-warning me-2"></span>
+                        <small class="text-600">Changes will be saved to the property record</small>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('property.home', uuid=property.uuid) }}" class="btn btn-falcon-default btn-sm">
+                            <span class="fas fa-times me-1"></span>Cancel
+                        </a>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="confirmDelete()">
+                            <span class="fas fa-trash me-1"></span>Delete Property
+                        </button>
+                        <button type="submit" class="btn btn-falcon-primary btn-sm">
+                            <span class="fas fa-save me-1"></span>Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </form>
 
 <!-- Delete confirmation form -->
-<form id="deleteForm" action="{{ url_for('property.delete', id=property.id) }}" method="POST" style="display: none;">
+<form id="deleteForm" action="{{ url_for('property.delete', uuid=property.uuid) }}" method="POST" style="display: none;">
 </form>
 
 <script>
@@ -127,6 +463,36 @@ function confirmDelete() {
         document.getElementById('deleteForm').submit();
     }
 }
+
+// Add form validation and enhancement
+document.addEventListener('DOMContentLoaded', function() {
+    // Add currency formatting for financial fields
+    const currencyFields = ['purchase_price', 'current_market_value', 'annual_property_tax', 'annual_insurance', 'monthly_hoa_fees'];
+    currencyFields.forEach(function(fieldName) {
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        if (field) {
+            field.addEventListener('blur', function() {
+                if (this.value) {
+                    const value = parseFloat(this.value);
+                    if (!isNaN(value)) {
+                        this.value = value.toFixed(2);
+                    }
+                }
+            });
+        }
+    });
+
+    // Add number formatting for integer fields
+    const integerFields = ['year_built', 'lot_size', 'building_sqft', 'stories', 'parking_spaces'];
+    integerFields.forEach(function(fieldName) {
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        if (field) {
+            field.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+        }
+    });
+});
 </script>
 
-{% endblock %} 
+{% endblock %}

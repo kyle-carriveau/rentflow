@@ -6,202 +6,392 @@
 
 <!-- PROPERTY HEADER SECTION -->
 
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('profile.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('property.properties') }}">Properties</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ property.name }}</li>
+  </ol>
+</nav>
+
 <div class="card mb-3">
     <div class="card-header">
-      <div class="row">
+      <div class="row align-items-center">
         <div class="col">
-          <h5 class="mb-2">{{ property.name }}</h5>
+          <div class="d-flex align-items-center">
+            <span class="fas fa-building fa-2x text-primary me-3"></span>
+            <div>
+              <h4 class="mb-0">{{ property.name }}</h4>
+              <p class="text-600 mb-0">{% if property.address %}{{ property.address }}, {{ property.city }}, {{ property.state }}{% else %}Property Management{% endif %}</p>
+            </div>
+          </div>
         </div>
-        <div class="col-auto d-none d-sm-block">
-          <h6 class="text-uppercase text-600">Property<span class="fas fa-building ms-2"></span></h6>
+        <div class="col-auto">
+          <div class="btn-group">
+            <a href="{{ url_for('property.edit', uuid=property.uuid) }}" class="btn btn-falcon-default btn-sm">
+              <span class="fas fa-edit fs--2 me-1"></span>Edit Property
+            </a>
+            <a href="{{ url_for('unit.create_for_property', uuid=property.uuid) }}" class="btn btn-falcon-primary btn-sm">
+              <span class="fas fa-plus fs--2 me-1"></span>Add Unit
+            </a>
+            <a href="{{ url_for('lease.create_general', property=property.uuid) }}" class="btn btn-falcon-success btn-sm">
+              <span class="fas fa-file-contract fs--2 me-1"></span>New Lease
+            </a>
+          </div>
         </div>
       </div>
     </div>
     <div class="card-body border-top">
-      <div class="d-flex"><span class="fas fa-building text-primary me-2" data-fa-transform="down-5"></span>
-        <div class="flex-1">
-          <p class="fs--1 mb-0 text-600">Property owned since</p>
-          <p class="fs--1 mb-0 text-600">Jan 12, 2022</p>
-        </div>
-      </div>
-    </div>
-</div>
-
-<!-- PROPERTY DETAILS SECTION -->
-
-<div class="card mb-3">
-<div class="card-header">
-    <div class="row align-items-center">
-    <div class="col">
-        <h5 class="mb-0">Property Details</h5>
-    </div>
-    <div class="col-auto"><a class="btn btn-falcon-default btn-sm" href="{{ url_for('property.edit', id=property.id) }}"><span class="fas fa-pencil-alt fs--2 me-1"></span>Update details</a></div>
-    </div>
-</div>
-<div class="card-body bg-light border-top">
-    <div class="row">
-    <div class="col-lg col-xxl-5">
-        <div class="row">
-        <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-1">Total Units</p>
-        </div>
-        <div class="col">{{ units|length }}</div>
-        </div>
-        <div class="row">
-        <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-1">Total Bedrooms</p>
-        </div>
-        <div class="col">{{ units | sum(attribute='bedrooms') or 0 }}</div>
-        </div>
-        <div class="row">
-          <div class="col-5 col-sm-4">
-              <p class="fw-semi-bold mb-1">Total Bathrooms</p>
-          </div>
-          <div class="col">{{ units | sum(attribute='bathrooms') or 0 }}</div>
-          </div>
-        <div class="row">
-          <div class="col-5 col-sm-4">
-              <p class="fw-semi-bold mb-1">Total Square Footage</p>
-          </div>
-          <div class="col">{% set total_sqft = units | sum(attribute='sqft') %}{% if total_sqft %}{{ "{:,}".format(total_sqft) }} sqft{% else %}Not available{% endif %}</div>
-          </div>
-    </div>
-    <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
-        <div class="row">
-        <div class="col-5 col-sm-4">
-            <p class="fw-semi-bold mb-1">Address</p>
-        </div>
-        <div class="col">
-            <p class="mb-1">{% if property.address %}{{ property.address }}{% endif %}<br />{% if property.city %}{{ property.city }},{% endif %} {% if property.state %}{{ property.state }}{% endif %} {% if property.zip_code %}{{ property.zip_code }}{% endif %}</p>
-        </div>
-        </div>
-        <div class="row">
-          <div class="col-5 col-sm-4">
-              <p class="fw-semi-bold mb-1">Property Type</p>
-          </div>
-          <div class="col">{% if property.type %}{{ property.type }}{% else %}Not specified{% endif %}
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-5 col-sm-4">
-              <p class="fw-semi-bold mb-1">Occupancy Rate</p>
-          </div>
-          <div class="col">
-            {% if units|length > 0 %}
-              {% set occupied_units = [] %}
-              {% for unit in units %}
-                {% if unit.get_lease_status() == 'Occupied' %}
-                  {% set _ = occupied_units.append(unit) %}
-                {% endif %}
-              {% endfor %}
-              {{ ((occupied_units|length / units|length) * 100)|round|int }}% ({{ occupied_units|length }}/{{ units|length }})
-            {% else %}
-              No units
-            {% endif %}
-          </div>
-        </div>
-    </div>
-    </div>
-</div>
-<div class="card-footer border-top text-end"></div>
-</div>
-
-<!-- END PROPERTY DETAILS SECTION -->
-
-<!-- PROPERTY FINANCE DETAILS SECTION -->
-{% if units %}
-<div class="card mb-3">
-  <div class="card-header">
-      <div class="row align-items-center">
-      <div class="col">
-          <h5 class="mb-0">Property Finances</h5>
-      </div>
-      <div class="col-auto"><a class="btn btn-falcon-default btn-sm" href="{{ url_for('property.finances', id=property.id) }}"><span class="fas fa-pencil-alt fs--2 me-1"></span>More details</a></div>
-      </div>
-  </div>
-  <div class="card-body bg-light border-top">
       <div class="row">
-        <div class="col-lg col-xxl-5">
-            <div class="row">
-              <div class="col-7 col-sm-6">
-                  <p class="fw-semi-bold mb-1">Monthly Rent</p>
-              </div>
-              <div class="col">${{ units | sum(attribute='rent')}}</div>
+        <div class="col-md-6">
+          <div class="d-flex mb-2"><span class="fas fa-calendar text-primary me-2" data-fa-transform="down-5"></span>
+            <div class="flex-1">
+              <p class="fs--1 mb-0 text-600">Property owned since</p>
+              <p class="fs--1 mb-0 fw-semi-bold">{% if property.purchase_date %}{{ property.purchase_date.strftime('%b %d, %Y') }}{% else %}Not specified{% endif %}</p>
             </div>
-            <div class="row">
-              <div class="col-7 col-sm-6">
-                  <p class="fw-semi-bold mb-1">Quarterly Revenue</p>
-              </div>
-              <div class="col">${{ units | sum(attribute='rent') * 4}}</div>
-            </div>
-            <div class="row">
-              <div class="col-7 col-sm-6">
-                  <p class="fw-semi-bold mb-1">Yearly Revenue</p>
-              </div>
-              <div class="col">${{ units | sum(attribute='rent') * 12}}
-              </div>
-            </div>
+          </div>
         </div>
-        <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
-            <div class="row">
-            <div class="col-6 col-sm-5">
-                <p class="fw-semi-bold mb-1">Rent Unit/AVG</p>
+        <div class="col-md-6">
+          <div class="d-flex mb-2"><span class="fas fa-home text-success me-2" data-fa-transform="down-5"></span>
+            <div class="flex-1">
+              <p class="fs--1 mb-0 text-600">Property type</p>
+              <p class="fs--1 mb-0 fw-semi-bold">{% if property.type %}{{ property.type }}{% else %}Not specified{% endif %}</p>
             </div>
-            <div class="col">
-                <p class="mb-1">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="d-flex mb-2"><span class="fas fa-tools text-info me-2" data-fa-transform="down-5"></span>
+            <div class="flex-1">
+              <p class="fs--1 mb-0 text-600">Status</p>
+              <p class="fs--1 mb-0 fw-semi-bold">
+                {% if property.property_status == 'Active' %}
+                  <span class="badge badge-soft-success">{{ property.property_status }}</span>
+                {% elif property.property_status == 'Under Renovation' %}
+                  <span class="badge badge-soft-warning">{{ property.property_status }}</span>
+                {% else %}
+                  <span class="badge badge-soft-secondary">{{ property.property_status or 'Active' }}</span>
+                {% endif %}
+              </p>
             </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="d-flex mb-2"><span class="fas fa-exclamation-triangle text-warning me-2" data-fa-transform="down-5"></span>
+            <div class="flex-1">
+              <p class="fs--1 mb-0 text-600">Maintenance priority</p>
+              <p class="fs--1 mb-0 fw-semi-bold">
+                {% if property.maintenance_priority == 'High' %}
+                  <span class="badge badge-soft-danger">{{ property.maintenance_priority }}</span>
+                {% elif property.maintenance_priority == 'Medium' %}
+                  <span class="badge badge-soft-warning">{{ property.maintenance_priority }}</span>
+                {% else %}
+                  <span class="badge badge-soft-success">{{ property.maintenance_priority or 'Low' }}</span>
+                {% endif %}
+              </p>
             </div>
-            <div class="row">
-            <div class="col-6 col-sm-5">
-                <p class="fw-semi-bold mb-1"></p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="d-flex mb-2"><span class="fas fa-map-marker-alt text-danger me-2" data-fa-transform="down-5"></span>
+            <div class="flex-1">
+              <p class="fs--1 mb-0 text-600">Full Address</p>
+              <p class="fs--1 mb-0 fw-semi-bold">
+                {% if property.address %}
+                  {{ property.address }}{% if property.city %}, {{ property.city }}{% endif %}{% if property.state %}, {{ property.state }}{% endif %}{% if property.zip_code %} {{ property.zip_code }}{% endif %}
+                {% else %}
+                  Not specified
+                {% endif %}
+              </p>
             </div>
-            <div class="col"></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="d-flex mb-2"><span class="fas fa-calendar text-warning me-2" data-fa-transform="down-5"></span>
+            <div class="flex-1">
+              <p class="fs--1 mb-0 text-600">Year Built</p>
+              <p class="fs--1 mb-0 fw-semi-bold">
+                {% if property.year_built %}
+                  {{ property.year_built }} ({{ 2024 - property.year_built }} years old)
+                {% else %}
+                  Not specified
+                {% endif %}
+              </p>
             </div>
-            <div class="row">
-            <div class="col-6 col-sm-5">
-                <p class="fw-semi-bold mb-0"></p>
-            </div>
-            <div class="col">
-                <p class="fw-semi-bold mb-0"></p>
-            </div>
-            </div>
-            <div class="row">
-            <div class="col-7 col-sm-6">
-                <p class="fw-semi-bold mb-1"></p>
-            </div>
-            <div class="col"></div>
-            </div>
+          </div>
         </div>
       </div>
-  </div>
-  <div class="card-footer border-top text-end"></div>
+    </div>
 </div>
-<!-- END PROPERTY FINANCE DETAILS SECTION -->
-{% endif %}
-<!-- UNITS TABLE FOR PROPERTY -->
 
-<div class="card mb-3" id="unitsTable" data-list='{"valueNames":["name","email","phone","address","joined"],"page":10,"pagination":true}'>
+<!-- CONSOLIDATED PROPERTY OVERVIEW DASHBOARD -->
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h5 class="mb-0">
+                    <span class="fas fa-tachometer-alt text-primary me-2"></span>Property Overview
+                </h5>
+                <p class="text-600 fs--1 mb-0">Key metrics and performance indicators</p>
+            </div>
+            <div class="col-auto">
+                <span class="badge badge-soft-primary">Live Data</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Set occupancy variables once for efficiency -->
+        {% set occupied_units = [] %}
+        {% for unit in units %}
+          {% if unit.get_lease_status() == 'Occupied' %}
+            {% set _ = occupied_units.append(unit) %}
+          {% endif %}
+        {% endfor %}
+        {% set occupancy_rate = ((occupied_units|length / units|length) * 100)|round|int if units|length > 0 else 0 %}
+        {% set monthly_revenue = units | sum(attribute='rent') or 0 %}
+
+        <div class="row g-3">
+            <!-- Primary Metrics Row -->
+            <div class="col-lg-8">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center p-3 border border-200 rounded h-100">
+                            <div class="avatar avatar-xl me-3">
+                                <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
+                                    <span class="fas fa-home"></span>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="mb-0 text-primary">{{ units|length }}</h4>
+                                <div class="fs--1 text-600 mb-1">Total Units</div>
+                                <small class="text-500">{{ occupied_units|length }} occupied • {{ units|length - occupied_units|length }} available</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center p-3 border border-200 rounded h-100">
+                            <div class="avatar avatar-xl me-3">
+                                <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
+                                    <span class="fas fa-dollar-sign"></span>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="mb-0 text-success">${{ "{:,.0f}".format(monthly_revenue) }}</h4>
+                                <div class="fs--1 text-600 mb-1">Monthly Revenue</div>
+                                <small class="text-500">${{ "{:,.0f}".format(monthly_revenue * 12) }} annually</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Property Specifications Row -->
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center p-3 border border-200 rounded h-100">
+                            <div class="avatar avatar-lg me-3">
+                                <div class="avatar-name rounded-circle bg-info text-white d-flex align-items-center justify-content-center">
+                                    <span class="fas fa-bed"></span>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="mb-0 text-info">{{ units | sum(attribute='bedrooms') or 0 }}</h4>
+                                <div class="fs--1 text-600">Total Bedrooms</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center p-3 border border-200 rounded h-100">
+                            <div class="avatar avatar-lg me-3">
+                                <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
+                                    <span class="fas fa-bath"></span>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="mb-0 text-warning">{{ units | sum(attribute='bathrooms') or 0 }}</h4>
+                                <div class="fs--1 text-600">Total Bathrooms</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center p-3 border border-200 rounded h-100">
+                            <div class="avatar avatar-lg me-3">
+                                <div class="avatar-name rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center">
+                                    <span class="fas fa-expand-arrows-alt"></span>
+                                </div>
+                            </div>
+                            <div>
+                                {% set total_sqft = units | sum(attribute='sqft') %}
+                                <h4 class="mb-0 text-secondary">{% if total_sqft %}{{ "{:,}".format(total_sqft) }}{% else %}0{% endif %}</h4>
+                                <div class="fs--1 text-600">Total Sq Ft</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Occupancy & Value Summary -->
+            <div class="col-lg-4">
+                <div class="text-center p-3 border border-200 rounded h-100 d-flex flex-column justify-content-center">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-2 mx-auto"
+                         style="width: 80px; height: 80px; background: {% if occupancy_rate >= 90 %}var(--bs-success){% elif occupancy_rate >= 70 %}var(--bs-warning){% else %}var(--bs-danger){% endif %};">
+                        <span class="{% if occupancy_rate >= 90 %}text-white{% elif occupancy_rate >= 70 %}text-dark{% else %}text-white{% endif %} fs-2 fw-bold">{{ occupancy_rate }}%</span>
+                    </div>
+                    <h6 class="mb-1">Occupancy Rate</h6>
+                    <div class="fw-semi-bold text-800">
+                        {% if property.current_market_value %}
+                            Property Value: ${{ "{:,.0f}".format(property.current_market_value) }}
+                        {% elif property.purchase_price %}
+                            Purchase Price: ${{ "{:,.0f}".format(property.purchase_price) }}
+                        {% else %}
+                            Value: Not specified
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ENHANCED PROPERTY FINANCE SECTION -->
+{% if units %}
+<!-- STREAMLINED FINANCIAL SUMMARY -->
+<div class="row g-3 mb-3">
+    <!-- Calculate financial variables once for efficiency -->
+    {% set annual_revenue = (monthly_revenue or 0) * 12 %}
+    {% set annual_expenses = (property.annual_property_tax or 0) + (property.annual_insurance or 0) + ((property.monthly_hoa_fees or 0) * 12) %}
+    {% set net_cash_flow = annual_revenue - annual_expenses %}
+
+    <!-- Cash Flow & Performance Card -->
+    <div class="col-lg-6">
+        <div class="card border-start border-success border-4 h-100">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-chart-line text-success me-2"></span>Cash Flow Analysis
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h4 class="{% if net_cash_flow >= 0 %}text-success{% else %}text-danger{% endif %} mb-1">
+                                ${{ "{:,.0f}".format(net_cash_flow) }}
+                            </h4>
+                            <div class="fs--1 text-600 mb-1">Annual Cash Flow</div>
+                            <small class="{% if net_cash_flow >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {% if net_cash_flow >= 0 %}Profitable{% else %}Loss{% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h4 class="text-primary mb-1">${{ "{:,.0f}".format(annual_expenses) }}</h4>
+                            <div class="fs--1 text-600 mb-1">Annual Expenses</div>
+                            <small class="text-500">Tax + Insurance + HOA</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Investment Performance Card -->
+    <div class="col-lg-6">
+        <div class="card border-start border-info border-4 h-100">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-percentage text-info me-2"></span>Investment Returns
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="text-center p-3 bg-light rounded">
+                            {% if property.purchase_price and property.purchase_price > 0 %}
+                                {% set roi = (net_cash_flow / property.purchase_price * 100) %}
+                                <h4 class="text-info mb-1">{{ "{:.1f}%".format(roi) }}</h4>
+                                <div class="fs--1 text-600 mb-1">Annual ROI</div>
+                                <small class="text-500">Return on Investment</small>
+                            {% else %}
+                                <h4 class="text-400 mb-1">N/A</h4>
+                                <div class="fs--1 text-600 mb-1">Annual ROI</div>
+                                <small class="text-500">Purchase price needed</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-3 bg-light rounded">
+                            {% if property.current_market_value and property.current_market_value > 0 %}
+                                {% set cap_rate = (net_cash_flow / property.current_market_value * 100) %}
+                                <h4 class="text-warning mb-1">{{ "{:.1f}%".format(cap_rate) }}</h4>
+                                <div class="fs--1 text-600 mb-1">Cap Rate</div>
+                                <small class="text-500">Market Value Based</small>
+                            {% else %}
+                                <h4 class="text-400 mb-1">N/A</h4>
+                                <div class="fs--1 text-600 mb-1">Cap Rate</div>
+                                <small class="text-500">Market value needed</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- END ENHANCED PROPERTY FINANCE SECTION -->
+{% endif %}
+
+<!-- UNITS MANAGEMENT SECTION -->
+<!-- Enhanced Units Table -->
+<div class="card mb-3" id="unitsTable" data-list='{"valueNames":["name","bedrooms","bathrooms","sqft","rent","status"],"page":10,"pagination":true}'>
   <div class="card-header">
     <div class="row flex-between-center">
       <div class="col-4 col-sm-auto d-flex align-items-center pe-0">
-        <h5 class="mb-0">Units</h5>
+        <h5 class="mb-0">
+          <span class="fas fa-home text-primary me-2"></span>Unit Details
+        </h5>
+        <div class="ms-3">
+          <div class="search-box" data-list="search-box" style="width: 200px;">
+            <form class="position-relative" data-bs-toggle="search" data-bs-display="static">
+              <input class="form-control search-input" type="search" placeholder="Search units..." aria-label="Search" />
+              <span class="fas fa-search search-box-icon"></span>
+            </form>
+          </div>
+        </div>
       </div>
       <div class="col-8 col-sm-auto text-end ps-2">
         <div class="d-none" id="table-units-actions">
           <div class="d-flex">
             <select class="form-select form-select-sm" aria-label="Bulk actions">
               <option selected="">Bulk actions</option>
-              <option value="Refund">Refund</option>
-              <option value="Delete">Delete</option>
-              <option value="Archive">Archive</option>
+              <option value="update-rent">Update Rent</option>
+              <option value="set-available">Mark Available</option>
+              <option value="maintenance">Schedule Maintenance</option>
             </select>
             <button class="btn btn-falcon-default btn-sm ms-2" type="button">Apply</button>
           </div>
         </div>
         <div id="table-units-replace-element">
-          <a class="btn btn-falcon-default btn-sm" href="{{ url_for('unit.create', id=property.id) }}"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New</span></a>
-          <button class="btn btn-falcon-default btn-sm mx-2" type="button"><span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Filter</span></button>
-          <button class="btn btn-falcon-default btn-sm" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export</span></button>
+          <div class="btn-group">
+            <button class="btn btn-falcon-default btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <span class="fas fa-filter fs--2 me-1"></span>Filter
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="filterUnits('all')">All Units</a></li>
+              <li><a class="dropdown-item" href="#" onclick="filterUnits('occupied')">Occupied Only</a></li>
+              <li><a class="dropdown-item" href="#" onclick="filterUnits('available')">Available Only</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#" onclick="filterUnits('studio')">Studio</a></li>
+              <li><a class="dropdown-item" href="#" onclick="filterUnits('1br')">1 Bedroom</a></li>
+              <li><a class="dropdown-item" href="#" onclick="filterUnits('2br')">2+ Bedrooms</a></li>
+            </ul>
+          </div>
+          <a class="btn btn-falcon-primary btn-sm ms-2" href="{{ url_for('unit.create_for_property', uuid=property.uuid) }}">
+            <span class="fas fa-plus fs--2 me-1"></span>Add Unit
+          </a>
+          <button class="btn btn-falcon-default btn-sm ms-1" type="button" onclick="exportUnits()">
+            <span class="fas fa-download fs--2 me-1"></span>Export
+          </button>
         </div>
       </div>
     </div>
@@ -211,45 +401,128 @@
       <table class="table table-hover table-striped overflow-hidden">
         <thead>
           <tr>
-            <th scope="col">Actions</th>
-            <th scope="col">Name</th>
-            <th scope="col">Bedrooms</th>
-            <th scope="col">Bathrooms</th>
-            <th scope="col">Sq Ft</th>
-            <th scope="col">Rent</th>
-            <th scope="col">Status</th>
+            <th scope="col" class="sort border-top" data-sort="name">Unit</th>
+            <th scope="col" class="sort border-top" data-sort="bedrooms">Layout</th>
+            <th scope="col" class="sort border-top" data-sort="sqft">Size</th>
+            <th scope="col" class="sort border-top" data-sort="rent">Rent</th>
+            <th scope="col" class="sort border-top" data-sort="status">Status</th>
+            <th scope="col" class="border-top">Actions</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody class="list">
           {% for unit in units %}
-          <tr class="align-middle">
-            <td class="text-nowrap">
-              <div>
-                  <a class="btn p-0" type="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit" href="{{ url_for('unit.show', id=unit.id) }}"><span class="text-500 fas fa-edit"></span></a>
-                  <a class="btn p-0 ms-2" type="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Details" href="{{ url_for('unit.show', id=unit.id) }}"><span class="text-500 fas fa-caret-up"></span></a>
-              </div>
-            </td>
-            <td class="text-nowrap">
+          {% set unit_status = unit.get_lease_status() %}
+          {% set current_lease = unit.get_current_lease() %}
+          <tr class="align-middle unit-row" data-unit-id="{{ unit.uuid }}" data-status="{{ unit_status.lower() }}">
+            <td class="name">
               <div class="d-flex align-items-center">
-                <div class="ms-2">{{ unit.name }}</div>
+                <div class="avatar avatar-m me-2">
+                  <div class="avatar-name rounded-circle bg-soft-primary text-primary d-flex align-items-center justify-content-center">
+                    <span class="fas fa-home"></span>
+                  </div>
+                </div>
+                <div>
+                  <a href="{{ url_for('unit.show', uuid=unit.uuid) }}" class="fw-semi-bold text-decoration-none">
+                    {{ unit.name }}
+                  </a>
+                  {% if unit.description %}
+                    <div class="fs--2 text-600">{{ unit.description[:30] }}{% if unit.description|length > 30 %}...{% endif %}</div>
+                  {% endif %}
+                </div>
               </div>
             </td>
-            <td class="text-nowrap">{{ unit.bedrooms }}</td>
-            <td class="text-nowrap">{{ unit.bathrooms }}</td>
-            <td class="text-nowrap">{{ unit.sqft }}</td>
-            <td class="text-nowrap">$ {{ unit.rent }}</td>
-            <td>
-              {% set unit_status = unit.get_lease_status() %}
-              {% if unit_status == 'Occupied' %}
-                <span class="badge badge rounded-pill d-block p-2 badge-soft-success">Occupied<span class="ms-1 fas fa-user" data-fa-transform="shrink-2"></span></span>
-              {% elif unit_status == 'Reserved' %}
-                <span class="badge badge rounded-pill d-block p-2 badge-soft-info">Reserved<span class="ms-1 fas fa-calendar" data-fa-transform="shrink-2"></span></span>
+            <td class="bedrooms">
+              <div class="d-flex align-items-center">
+                <span class="fas fa-bed text-primary me-2" data-fa-transform="shrink-2"></span>
+                <span class="me-3">{{ unit.bedrooms or 0 }}</span>
+                <span class="fas fa-bath text-info me-2" data-fa-transform="shrink-2"></span>
+                <span>{{ unit.bathrooms or 0 }}</span>
+              </div>
+            </td>
+            <td class="sqft">
+              {% if unit.sqft %}
+                <span class="fw-semi-bold">{{ "{:,}".format(unit.sqft) }}</span>
+                <div class="fs--2 text-600">ft²</div>
               {% else %}
-                <span class="badge badge rounded-pill d-block p-2 badge-soft-warning">Available<span class="ms-1 fas fa-home" data-fa-transform="shrink-2"></span></span>
+                <span class="text-400">N/A</span>
               {% endif %}
             </td>
+            <td class="rent">
+              {% if unit.rent %}
+                <div class="fw-semi-bold text-success">${{ "{:,.0f}".format(unit.rent) }}</div>
+                {% if unit.sqft and unit.sqft > 0 %}
+                  <div class="fs--2 text-600">${{ "{:.2f}".format(unit.rent / unit.sqft) }}/ft²</div>
+                {% endif %}
+              {% else %}
+                <span class="text-400">Not set</span>
+              {% endif %}
+            </td>
+            <td class="status">
+              {% if unit_status == 'Occupied' %}
+                <div class="d-flex align-items-center">
+                  <span class="badge badge-soft-success me-2">
+                    <span class="fas fa-user me-1" data-fa-transform="shrink-2"></span>Occupied
+                  </span>
+                  {% if current_lease %}
+                    <div class="ms-2">
+                      <small class="text-600 d-block">{{ current_lease.tenant.first_name }} {{ current_lease.tenant.last_name }}</small>
+                      <small class="text-500">Until {{ current_lease.end.strftime('%m/%d/%Y') }}</small>
+                    </div>
+                  {% endif %}
+                </div>
+              {% elif unit_status == 'Reserved' %}
+                <span class="badge badge-soft-info">
+                  <span class="fas fa-calendar me-1" data-fa-transform="shrink-2"></span>Reserved
+                </span>
+              {% else %}
+                <div class="d-flex align-items-center">
+                  <span class="badge badge-soft-warning me-2">
+                    <span class="fas fa-door-open me-1" data-fa-transform="shrink-2"></span>Available
+                  </span>
+                  <div class="ms-2">
+                    <button class="btn btn-sm btn-outline-success" type="button" data-bs-toggle="modal" data-bs-target="#createLeaseModal" data-unit-id="{{ unit.uuid }}" data-unit-name="{{ unit.name }}">
+                      <span class="fas fa-plus fs--2 me-1"></span>Lease
+                    </button>
+                  </div>
+                </div>
+              {% endif %}
+            </td>
+            <td class="text-nowrap">
+              <div class="dropdown text-sans-serif">
+                <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  <span class="fas fa-ellipsis-h fs--1"></span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end border py-0">
+                  <div class="py-2">
+                    <a class="dropdown-item" href="{{ url_for('unit.show', uuid=unit.uuid) }}">
+                      <span class="fas fa-eye me-1"></span>View Details
+                    </a>
+                    <a class="dropdown-item" href="{{ url_for('unit.edit', uuid=unit.uuid) }}">
+                      <span class="fas fa-edit me-1"></span>Edit Unit
+                    </a>
+                    {% if unit_status == 'Available' %}
+                      <a class="dropdown-item" href="{{ url_for('lease.create_general', unit=unit.uuid) }}">
+                        <span class="fas fa-file-contract me-1"></span>Create Lease
+                      </a>
+                    {% endif %}
+                    {% if unit_status == 'Occupied' and current_lease %}
+                      <a class="dropdown-item" href="{{ url_for('lease.show', uuid=current_lease.uuid) }}">
+                        <span class="fas fa-file-alt me-1"></span>View Lease
+                      </a>
+                    {% endif %}
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item text-warning" href="#">
+                      <span class="fas fa-tools me-1"></span>Schedule Maintenance
+                    </a>
+                    <a class="dropdown-item text-danger" href="#" onclick="deleteUnit('{{ unit.uuid }}', '{{ unit.name }}')">
+                      <span class="fas fa-trash me-1"></span>Delete Unit
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </td>
           </tr>
-          {% endfor %} 
+          {% endfor %}
         </tbody>
       </table>
     </div>
@@ -261,30 +534,205 @@
   </div>
 </div>
 
+<!-- LEASE OVERVIEW AND ALERTS SECTION -->
+
+<!-- Lease Overview Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6 col-xl-3">
+    <div class="card border-start border-success border-4 h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="avatar avatar-xl me-3">
+            <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
+              <span class="fas fa-file-contract"></span>
+            </div>
+          </div>
+          <div>
+            <h5 class="text-success mb-0">{{ leases | selectattr('Lease.is_active') | list | length }}</h5>
+            <div class="fs--1 text-600">Active Leases</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6 col-xl-3">
+    <div class="card border-start border-warning border-4 h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="avatar avatar-xl me-3">
+            <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
+              <span class="fas fa-calendar-alt"></span>
+            </div>
+          </div>
+          <div>
+            {% set expiring_soon = leases | selectattr('Lease.days_until_expiration') | selectattr('Lease.days_until_expiration', 'lt', 90) | selectattr('Lease.days_until_expiration', 'gt', 0) | list %}
+            <h5 class="text-warning mb-0">{{ expiring_soon | length }}</h5>
+            <div class="fs--1 text-600">Expiring Soon (90 days)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6 col-xl-3">
+    <div class="card border-start border-info border-4 h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="avatar avatar-xl me-3">
+            <div class="avatar-name rounded-circle bg-info text-white d-flex align-items-center justify-content-center">
+              <span class="fas fa-clock"></span>
+            </div>
+          </div>
+          <div>
+            {% set upcoming_leases = leases | selectattr('Lease.start', 'gt', today) | list %}
+            <h5 class="text-info mb-0">{{ upcoming_leases | length }}</h5>
+            <div class="fs--1 text-600">Upcoming Leases</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6 col-xl-3">
+    <div class="card border-start border-primary border-4 h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="avatar avatar-xl me-3">
+            <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
+              <span class="fas fa-dollar-sign"></span>
+            </div>
+          </div>
+          <div>
+            <h5 class="text-primary mb-0">${{ "{:,.0f}".format(leases | sum(attribute='Lease.rent') or 0) }}</h5>
+            <div class="fs--1 text-600">Total Monthly Rent</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lease Expiration Alerts -->
+{% set expiring_leases = leases | selectattr('Lease.days_until_expiration') | selectattr('Lease.days_until_expiration', 'lt', 90) | selectattr('Lease.days_until_expiration', 'gt', 0) | list %}
+{% if expiring_leases %}
+<div class="card mb-3">
+  <div class="card-header bg-warning-subtle">
+    <div class="row align-items-center">
+      <div class="col">
+        <h6 class="mb-0 text-warning">
+          <span class="fas fa-exclamation-triangle me-2"></span>Lease Expiration Alerts
+        </h6>
+      </div>
+      <div class="col-auto">
+        <span class="badge bg-warning text-dark">{{ expiring_leases | length }} expiring soon</span>
+      </div>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Tenant</th>
+            <th>Unit</th>
+            <th>End Date</th>
+            <th>Days Until Expiry</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lease in expiring_leases[:5] %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="avatar avatar-xs me-2">
+                  <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
+                    <span>{{ lease.Tenant.first_name[0] }}{{ lease.Tenant.last_name[0] }}</span>
+                  </div>
+                </div>
+                <div>
+                  <a href="{{ url_for('tenant.home', uuid=lease.Tenant.uuid) }}" class="fw-semi-bold text-decoration-none">
+                    {{ lease.Tenant.first_name }} {{ lease.Tenant.last_name }}
+                  </a>
+                </div>
+              </div>
+            </td>
+            <td>
+              <a href="{{ url_for('unit.show', uuid=lease.Unit.uuid) }}" class="text-decoration-none">
+                {{ lease.Unit.name }}
+              </a>
+            </td>
+            <td>
+              <span class="fw-semi-bold">{{ lease.Lease.end.strftime('%m/%d/%Y') }}</span>
+            </td>
+            <td>
+              {% set days_left = lease.Lease.days_until_expiration %}
+              <div class="d-flex align-items-center">
+                <span class="badge {% if days_left <= 30 %}badge-soft-danger{% elif days_left <= 60 %}badge-soft-warning{% else %}badge-soft-info{% endif %} me-2">
+                  {{ days_left }} days
+                </span>
+                <div class="progress" style="width: 60px; height: 4px;">
+                  <div class="progress-bar {% if days_left <= 30 %}bg-danger{% elif days_left <= 60 %}bg-warning{% else %}bg-info{% endif %}"
+                       style="width: {{ (90 - days_left) / 90 * 100 }}%"></div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="btn-group" role="group" aria-label="Lease actions">
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Renew Lease">
+                  <span class="fas fa-redo me-1"></span>Renew
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Contact Tenant">
+                  <span class="fas fa-envelope me-1"></span>Contact
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <!-- LEASES TABLE FOR PROPERTY -->
 
-<div class="card mb-3" id="leasesTable" data-list='{"valueNames":["name","email","phone","address","joined"],"page":10,"pagination":true}'>
+<div class="card mb-3" id="leasesTable" data-list='{"valueNames":["tenant","unit","rent","start","end","status"],"page":10,"pagination":true}'>
   <div class="card-header">
     <div class="row flex-between-center">
       <div class="col-4 col-sm-auto d-flex align-items-center pe-0">
-        <h5 class="mb-0">Leases</h5>
-      </div>
-      <div class="col-8 col-sm-auto text-end ps-2">
-        <div class="d-none" id="table-leases-actions">
-          <div class="d-flex">
-            <select class="form-select form-select-sm" aria-label="Bulk actions">
-              <option selected="">Bulk actions</option>
-              <option value="Refund">Refund</option>
-              <option value="Delete">Delete</option>
-              <option value="Archive">Archive</option>
-            </select>
-            <button class="btn btn-falcon-default btn-sm ms-2" type="button">Apply</button>
+        <h5 class="mb-0">
+          <span class="fas fa-file-contract me-2"></span>Property Leases
+        </h5>
+        <div class="ms-3">
+          <div class="search-box" data-list="search-box" style="width: 200px;">
+            <form class="position-relative" data-bs-toggle="search" data-bs-display="static">
+              <input class="form-control search-input" type="search" placeholder="Search leases..." aria-label="Search" />
+              <span class="fas fa-search search-box-icon"></span>
+            </form>
           </div>
         </div>
-        <div id="table-leases-replace-element">
-          <a class="btn btn-falcon-default btn-sm" href="{{ url_for('lease.create', id=property.id) }}"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New</span></a>
-          <button class="btn btn-falcon-default btn-sm mx-2" type="button"><span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Filter</span></button>
-          <button class="btn btn-falcon-default btn-sm" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export</span></button>
+      </div>
+      <div class="col-8 col-sm-auto text-end ps-2">
+        <div class="btn-group" role="group">
+          <button class="btn btn-falcon-default btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <span class="fas fa-filter me-1"></span>Filter
+          </button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="filterLeases('all')">All Leases</a></li>
+            <li><a class="dropdown-item" href="#" onclick="filterLeases('active')">Active Only</a></li>
+            <li><a class="dropdown-item" href="#" onclick="filterLeases('upcoming')">Upcoming</a></li>
+            <li><a class="dropdown-item" href="#" onclick="filterLeases('expiring')">Expiring Soon</a></li>
+            <li><a class="dropdown-item" href="#" onclick="filterLeases('expired')">Expired</a></li>
+          </ul>
+          <a class="btn btn-falcon-primary btn-sm ms-2" href="{{ url_for('lease.create_general', property=property.uuid) }}">
+            <span class="fas fa-plus me-1"></span>New Lease
+          </a>
+          <button class="btn btn-falcon-default btn-sm ms-1" type="button" onclick="exportLeases()">
+            <span class="fas fa-download me-1"></span>Export
+          </button>
         </div>
       </div>
     </div>
@@ -294,43 +742,144 @@
       <table class="table table-hover table-striped overflow-hidden">
         <thead>
           <tr>
-            <th scope="col">Actions</th>
-            <th scope="col">Tenant</th>
-            <th scope="col">Unit</th>
-            <th scope="col">Rent</th>
-            <th scope="col">Start Date</th>
-            <th scope="col">End Date</th>
-            <th scope="col" class="text-center">Status</th>
+            <th scope="col" class="sort border-top" data-sort="tenant">Tenant</th>
+            <th scope="col" class="sort border-top" data-sort="unit">Unit</th>
+            <th scope="col" class="sort border-top" data-sort="rent">Rent</th>
+            <th scope="col" class="sort border-top" data-sort="timeline">Timeline</th>
+            <th scope="col" class="sort border-top" data-sort="status">Status</th>
+            <th scope="col" class="border-top">Actions</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody class="list">
           {% for lease in leases %}
-          <tr class="align-middle">
-            <td class="text-nowrap">
-              <div>
-                  <a class="btn p-0" type="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit" href=""><span class="text-500 fas fa-edit"></span></a>
-                  <a class="btn p-0 ms-2" type="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Details" href="{{ url_for('lease.show', id=lease.Lease.id) }}"><span class="text-500 fas fa-caret-up"></span></a>
-              </div>
-            </td>
-            <td class="text-nowrap">
+          {% set lease_status = 'active' if lease.Lease.end > today > lease.Lease.start else 'upcoming' if lease.Lease.start > today else 'expired' %}
+          {% set days_until_expiry = (lease.Lease.end - today).days if lease.Lease.end > today else 0 %}
+          <tr class="align-middle lease-row" data-lease-id="{{ lease.Lease.uuid }}" data-status="{{ lease_status }}">
+            <td class="tenant">
               <div class="d-flex align-items-center">
-                <div class="ms-2">{{ lease.Tenant.first_name }} {{ lease.Tenant.last_name }}</div>
+                <div class="avatar avatar-m me-2">
+                  <div class="avatar-name rounded-circle {% if lease_status == 'active' %}bg-soft-success text-success{% elif lease_status == 'upcoming' %}bg-soft-info text-info{% else %}bg-soft-danger text-danger{% endif %} d-flex align-items-center justify-content-center">
+                    <span>{{ lease.Tenant.first_name[0] }}{{ lease.Tenant.last_name[0] }}</span>
+                  </div>
+                </div>
+                <div>
+                  <a href="{{ url_for('tenant.home', uuid=lease.Tenant.uuid) }}" class="fw-semi-bold text-decoration-none">
+                    {{ lease.Tenant.first_name }} {{ lease.Tenant.last_name }}
+                  </a>
+                  {% if lease.Tenant.email %}
+                    <div class="fs--2 text-600">{{ lease.Tenant.email }}</div>
+                  {% endif %}
+                </div>
               </div>
             </td>
-            <td class="text-nowrap">{{ lease.Unit.name }}</td>
-            <td class="text-nowrap">${{ lease.Lease.rent }}</td>
-            <td class="text-nowrap">{{ lease.Lease.start.strftime('%m-%d-%Y') }}</td>
-            <td class="text-nowrap">{{ lease.Lease.end.strftime('%m-%d-%Y') }}</td>
-            {% set days = (lease.Lease.end - lease.Lease.start).days %}
-            {% if lease.Lease.end > today > lease.Lease.start %}
-            <td><span class="badge badge rounded-pill d-block p-2 badge-soft-success">Active<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span></td>
-            {% elif lease.Lease.end > today < lease.Lease.start %}
-            <td><span class="badge badge rounded-pill d-block p-2 badge-soft-warning">Upcoming<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span></td>
-            {% else %}
-            <td><span class="badge badge rounded-pill d-block p-2 badge-soft-danger">Expired<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span></td>
-            {% endif %} 
+            <td class="unit">
+              <div class="d-flex align-items-center">
+                <span class="fas fa-home text-primary me-2"></span>
+                <div>
+                  <a href="{{ url_for('unit.show', uuid=lease.Unit.uuid) }}" class="fw-semi-bold text-decoration-none">
+                    {{ lease.Unit.name }}
+                  </a>
+                  {% if lease.Unit.bedrooms or lease.Unit.bathrooms %}
+                    <div class="fs--2 text-600">{{ lease.Unit.bedrooms or 0 }}bd / {{ lease.Unit.bathrooms or 0 }}ba</div>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td class="rent">
+              <div class="fw-semi-bold text-success">${{ "{:,.0f}".format(lease.Lease.rent) if lease.Lease.rent else "N/A" }}</div>
+              {% if lease.Unit.sqft and lease.Lease.rent and lease.Unit.sqft > 0 %}
+                <div class="fs--2 text-600">${{ "{:.2f}".format(lease.Lease.rent / lease.Unit.sqft) }}/ft²</div>
+              {% endif %}
+            </td>
+            <td class="timeline">
+              <div class="mb-1">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="fs--2 text-600">{{ lease.Lease.start.strftime('%m/%d/%Y') }}</span>
+                  <span class="fs--2 text-600">{{ lease.Lease.end.strftime('%m/%d/%Y') }}</span>
+                </div>
+                <div class="progress mt-1" style="height: 4px;">
+                  {% if lease_status == 'active' %}
+                    {% set total_days = (lease.Lease.end - lease.Lease.start).days %}
+                    {% set elapsed_days = (today - lease.Lease.start).days %}
+                    {% set progress_percent = (elapsed_days / total_days * 100) if total_days > 0 else 0 %}
+                    <div class="progress-bar bg-success" style="width: {{ progress_percent }}%"></div>
+                  {% elif lease_status == 'upcoming' %}
+                    <div class="progress-bar bg-info" style="width: 0%"></div>
+                  {% else %}
+                    <div class="progress-bar bg-danger" style="width: 100%"></div>
+                  {% endif %}
+                </div>
+              </div>
+              {% if lease_status == 'active' and days_until_expiry <= 90 %}
+                <div class="fs--2 text-warning">
+                  <span class="fas fa-exclamation-triangle me-1"></span>Expires in {{ days_until_expiry }} days
+                </div>
+              {% elif lease_status == 'upcoming' %}
+                {% set days_until_start = (lease.Lease.start - today).days %}
+                <div class="fs--2 text-info">
+                  <span class="fas fa-clock me-1"></span>Starts in {{ days_until_start }} days
+                </div>
+              {% endif %}
+            </td>
+            <td class="status">
+              {% if lease_status == 'active' %}
+                <div class="d-flex align-items-center">
+                  <span class="badge badge-soft-success me-2">
+                    <span class="fas fa-check-circle me-1"></span>Active
+                  </span>
+                  {% if days_until_expiry <= 90 and days_until_expiry > 0 %}
+                    <span class="badge badge-soft-warning">
+                      <span class="fas fa-calendar-alt me-1"></span>{{ days_until_expiry }}d
+                    </span>
+                  {% endif %}
+                </div>
+              {% elif lease_status == 'upcoming' %}
+                <span class="badge badge-soft-info">
+                  <span class="fas fa-clock me-1"></span>Upcoming
+                </span>
+              {% else %}
+                <span class="badge badge-soft-danger">
+                  <span class="fas fa-times-circle me-1"></span>Expired
+                </span>
+              {% endif %}
+            </td>
+            <td class="text-nowrap">
+              <div class="dropdown text-sans-serif">
+                <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  <span class="fas fa-ellipsis-h fs--1"></span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end border py-0">
+                  <div class="py-2">
+                    <a class="dropdown-item" href="{{ url_for('lease.show', uuid=lease.Lease.uuid) }}">
+                      <span class="fas fa-eye me-1"></span>View Details
+                    </a>
+                    <a class="dropdown-item" href="{{ url_for('lease.edit', uuid=lease.Lease.uuid) }}">
+                      <span class="fas fa-edit me-1"></span>Edit Lease
+                    </a>
+                    {% if lease_status == 'active' %}
+                      <a class="dropdown-item" href="#">
+                        <span class="fas fa-redo me-1"></span>Renew Lease
+                      </a>
+                      <a class="dropdown-item" href="{{ url_for('financial.record_payment') }}?lease={{ lease.Lease.uuid }}">
+                        <span class="fas fa-dollar-sign me-1"></span>Record Payment
+                      </a>
+                    {% endif %}
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="mailto:{{ lease.Tenant.email }}">
+                      <span class="fas fa-envelope me-1"></span>Email Tenant
+                    </a>
+                    <a class="dropdown-item text-warning" href="#">
+                      <span class="fas fa-file-pdf me-1"></span>Generate Report
+                    </a>
+                    <a class="dropdown-item text-danger" href="#" onclick="terminateLease('{{ lease.Lease.uuid }}', '{{ lease.Tenant.first_name }} {{ lease.Tenant.last_name }}')">
+                      <span class="fas fa-ban me-1"></span>Terminate Lease
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </td>
           </tr>
-          {% endfor %} 
+          {% endfor %}
         </tbody>
       </table>
     </div>
@@ -340,6 +889,59 @@
     <ul class="pagination mb-0"></ul>
     <button class="btn btn-sm btn-falcon-default ms-1" type="button" title="Next" data-list-pagination="next"><span class="fas fa-chevron-right"></span></button>
   </div>
+</div>
+
+<!-- Property Images Gallery -->
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h5 class="mb-0">
+                    <span class="fas fa-images text-primary me-2"></span>Property Gallery
+                </h5>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-falcon-default btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#uploadImagesModal">
+                    <span class="fas fa-plus fs--2 me-1"></span>Add Photos
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="propertyCarousel" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner rounded">
+                <!-- Placeholder if no images -->
+                <div class="carousel-item active">
+                    <div class="bg-light d-flex align-items-center justify-content-center position-relative" style="height: 300px;">
+                        <div class="text-center d-flex flex-column align-items-center justify-content-center">
+                            <div class="mb-3 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <span class="fas fa-camera fa-3x text-300"></span>
+                            </div>
+                            <h6 class="text-600 mb-2">No images uploaded yet</h6>
+                            <p class="text-500 mb-0">Add property photos to showcase this listing</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Dynamic images would be loaded here -->
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#propertyCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#propertyCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+        </div>
+        <div class="row g-2 mt-2">
+            <div class="col-12">
+                <small class="text-600">
+                    <span class="fas fa-info-circle me-1"></span>
+                    Click "Add Photos" to upload property images. Supported formats: JPG, PNG, GIF (max 5MB each)
+                </small>
+            </div>
+        </div>
+    </div>
 </div>
 
 {% else %} 
@@ -354,6 +956,284 @@
 {% endif %} 
 
 
+
+<!-- JavaScript Functions for Enhanced Interactions -->
+<script>
+// Unit filtering functionality
+function filterUnits(filterType) {
+    const rows = document.querySelectorAll('.unit-row');
+
+    rows.forEach(row => {
+        const status = row.dataset.status;
+        const unit = row.querySelector('.name a').textContent;
+        let show = false;
+
+        switch(filterType) {
+            case 'all':
+                show = true;
+                break;
+            case 'occupied':
+                show = status === 'occupied';
+                break;
+            case 'available':
+                show = status === 'available';
+                break;
+            case 'studio':
+                show = row.querySelector('.bedrooms').textContent.includes('0');
+                break;
+            case '1br':
+                show = row.querySelector('.bedrooms').textContent.includes('1');
+                break;
+            case '2br':
+                show = parseInt(row.querySelector('.bedrooms').textContent) >= 2;
+                break;
+            default:
+                show = true;
+        }
+
+        row.style.display = show ? '' : 'none';
+    });
+
+    // Update filter button text
+    const filterButton = document.querySelector('#table-units-replace-element .dropdown-toggle');
+    const filterText = filterType.charAt(0).toUpperCase() + filterType.slice(1);
+    filterButton.innerHTML = `<span class="fas fa-filter fs--2 me-1"></span>${filterText === 'All' ? 'Filter' : filterText}`;
+}
+
+// Lease filtering functionality
+function filterLeases(filterType) {
+    const rows = document.querySelectorAll('.lease-row');
+
+    rows.forEach(row => {
+        const status = row.dataset.status;
+        let show = false;
+
+        switch(filterType) {
+            case 'all':
+                show = true;
+                break;
+            case 'active':
+                show = status === 'active';
+                break;
+            case 'upcoming':
+                show = status === 'upcoming';
+                break;
+            case 'expiring':
+                show = status === 'active' && row.querySelector('.text-warning');
+                break;
+            case 'expired':
+                show = status === 'expired';
+                break;
+            default:
+                show = true;
+        }
+
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+// Export functionality for units
+function exportUnits() {
+    const rows = document.querySelectorAll('.unit-row:not([style*="display: none"])');
+    let csv = 'Unit,Layout,Size (sqft),Rent,Status,Tenant\n';
+
+    rows.forEach(row => {
+        const unit = row.querySelector('.name a').textContent;
+        const bedrooms = row.querySelector('.bedrooms').textContent.replace(/\s+/g, ' ').trim();
+        const sqft = row.querySelector('.sqft').textContent.replace(/[^\d]/g, '') || 'N/A';
+        const rent = row.querySelector('.rent').textContent.replace(/[^\d.]/g, '') || 'N/A';
+        const status = row.querySelector('.status .badge').textContent.trim();
+        const tenant = row.querySelector('.status small') ? row.querySelector('.status small').textContent.trim() : '';
+
+        csv += `"${unit}","${bedrooms}","${sqft}","${rent}","${status}","${tenant}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'property_units.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// Export functionality for leases
+function exportLeases() {
+    const rows = document.querySelectorAll('.lease-row:not([style*="display: none"])');
+    let csv = 'Tenant,Unit,Rent,Start Date,End Date,Status\n';
+
+    rows.forEach(row => {
+        const tenant = row.querySelector('.tenant a').textContent;
+        const unit = row.querySelector('.unit a').textContent;
+        const rent = row.querySelector('.rent').textContent.replace(/[^\d.]/g, '') || 'N/A';
+        const timeline = row.querySelectorAll('.timeline .fs--2');
+        const startDate = timeline[0] ? timeline[0].textContent : '';
+        const endDate = timeline[1] ? timeline[1].textContent : '';
+        const status = row.querySelector('.status .badge').textContent.trim();
+
+        csv += `"${tenant}","${unit}","${rent}","${startDate}","${endDate}","${status}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'property_leases.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// Unit deletion functionality
+function deleteUnit(unitId, unitName) {
+    if (confirm(`Are you sure you want to delete unit "${unitName}"?\n\nThis action cannot be undone.`)) {
+        // Create a form and submit for deletion
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/unit/${unitId}/delete`;
+
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Lease termination functionality
+function terminateLease(leaseId, tenantName) {
+    if (confirm(`Are you sure you want to terminate the lease for "${tenantName}"?\n\nThis action will end the lease immediately and cannot be undone.`)) {
+        // Create a form and submit for termination
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/lease/${leaseId}/terminate`;
+
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Initialize tooltips for better UX
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Add smooth transitions to progress bars
+    document.querySelectorAll('.progress-bar').forEach(bar => {
+        bar.style.transition = 'width 0.6s ease';
+    });
+
+    // Add hover effects to cards
+    document.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.transition = 'all 0.2s ease-in-out';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+
+    // Real-time search functionality for units
+    const unitSearch = document.createElement('input');
+    unitSearch.type = 'text';
+    unitSearch.className = 'form-control form-control-sm';
+    unitSearch.placeholder = 'Search units...';
+    unitSearch.style.width = '200px';
+    unitSearch.style.display = 'inline-block';
+
+    const unitsHeader = document.querySelector('#unitsTable .card-header .col-auto');
+    if (unitsHeader) {
+        const searchContainer = document.createElement('div');
+        searchContainer.className = 'me-2 d-inline-block';
+        searchContainer.appendChild(unitSearch);
+        unitsHeader.insertBefore(searchContainer, unitsHeader.firstChild);
+
+        unitSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            document.querySelectorAll('.unit-row').forEach(row => {
+                const unitName = row.querySelector('.name a').textContent.toLowerCase();
+                const tenantName = row.querySelector('.status small') ?
+                    row.querySelector('.status small').textContent.toLowerCase() : '';
+
+                const matches = unitName.includes(searchTerm) || tenantName.includes(searchTerm);
+                row.style.display = matches ? '' : 'none';
+            });
+        });
+    }
+
+    // Real-time search functionality for leases
+    const leaseSearch = document.createElement('input');
+    leaseSearch.type = 'text';
+    leaseSearch.className = 'form-control form-control-sm';
+    leaseSearch.placeholder = 'Search leases...';
+    leaseSearch.style.width = '200px';
+    leaseSearch.style.display = 'inline-block';
+
+    const leasesHeader = document.querySelector('#leasesTable .card-header .col-auto');
+    if (leasesHeader) {
+        const searchContainer = document.createElement('div');
+        searchContainer.className = 'me-2 d-inline-block';
+        searchContainer.appendChild(leaseSearch);
+        leasesHeader.insertBefore(searchContainer, leasesHeader.firstChild);
+
+        leaseSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            document.querySelectorAll('.lease-row').forEach(row => {
+                const tenantName = row.querySelector('.tenant a').textContent.toLowerCase();
+                const unitName = row.querySelector('.unit a').textContent.toLowerCase();
+
+                const matches = tenantName.includes(searchTerm) || unitName.includes(searchTerm);
+                row.style.display = matches ? '' : 'none';
+            });
+        });
+    }
+});
+</script>
+
+<!-- Minimal styling to preserve functionality -->
+<style>
+/* Essential interactive elements only */
+.btn-reveal {
+    opacity: 0;
+    transition: all 0.2s ease-in-out;
+}
+
+tr:hover .btn-reveal {
+    opacity: 1;
+}
+
+/* Timeline progress bars */
+.timeline .progress {
+    height: 6px;
+    border-radius: 3px;
+}
+
+/* Mobile responsive tables */
+@media (max-width: 768px) {
+    .btn-group {
+        flex-direction: column;
+    }
+
+    .btn-group .btn {
+        margin-bottom: 0.25rem;
+        border-radius: 0.375rem !important;
+    }
+}
+</style>
 
 {% endblock %}
 

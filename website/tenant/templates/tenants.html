@@ -1,7 +1,120 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
 
-{% block content %} 
+{% block content %}
 
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('profile.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Tenants</li>
+  </ol>
+</nav>
+
+<!-- Tenant Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-1.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-users"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">{{ tenants|length if tenants else 0 }}</h4>
+                        <p class="text-800 fs--1 mb-0">Total Tenants</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-2.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-user-check"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        {% set active_tenants = [] %}
+                        {% if tenants %}
+                            {% for tenant in tenants %}
+                                {% if tenant.get_lease_status() == 'Active' %}
+                                    {% set _ = active_tenants.append(tenant) %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                        <h4 class="mb-0">{{ active_tenants|length }}</h4>
+                        <p class="text-800 fs--1 mb-0">Active Tenants</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-3.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-user-plus"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        {% set prospects = [] %}
+                        {% if tenants %}
+                            {% for tenant in tenants %}
+                                {% if tenant.get_lease_status() == 'Prospect' %}
+                                    {% set _ = prospects.append(tenant) %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                        <h4 class="mb-0">{{ prospects|length }}</h4>
+                        <p class="text-800 fs--1 mb-0">Prospects</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-4.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-info text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-dollar-sign"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        {% set total_revenue = 0 %}
+                        {% if tenants %}
+                            {% for tenant in tenants %}
+                                {% set current_lease = tenant.get_current_lease() %}
+                                {% if current_lease and current_lease.rent %}
+                                    {% set total_revenue = total_revenue + current_lease.rent %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                        <h4 class="mb-0">{{ total_revenue|currency }}</h4>
+                        <p class="text-800 fs--1 mb-0">Monthly Revenue</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tenants Table -->
 <div class="card mb-3" id="tenantsTable" data-list='{"valueNames":["name","email","phone","address","joined"],"page":10,"pagination":true}'>
     <div class="card-header">
         <div class="row flex-between-center">
@@ -70,7 +183,7 @@
                   </div>
                   <div class="ms-2">
                     <div class="fw-semi-bold">
-                      <a href="{{ url_for('tenant.home', id=tenant.id) }}" class="text-decoration-none">
+                      <a href="{{ url_for('tenant.home', uuid=tenant.uuid) }}" class="text-decoration-none">
                         {{ tenant.first_name }} {{ tenant.last_name }}
                       </a>
                     </div>
@@ -109,7 +222,7 @@
                       </div>
                     </div>
                     <div>
-                      <a href="{{ url_for('property.home', id=current_property.id) }}" class="text-decoration-none fw-semi-bold">
+                      <a href="{{ url_for('property.home', uuid=current_property.uuid) }}" class="text-decoration-none fw-semi-bold">
                         {{ current_property.name }}
                       </a>
                       {% set current_unit = tenant.get_current_unit() %}
@@ -125,7 +238,7 @@
               <td class="text-nowrap">
                 {% set current_lease = tenant.get_current_lease() %}
                 {% if current_lease and current_lease.rent %}
-                  <span class="text-success fw-bold">${{ "{:,}".format(current_lease.rent) }}</span>
+                  <span class="text-success fw-bold">{{ current_lease.rent|currency }}</span>
                   <div class="fs--2 text-600">per month</div>
                 {% else %}
                   <span class="text-400">-</span>
@@ -158,15 +271,20 @@
                   </button>
                   <div class="dropdown-menu dropdown-menu-end border py-0">
                     <div class="py-2">
-                      <a class="dropdown-item" href="{{ url_for('tenant.home', id=tenant.id) }}">
+                      <a class="dropdown-item" href="{{ url_for('tenant.home', uuid=tenant.uuid) }}">
                         <span class="fas fa-eye me-1"></span>View Details
                       </a>
-                      <a class="dropdown-item" href="{{ url_for('tenant.edit', id=tenant.id) }}">
+                      <a class="dropdown-item" href="{{ url_for('tenant.edit', uuid=tenant.uuid) }}">
                         <span class="fas fa-edit me-1"></span>Edit Tenant
                       </a>
                       <div class="dropdown-divider"></div>
                       <a class="dropdown-item text-danger" href="#"
-                         onclick="deleteTenant({{ tenant.id }}, '{{ tenant.first_name }} {{ tenant.last_name }}')">
+                         data-confirm="Are you sure you want to delete tenant &quot;{{ tenant.first_name }} {{ tenant.last_name }}&quot;? This action cannot be undone."
+                         data-confirm-title="Delete Tenant"
+                         data-confirm-text="Delete Tenant"
+                         data-confirm-type="danger"
+                         data-confirm-icon="fas fa-user-times"
+                         data-confirm-action="deleteTenant('{{ tenant.uuid }}', '{{ tenant.first_name }} {{ tenant.last_name }}')">>
                         <span class="fas fa-trash me-1"></span>Delete Tenant
                       </a>
                     </div>
@@ -188,15 +306,14 @@
 
 <!-- Delete form -->
 <form id="deleteForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 </form>
 
 <script>
-function deleteTenant(tenantId, tenantName) {
-    if (confirm(`Are you sure you want to delete tenant "${tenantName}"? This action cannot be undone.`)) {
-        const form = document.getElementById('deleteForm');
-        form.action = `/tenant/${tenantId}/delete`;
-        form.submit();
-    }
+function deleteTenant(tenantUuid, tenantName) {
+    const form = document.getElementById('deleteForm');
+    form.action = `/tenant/${tenantUuid}/delete`;
+    form.submit();
 }
 
 function filterTenants(filterType) {

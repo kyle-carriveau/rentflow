@@ -389,7 +389,7 @@ class FormAutoSave {
         document.removeEventListener('visibilitychange', this.saveFormData);
     }
 
-    manual save() {
+    manualSave() {
         this.updateSaveIndicator('saving');
         this.saveFormData();
     }
@@ -422,14 +422,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize for specific forms by default
     const defaultForms = [
-        '#createTenantForm',
-        '#editTenantForm', 
-        '#createPropertyForm',
-        '#editPropertyForm',
-        '#createLeaseForm',
-        '#editLeaseForm',
-        '#inviteUserForm',
-        '#editUserForm'
+        // '#createTenantForm',    // Disabled - auto-save removed
+        // '#editTenantForm',      // Disabled - auto-save removed
+        // '#createPropertyForm',  // Disabled - auto-save removed
+        // '#editPropertyForm',    // Disabled - auto-save removed
+        // '#createLeaseForm',     // Disabled - auto-save removed
+        // '#editLeaseForm',       // Disabled - auto-save removed
+        // '#inviteUserForm',      // Disabled - auto-save removed
+        // '#editUserForm'         // Disabled - auto-save removed
     ];
 
     defaultForms.forEach(selector => {

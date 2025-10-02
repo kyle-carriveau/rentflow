@@ -10,7 +10,7 @@
                 <h5 class="mb-1">{{ unit.name }}</h5>
                 {% if unit.property_ref %}
                     <p class="text-600 mb-0">Property: 
-                        <a href="{{ url_for('property.home', id=unit.property_id) }}" class="text-decoration-none">
+                        <a href="{{ url_for('property.home', uuid=unit.property_ref.uuid) }}" class="text-decoration-none">
                             {{ unit.property_ref.name }}
                         </a>
                     </p>
@@ -18,11 +18,11 @@
             </div>
             <div class="col-auto">
                 <div class="btn-group">
-                    <a class="btn btn-falcon-default btn-sm" href="{{ url_for('unit.edit', id=unit.id) }}">
+                    <a class="btn btn-falcon-default btn-sm" href="{{ url_for('unit.edit', uuid=unit.uuid) }}">
                         <span class="fas fa-edit fs--2 me-1"></span>Edit Unit
                     </a>
                     {% if unit.property_id %}
-                        <a class="btn btn-falcon-default btn-sm" href="{{ url_for('property.home', id=unit.property_id) }}">
+                        <a class="btn btn-falcon-default btn-sm" href="{{ url_for('property.home', uuid=unit.property_ref.uuid) }}">
                             <span class="fas fa-arrow-left fs--2 me-1"></span>Back to Property
                         </a>
                     {% endif %}
@@ -58,10 +58,10 @@
                         <p class="fs--1 mb-0 text-600">Monthly Rent</p>
                         {% set current_lease = unit.get_current_lease() %}
                         {% if current_lease and current_lease.rent %}
-                            <p class="fs-1 fw-semi-bold text-success mb-0">${{ "{:,}".format(current_lease.rent) }}</p>
+                            <p class="fs-1 fw-semi-bold text-success mb-0">{{ current_lease.rent|currency }}</p>
                             <p class="fs--2 text-600 mb-0">from active lease</p>
                         {% elif unit.rent %}
-                            <p class="fs-1 fw-semi-bold text-primary mb-0">${{ "{:,}".format(unit.rent) }}</p>
+                            <p class="fs-1 fw-semi-bold text-primary mb-0">{{ unit.rent|currency }}</p>
                             <p class="fs--2 text-600 mb-0">asking rent</p>
                         {% else %}
                             <p class="fs-1 fw-semi-bold text-400 mb-0">Not set</p>
@@ -81,89 +81,428 @@
                 <h5 class="mb-0">Unit Details</h5>
             </div>
             <div class="col-auto">
-                <a class="btn btn-falcon-default btn-sm" href="{{ url_for('unit.edit', id=unit.id) }}">
+                <a class="btn btn-falcon-default btn-sm" href="{{ url_for('unit.edit', uuid=unit.uuid) }}">
                     <span class="fas fa-pencil-alt fs--2 me-1"></span>Update Details
                 </a>
             </div>
         </div>
     </div>
-    <div class="card-body bg-light border-top">
+
+    <!-- Basic Information Tab -->
+    <div class="card-body border-top">
+        <h6 class="mb-3 text-primary"><span class="fas fa-home me-2"></span>Basic Information</h6>
         <div class="row">
-            <div class="col-lg col-xxl-5">
-                <div class="row mb-3">
-                    <div class="col-5 col-sm-4">
-                        <p class="fw-semi-bold mb-1">Bedrooms</p>
-                    </div>
-                    <div class="col">
-                        <p class="mb-1">{{ unit.bedrooms or 0 }}</p>
-                    </div>
+            <div class="col-md-6">
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Bedrooms:</div>
+                    <div class="col">{{ unit.bedrooms or 0 }}</div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-5 col-sm-4">
-                        <p class="fw-semi-bold mb-1">Bathrooms</p>
-                    </div>
-                    <div class="col">
-                        <p class="mb-1">{{ unit.bathrooms or 0 }}</p>
-                    </div>
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Bathrooms:</div>
+                    <div class="col">{{ unit.bathrooms or 0 }}</div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-5 col-sm-4">
-                        <p class="fw-semi-bold mb-1">Square Feet</p>
-                    </div>
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Square Feet:</div>
                     <div class="col">
-                        <p class="mb-1">
-                            {% if unit.sqft %}
-                                {{ "{:,}".format(unit.sqft) }} sq ft
-                            {% else %}
-                                <span class="text-400">Not specified</span>
-                            {% endif %}
-                        </p>
+                        {% if unit.sqft %}{{ unit.sqft|number }} sq ft{% else %}<span class="text-400">Not specified</span>{% endif %}
                     </div>
                 </div>
             </div>
-            <div class="col-lg col-xxl-5 mt-4 mt-lg-0 offset-xxl-1">
-                <div class="row mb-3">
-                    <div class="col-5 col-sm-4">
-                        <p class="fw-semi-bold mb-1">Monthly Rent</p>
-                    </div>
-                    <div class="col">
-                        <p class="mb-1 text-success fw-semi-bold">
-                            {% if unit.rent %}
-                                ${{ "{:,}".format(unit.rent) }}
-                            {% else %}
-                                <span class="text-400">Not set</span>
-                            {% endif %}
-                        </p>
+            <div class="col-md-6">
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Monthly Rent:</div>
+                    <div class="col text-success fw-semi-bold">
+                        {% if unit.rent %}{{ unit.rent|currency }}{% else %}<span class="text-400">Not set</span>{% endif %}
                     </div>
                 </div>
                 {% if unit.description %}
-                <div class="row mb-3">
-                    <div class="col-5 col-sm-4">
-                        <p class="fw-semi-bold mb-1">Description</p>
-                    </div>
-                    <div class="col">
-                        <p class="mb-1">{{ unit.description }}</p>
-                    </div>
-                </div>
-                {% endif %}
-                {% if unit.property_ref and (unit.property_ref.address or unit.property_ref.city or unit.property_ref.state or unit.property_ref.zip_code) %}
-                <div class="row mb-3">
-                    <div class="col-5 col-sm-4">
-                        <p class="fw-semi-bold mb-1">Address</p>
-                    </div>
-                    <div class="col">
-                        <p class="mb-1">
-                            {% if unit.property_ref.address %}{{ unit.property_ref.address }}<br/>{% endif %}
-                            {% if unit.property_ref.city %}{{ unit.property_ref.city }}, {% endif %}
-                            {% if unit.property_ref.state %}{{ unit.property_ref.state }} {% endif %}
-                            {% if unit.property_ref.zip_code %}{{ unit.property_ref.zip_code }}{% endif %}
-                        </p>
-                    </div>
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Description:</div>
+                    <div class="col">{{ unit.description }}</div>
                 </div>
                 {% endif %}
             </div>
         </div>
     </div>
+
+    <!-- HVAC & Climate -->
+    {% if unit.air_conditioning or unit.heating_type or unit.thermostat_type %}
+    <div class="card-body border-top bg-light">
+        <h6 class="mb-3 text-info"><span class="fas fa-snowflake me-2"></span>HVAC & Climate</h6>
+        <div class="row">
+            <div class="col-md-4">
+                {% if unit.air_conditioning %}
+                <div class="mb-2"><span class="fas fa-check-circle text-success me-2"></span>Air Conditioning</div>
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                {% if unit.heating_type %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Heating:</div>
+                    <div class="col">{{ unit.heating_type.replace('_', ' ').title() }}</div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                {% if unit.thermostat_type %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Thermostat:</div>
+                    <div class="col">{{ unit.thermostat_type.replace('_', ' ').title() }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Appliances & Kitchen -->
+    {% if unit.appliances_included or unit.dishwasher or unit.garbage_disposal or unit.microwave or unit.refrigerator or unit.range_oven or unit.washer_dryer %}
+    <div class="card-body border-top">
+        <h6 class="mb-3 text-warning"><span class="fas fa-utensils me-2"></span>Appliances & Kitchen</h6>
+        <div class="row">
+            <div class="col-md-6">
+                {% if unit.dishwasher %}<div class="mb-1"><span class="fas fa-check-circle text-success me-2"></span>Dishwasher</div>{% endif %}
+                {% if unit.garbage_disposal %}<div class="mb-1"><span class="fas fa-check-circle text-success me-2"></span>Garbage Disposal</div>{% endif %}
+                {% if unit.microwave %}<div class="mb-1"><span class="fas fa-check-circle text-success me-2"></span>Microwave</div>{% endif %}
+                {% if unit.refrigerator %}<div class="mb-1"><span class="fas fa-check-circle text-success me-2"></span>Refrigerator</div>{% endif %}
+                {% if unit.range_oven %}<div class="mb-1"><span class="fas fa-check-circle text-success me-2"></span>Range/Oven</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+                {% if unit.washer_dryer %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Washer/Dryer:</div>
+                    <div class="col">{{ unit.washer_dryer.replace('_', ' ').title() }}</div>
+                </div>
+                {% endif %}
+                {% if unit.appliances_included %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Other Appliances:</div>
+                    <div class="col">{{ unit.appliances_included }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Flooring & Interior -->
+    {% if unit.flooring_type or unit.ceiling_height or unit.windows_type or unit.natural_light %}
+    <div class="card-body border-top bg-light">
+        <h6 class="mb-3 text-secondary"><span class="fas fa-paint-brush me-2"></span>Flooring & Interior</h6>
+        <div class="row">
+            <div class="col-md-6">
+                {% if unit.flooring_type %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Flooring:</div>
+                    <div class="col">{{ unit.flooring_type }}</div>
+                </div>
+                {% endif %}
+                {% if unit.ceiling_height %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Ceiling Height:</div>
+                    <div class="col">{{ unit.ceiling_height }} ft</div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                {% if unit.windows_type %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Windows:</div>
+                    <div class="col">{{ unit.windows_type.replace('_', ' ').title() }}</div>
+                </div>
+                {% endif %}
+                {% if unit.natural_light %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Natural Light:</div>
+                    <div class="col">{{ unit.natural_light.title() }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Storage & Space -->
+    {% if unit.closet_space or unit.storage_units or unit.balcony_patio or unit.balcony_sqft %}
+    <div class="card-body border-top">
+        <h6 class="mb-3 text-primary"><span class="fas fa-boxes me-2"></span>Storage & Space</h6>
+        <div class="row">
+            <div class="col-md-6">
+                {% if unit.closet_space %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Closet Space:</div>
+                    <div class="col">{{ unit.closet_space.title() }}</div>
+                </div>
+                {% endif %}
+                {% if unit.storage_units and unit.storage_units > 0 %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Storage Units:</div>
+                    <div class="col">{{ unit.storage_units }}</div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                {% if unit.balcony_patio %}
+                <div class="mb-2"><span class="fas fa-check-circle text-success me-2"></span>Balcony/Patio</div>
+                {% if unit.balcony_sqft %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Balcony Size:</div>
+                    <div class="col">{{ unit.balcony_sqft }} sq ft</div>
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Parking & Access -->
+    {% if unit.parking_type or unit.parking_spaces or unit.garage_type %}
+    <div class="card-body border-top bg-light">
+        <h6 class="mb-3 text-dark"><span class="fas fa-car me-2"></span>Parking & Access</h6>
+        <div class="row">
+            <div class="col-md-4">
+                {% if unit.parking_type %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Parking Type:</div>
+                    <div class="col">{{ unit.parking_type.replace('_', ' ').title() }}</div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                {% if unit.parking_spaces and unit.parking_spaces > 0 %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Spaces:</div>
+                    <div class="col">{{ unit.parking_spaces }}</div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                {% if unit.garage_type %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Garage:</div>
+                    <div class="col">{{ unit.garage_type.replace('_', ' ').title() }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Bathroom Features -->
+    {% if unit.bathroom_features or unit.master_bath or unit.bathtub or unit.shower_type %}
+    <div class="card-body border-top">
+        <h6 class="mb-3 text-info"><span class="fas fa-bath me-2"></span>Bathroom Features</h6>
+        <div class="row">
+            <div class="col-md-6">
+                {% if unit.master_bath %}<div class="mb-1"><span class="fas fa-check-circle text-success me-2"></span>Master Bathroom</div>{% endif %}
+                {% if unit.bathtub %}<div class="mb-1"><span class="fas fa-check-circle text-success me-2"></span>Bathtub</div>{% endif %}
+                {% if unit.shower_type %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Shower Type:</div>
+                    <div class="col">{{ unit.shower_type.replace('_', ' ').title() }}</div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                {% if unit.bathroom_features %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Features:</div>
+                    <div class="col">{{ unit.bathroom_features }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Utilities & Energy -->
+    {% if unit.utilities_included or unit.utility_cost_estimate or unit.energy_efficiency_rating %}
+    <div class="card-body border-top bg-light">
+        <h6 class="mb-3 text-success"><span class="fas fa-bolt me-2"></span>Utilities & Energy</h6>
+        <div class="row">
+            <div class="col-md-6">
+                {% if unit.utilities_included %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Included:</div>
+                    <div class="col">{{ unit.utilities_included }}</div>
+                </div>
+                {% endif %}
+                {% if unit.utility_cost_estimate %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Est. Monthly Cost:</div>
+                    <div class="col">${{ unit.utility_cost_estimate }}</div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                {% if unit.energy_efficiency_rating %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Energy Rating:</div>
+                    <div class="col">{{ unit.energy_efficiency_rating }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pet Policy -->
+    {% if unit.pets_allowed or unit.pet_restrictions or unit.pet_fee_monthly or unit.pet_deposit %}
+    <div class="card-body border-top">
+        <h6 class="mb-3 text-warning"><span class="fas fa-paw me-2"></span>Pet Policy</h6>
+        <div class="row">
+            <div class="col-md-6">
+                {% if unit.pets_allowed %}
+                <div class="mb-2"><span class="fas fa-check-circle text-success me-2"></span>Pets Allowed</div>
+                {% if unit.pet_restrictions %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Restrictions:</div>
+                    <div class="col">{{ unit.pet_restrictions }}</div>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="mb-2"><span class="fas fa-times-circle text-danger me-2"></span>No Pets Allowed</div>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                {% if unit.pet_fee_monthly and unit.pet_fee_monthly > 0 %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Monthly Fee:</div>
+                    <div class="col">${{ unit.pet_fee_monthly }}</div>
+                </div>
+                {% endif %}
+                {% if unit.pet_deposit and unit.pet_deposit > 0 %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Pet Deposit:</div>
+                    <div class="col">${{ unit.pet_deposit }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Security & Technology -->
+    {% if unit.security_features or unit.alarm_system or unit.secure_entry or unit.internet_included or unit.cable_ready or unit.internet_speed or unit.smart_home_features %}
+    <div class="card-body border-top bg-light">
+        <h6 class="mb-3 text-dark"><span class="fas fa-shield-alt me-2"></span>Security & Technology</h6>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-2 fw-semi-bold">Security:</div>
+                {% if unit.alarm_system %}<div class="mb-1"><span class="fas fa-check-circle text-success me-2"></span>Alarm System</div>{% endif %}
+                {% if unit.secure_entry %}<div class="mb-1"><span class="fas fa-check-circle text-success me-2"></span>Secure Entry</div>{% endif %}
+                {% if unit.security_features %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Features:</div>
+                    <div class="col">{{ unit.security_features }}</div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <div class="mb-2 fw-semi-bold">Technology:</div>
+                {% if unit.internet_included %}<div class="mb-1"><span class="fas fa-check-circle text-success me-2"></span>Internet Included</div>{% endif %}
+                {% if unit.cable_ready %}<div class="mb-1"><span class="fas fa-check-circle text-success me-2"></span>Cable Ready</div>{% endif %}
+                {% if unit.internet_speed %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Internet Speed:</div>
+                    <div class="col">{{ unit.internet_speed }}</div>
+                </div>
+                {% endif %}
+                {% if unit.smart_home_features %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Smart Features:</div>
+                    <div class="col">{{ unit.smart_home_features }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Condition & Maintenance -->
+    {% if unit.last_renovated or unit.condition_rating or unit.recent_updates or unit.upcoming_maintenance %}
+    <div class="card-body border-top">
+        <h6 class="mb-3 text-primary"><span class="fas fa-tools me-2"></span>Condition & Maintenance</h6>
+        <div class="row">
+            <div class="col-md-6">
+                {% if unit.last_renovated %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Last Renovated:</div>
+                    <div class="col">{{ unit.last_renovated.strftime('%B %Y') }}</div>
+                </div>
+                {% endif %}
+                {% if unit.condition_rating %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Condition:</div>
+                    <div class="col">
+                        {% for i in range(1, 6) %}
+                            {% if i <= unit.condition_rating %}
+                                <span class="fas fa-star text-warning"></span>
+                            {% else %}
+                                <span class="far fa-star text-300"></span>
+                            {% endif %}
+                        {% endfor %}
+                        ({{ unit.condition_rating }}/5)
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                {% if unit.recent_updates %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Recent Updates:</div>
+                    <div class="col">{{ unit.recent_updates }}</div>
+                </div>
+                {% endif %}
+                {% if unit.upcoming_maintenance %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Upcoming:</div>
+                    <div class="col">{{ unit.upcoming_maintenance }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Accessibility -->
+    {% if unit.ada_compliant or unit.wheelchair_accessible or unit.accessibility_features %}
+    <div class="card-body border-top bg-light">
+        <h6 class="mb-3 text-info"><span class="fas fa-wheelchair me-2"></span>Accessibility</h6>
+        <div class="row">
+            <div class="col-md-6">
+                {% if unit.ada_compliant %}<div class="mb-1"><span class="fas fa-check-circle text-success me-2"></span>ADA Compliant</div>{% endif %}
+                {% if unit.wheelchair_accessible %}<div class="mb-1"><span class="fas fa-check-circle text-success me-2"></span>Wheelchair Accessible</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+                {% if unit.accessibility_features %}
+                <div class="row mb-2">
+                    <div class="col-5 fw-semi-bold">Features:</div>
+                    <div class="col">{{ unit.accessibility_features }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Property Address -->
+    {% if unit.property_ref and (unit.property_ref.address or unit.property_ref.city or unit.property_ref.state or unit.property_ref.zip_code) %}
+    <div class="card-body border-top">
+        <h6 class="mb-3 text-secondary"><span class="fas fa-map-marker-alt me-2"></span>Location</h6>
+        <div class="row">
+            <div class="col">
+                <p class="mb-1">
+                    {% if unit.property_ref.address %}{{ unit.property_ref.address }}<br/>{% endif %}
+                    {% if unit.property_ref.city %}{{ unit.property_ref.city }}, {% endif %}
+                    {% if unit.property_ref.state %}{{ unit.property_ref.state }} {% endif %}
+                    {% if unit.property_ref.zip_code %}{{ unit.property_ref.zip_code }}{% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- CURRENT TENANT SECTION -->
@@ -187,7 +526,7 @@
                     </div>
                     <div>
                         <h5 class="mb-1">
-                            <a href="{{ url_for('tenant.home', id=current_tenant.id) }}" class="text-decoration-none">
+                            <a href="{{ url_for('tenant.home', uuid=current_tenant.uuid) }}" class="text-decoration-none">
                                 {{ current_tenant.first_name }} {{ current_tenant.last_name }}
                             </a>
                         </h5>
@@ -214,7 +553,7 @@
                     </div>
                     <div>
                         <div class="text-600 fs--1">Monthly Rent</div>
-                        <div class="text-success fw-bold h5 mb-0">${{ "{:,}".format(current_lease.rent) }}</div>
+                        <div class="text-success fw-bold h5 mb-0">{{ current_lease.rent|currency }}</div>
                     </div>
                 {% endif %}
             </div>
@@ -238,7 +577,7 @@
                     <div class="col-md-3">
                         <small class="text-600">Actions</small>
                         <div>
-                            <a href="{{ url_for('lease.show', id=current_lease.id) }}" class="btn btn-falcon-default btn-sm">
+                            <a href="{{ url_for('lease.show', uuid=current_lease.uuid) }}" class="btn btn-falcon-default btn-sm">
                                 <span class="fas fa-eye me-1"></span>View Lease
                             </a>
                         </div>
@@ -268,7 +607,7 @@
                     </div>
                     <div>
                         <h5 class="mb-1">
-                            <a href="{{ url_for('tenant.home', id=next_lease.tenant_ref.id) }}" class="text-decoration-none">
+                            <a href="{{ url_for('tenant.home', uuid=next_lease.tenant_ref.uuid) }}" class="text-decoration-none">
                                 {{ next_lease.tenant_ref.first_name }} {{ next_lease.tenant_ref.last_name }}
                             </a>
                         </h5>
@@ -281,7 +620,7 @@
             <div class="col-md-4 text-end">
                 <div>
                     <div class="text-600 fs--1">Monthly Rent</div>
-                    <div class="text-info fw-bold h5 mb-0">${{ "{:,}".format(next_lease.rent) }}</div>
+                    <div class="text-info fw-bold h5 mb-0">{{ next_lease.rent|currency }}</div>
                 </div>
             </div>
         </div>
@@ -305,7 +644,7 @@
         </div>
         <h5 class="text-warning">Available for Lease</h5>
         <p class="text-600 mb-3">This unit is currently available for new tenants.</p>
-        <a href="{{ url_for('lease.create', id=unit.property_id) }}?unit={{ unit.id }}" class="btn btn-falcon-success">
+        <a href="{{ url_for('lease.create_general', property=unit.property_ref.uuid, unit=unit.uuid) }}" class="btn btn-falcon-success">
             <span class="fas fa-plus me-1"></span>Create New Lease
         </a>
     </div>
@@ -324,7 +663,7 @@
             </div>
             <div class="col-auto">
                 {% if unit.property_id %}
-                    <a class="btn btn-falcon-primary btn-sm" href="{{ url_for('lease.create', id=unit.property_id) }}">
+                    <a class="btn btn-falcon-primary btn-sm" href="{{ url_for('lease.create_general', property=unit.property_ref.uuid, unit=unit.uuid) }}">
                         <span class="fas fa-plus fs--2 me-1"></span>New Lease
                     </a>
                 {% endif %}
@@ -350,14 +689,14 @@
                         <tr>
                             <td>
                                 {% if lease.tenant_ref %}
-                                    <a href="{{ url_for('tenant.home', id=lease.tenant_id) }}" class="text-decoration-none">
+                                    <a href="{{ url_for('tenant.home', uuid=lease.tenant_ref.uuid) }}" class="text-decoration-none">
                                         {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}
                                     </a>
                                 {% else %}
                                     <span class="text-400">Tenant not found</span>
                                 {% endif %}
                             </td>
-                            <td class="text-success fw-semi-bold">${{ "{:,}".format(lease.rent) }}</td>
+                            <td class="text-success fw-semi-bold">{{ lease.rent|currency }}</td>
                             <td>{{ lease.start.strftime('%m/%d/%Y') }}</td>
                             <td>{{ lease.end.strftime('%m/%d/%Y') }}</td>
                             <td>
@@ -370,7 +709,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ url_for('lease.show', id=lease.id) }}" class="btn btn-link btn-sm p-0">
+                                <a href="{{ url_for('lease.show', uuid=lease.uuid) }}" class="btn btn-link btn-sm p-0">
                                     <span class="fas fa-eye"></span>
                                 </a>
                             </td>
@@ -387,7 +726,7 @@
                 <h6 class="mb-2">No Leases Found</h6>
                 <p class="text-600 mb-3">This unit doesn't have any lease agreements yet.</p>
                 {% if unit.property_id %}
-                    <a href="{{ url_for('lease.create', id=unit.property_id) }}" class="btn btn-falcon-primary btn-sm">
+                    <a href="{{ url_for('lease.create_general', property=unit.property_ref.uuid, unit=unit.uuid) }}" class="btn btn-falcon-primary btn-sm">
                         <span class="fas fa-plus fs--2 me-1"></span>Create First Lease
                     </a>
                 {% endif %}

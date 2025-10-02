@@ -33,6 +33,7 @@
         </div>
         <div class="card-body bg-light">
           <form class="row g-3" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="col-lg-6">
               <label class="form-label" for="first-name">First Name</label>
               <input class="form-control" id="first-name" name="first_name" type="text" value="{{ current_user.first_name }}" />

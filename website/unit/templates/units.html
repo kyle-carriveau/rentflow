@@ -2,12 +2,19 @@
 
 {% block content %}
 
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('profile.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Units</li>
+  </ol>
+</nav>
+
 <!-- Unit Summary Cards -->
-{% if units %}
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4" style="align-items: stretch;">
     <div class="col-sm-6 col-lg-3">
-        <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url(/static/img/corner-1.png);"></div>
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-1.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -16,7 +23,7 @@
                         </div>
                     </div>
                     <div class="ms-3">
-                        <h4 class="mb-0">{{ units|length }}</h4>
+                        <h4 class="mb-0">{{ units|length if units else 0 }}</h4>
                         <p class="text-800 fs--1 mb-0">Total Units</p>
                     </div>
                 </div>
@@ -25,8 +32,8 @@
     </div>
     
     <div class="col-sm-6 col-lg-3">
-        <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url(/static/img/corner-2.png);"></div>
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-2.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -36,11 +43,13 @@
                     </div>
                     <div class="ms-3">
                         {% set occupied_units = [] %}
-                        {% for unit in units %}
-                            {% if unit.get_lease_status() == 'Occupied' %}
-                                {% set _ = occupied_units.append(unit) %}
-                            {% endif %}
-                        {% endfor %}
+                        {% if units %}
+                            {% for unit in units %}
+                                {% if unit.get_lease_status() == 'Occupied' %}
+                                    {% set _ = occupied_units.append(unit) %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
                         <h4 class="mb-0">{{ occupied_units|length }}</h4>
                         <p class="text-800 fs--1 mb-0">Occupied</p>
                     </div>
@@ -50,8 +59,8 @@
     </div>
     
     <div class="col-sm-6 col-lg-3">
-        <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url(/static/img/corner-3.png);"></div>
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-3.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -61,11 +70,13 @@
                     </div>
                     <div class="ms-3">
                         {% set available_units = [] %}
-                        {% for unit in units %}
-                            {% if unit.get_lease_status() == 'Available' %}
-                                {% set _ = available_units.append(unit) %}
-                            {% endif %}
-                        {% endfor %}
+                        {% if units %}
+                            {% for unit in units %}
+                                {% if unit.get_lease_status() == 'Available' %}
+                                    {% set _ = available_units.append(unit) %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
                         <h4 class="mb-0">{{ available_units|length }}</h4>
                         <p class="text-800 fs--1 mb-0">Available</p>
                     </div>
@@ -75,8 +86,8 @@
     </div>
     
     <div class="col-sm-6 col-lg-3">
-        <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url(/static/img/corner-4.png);"></div>
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-4.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -86,13 +97,15 @@
                     </div>
                     <div class="ms-3">
                         {% set total_rent = 0 %}
-                        {% for unit in units %}
-                            {% set current_lease = unit.get_current_lease() %}
-                            {% if current_lease and current_lease.rent %}
-                                {% set total_rent = total_rent + current_lease.rent %}
-                            {% endif %}
-                        {% endfor %}
-                        <h4 class="mb-0">${{ "{:,}".format(total_rent) }}</h4>
+                        {% if units %}
+                            {% for unit in units %}
+                                {% set current_lease = unit.get_current_lease() %}
+                                {% if current_lease and current_lease.rent %}
+                                    {% set total_rent = total_rent + current_lease.rent %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                        <h4 class="mb-0">{{ total_rent|currency }}</h4>
                         <p class="text-800 fs--1 mb-0">Monthly Revenue</p>
                     </div>
                 </div>
@@ -100,7 +113,6 @@
         </div>
     </div>
 </div>
-{% endif %}
 
 <!-- Units Table -->
 <div class="card mb-3" id="unitsTable" data-list='{"valueNames":["unit","property","specs","rent","status","tenant"],"page":10,"pagination":true}'>
@@ -119,26 +131,10 @@
             </div>
             <div class="col-8 col-sm-auto text-end ps-2">
                 <div id="table-units-replace-element" class="d-flex align-items-center justify-content-end gap-2">
-                    <div class="dropdown">
-                        <button class="btn btn-falcon-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
-                            <span class="d-none d-sm-inline-block ms-1">New Unit</span>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-end">
-                            {% for property in user.properties %}
-                                <a class="dropdown-item" href="{{ url_for('unit.create', id=property.id) }}">
-                                    <span class="fas fa-building me-2"></span>{{ property.name }}
-                                </a>
-                            {% endfor %}
-                            {% if not user.properties %}
-                                <span class="dropdown-item-text text-muted">No properties available</span>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="{{ url_for('property.create') }}">
-                                    <span class="fas fa-plus me-2"></span>Create Property First
-                                </a>
-                            {% endif %}
-                        </div>
-                    </div>
+                    <a href="{{ url_for('unit.create') }}" class="btn btn-falcon-primary btn-sm">
+                        <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                        <span class="d-none d-sm-inline-block ms-1">New Unit</span>
+                    </a>
                     <div class="dropdown">
                         <button class="btn btn-falcon-default btn-sm" type="button" id="statusFilter" data-bs-toggle="dropdown" aria-expanded="false">
                             <span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span>
@@ -184,7 +180,7 @@
                         data-property="{{ unit.property_ref.name if unit.property_ref else '' }}">
                         <td class="unit">
                             <div>
-                                <a href="{{ url_for('unit.show', id=unit.id) }}" class="fw-semi-bold text-decoration-none">
+                                <a href="{{ url_for('unit.show', uuid=unit.uuid) }}" class="fw-semi-bold text-decoration-none">
                                     {{ unit.name }}
                                 </a>
                                 {% if unit.description %}
@@ -195,7 +191,7 @@
                         <td class="property">
                             {% if unit.property_ref %}
                                 <div>
-                                    <a href="{{ url_for('property.home', id=unit.property_id) }}" class="fw-semi-bold text-decoration-none">
+                                    <a href="{{ url_for('property.home', uuid=unit.property_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
                                         {{ unit.property_ref.name }}
                                     </a>
                                     {% if unit.property_ref.address %}
@@ -209,7 +205,7 @@
                         <td class="tenant">
                             {% if current_tenant %}
                                 <div>
-                                    <a href="{{ url_for('tenant.home', id=current_tenant.id) }}" class="fw-semi-bold text-decoration-none">
+                                    <a href="{{ url_for('tenant.home', uuid=current_tenant.uuid) }}" class="fw-semi-bold text-decoration-none">
                                         {{ current_tenant.first_name }} {{ current_tenant.last_name }}
                                     </a>
                                     {% if current_lease and current_lease.end %}
@@ -220,7 +216,7 @@
                                 {% set next_lease = unit.get_next_lease() %}
                                 {% if next_lease and next_lease.tenant_ref %}
                                     <div>
-                                        <a href="{{ url_for('tenant.home', id=next_lease.tenant_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                        <a href="{{ url_for('tenant.home', uuid=next_lease.tenant_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
                                             {{ next_lease.tenant_ref.first_name }} {{ next_lease.tenant_ref.last_name }}
                                         </a>
                                         <div class="fs--2 text-info">Starts {{ next_lease.start.strftime('%m/%d/%Y') }}</div>
@@ -249,10 +245,10 @@
                         </td>
                         <td class="rent">
                             {% if current_lease and current_lease.rent %}
-                                <span class="text-success fw-bold">${{ "{:,}".format(current_lease.rent) }}</span>
+                                <span class="text-success fw-bold">{{ current_lease.rent|currency }}</span>
                                 <div class="fs--2 text-600">from lease</div>
                             {% elif unit.rent %}
-                                <span class="text-primary fw-semi-bold">${{ "{:,}".format(unit.rent) }}</span>
+                                <span class="text-primary fw-semi-bold">{{ unit.rent|currency }}</span>
                                 <div class="fs--2 text-600">asking rent</div>
                             {% else %}
                                 <span class="text-400">Not set</span>
@@ -282,10 +278,10 @@
                                 </button>
                                 <div class="dropdown-menu dropdown-menu-end border py-0">
                                     <div class="py-2">
-                                        <a class="dropdown-item" href="{{ url_for('unit.show', id=unit.id) }}">
+                                        <a class="dropdown-item" href="{{ url_for('unit.show', uuid=unit.uuid) }}">
                                             <span class="fas fa-eye me-1"></span>View Details
                                         </a>
-                                        <a class="dropdown-item" href="{{ url_for('unit.edit', id=unit.id) }}">
+                                        <a class="dropdown-item" href="{{ url_for('unit.edit', uuid=unit.uuid) }}">
                                             <span class="fas fa-edit me-1"></span>Edit Unit
                                         </a>
                                         {% if lease_status == 'Available' %}
@@ -296,7 +292,7 @@
                                                 </a>
                                                 <div class="dropdown-menu">
                                                     {% for tenant in user.tenants if tenant.get_lease_status() in ['Prospect', 'Former'] %}
-                                                        <a class="dropdown-item" href="{{ url_for('lease.create', id=unit.property_ref.id) }}?unit={{ unit.id }}&tenant={{ tenant.id }}">
+                                                        <a class="dropdown-item" href="{{ url_for('lease.create_general', property=unit.property_ref.uuid, unit=unit.uuid, tenant=tenant.uuid) }}">
                                                             <span class="fas fa-user me-2"></span>{{ tenant.first_name }} {{ tenant.last_name }}
                                                         </a>
                                                     {% endfor %}
@@ -305,7 +301,7 @@
                                         {% endif %}
                                         <div class="dropdown-divider"></div>
                                         <a class="dropdown-item text-danger" href="#" 
-                                           onclick="deleteUnit({{ unit.id }}, '{{ unit.name }}')">
+                                           onclick="deleteUnit('{{ unit.uuid }}', '{{ unit.name }}')">
                                             <span class="fas fa-trash me-1"></span>Delete Unit
                                         </a>
                                     </div>
@@ -334,13 +330,14 @@
 
 <!-- Delete form -->
 <form id="deleteForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 </form>
 
 <script>
-function deleteUnit(unitId, unitName) {
+function deleteUnit(unitUuid, unitName) {
     if (confirm(`Are you sure you want to delete unit "${unitName}"? This action cannot be undone.`)) {
         const form = document.getElementById('deleteForm');
-        form.action = `/unit/${unitId}/delete`;
+        form.action = `/unit/${unitUuid}/delete`;
         form.submit();
     }
 }

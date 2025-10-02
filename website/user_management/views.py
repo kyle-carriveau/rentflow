@@ -82,13 +82,13 @@ def invite_user():
 
     return render_template("invite_user.html", user=current_user, roles=User.ROLES)
 
-@user_management.route('/<int:user_id>/edit', methods=['GET', 'POST'])
+@user_management.route('/<uuid:user_uuid>/edit', methods=['GET', 'POST'])
 @login_required
 @owner_required
-def edit_user(user_id):
+def edit_user(user_uuid):
     """Edit user role and information."""
     company_id = current_user.get_company_id()
-    target_user = User.query.filter_by(id=user_id, company_id=company_id).first()
+    target_user = User.find_by_uuid(str(user_uuid), company_id)
     
     if not target_user:
         return page_not_found(404)
@@ -128,7 +128,7 @@ def edit_user(user_id):
             return render_template("edit_user.html", user=current_user, target_user=target_user, roles=User.ROLES)
 
         # Check if email is already in use (excluding current user)
-        existing_user = User.query.filter_by(email=email).filter(User.id != user_id).first()
+        existing_user = User.query.filter_by(email=email).filter(User.id != target_user.id).first()
         if existing_user:
             flash('Email is already in use.', 'error')
             return render_template("edit_user.html", user=current_user, target_user=target_user, roles=User.ROLES)
@@ -145,13 +145,13 @@ def edit_user(user_id):
 
     return render_template("edit_user.html", user=current_user, target_user=target_user, roles=User.ROLES)
 
-@user_management.route('/<int:user_id>/delete', methods=['POST'])
+@user_management.route('/<uuid:user_uuid>/delete', methods=['POST'])
 @login_required
 @owner_required
-def delete_user(user_id):
+def delete_user(user_uuid):
     """Delete a user from the company."""
     company_id = current_user.get_company_id()
-    target_user = User.query.filter_by(id=user_id, company_id=company_id).first()
+    target_user = User.find_by_uuid(str(user_uuid), company_id)
     
     if not target_user:
         return page_not_found(404)
@@ -179,13 +179,13 @@ def delete_user(user_id):
     
     return redirect(url_for('user_management.users'))
 
-@user_management.route('/<int:user_id>/role', methods=['POST'])
+@user_management.route('/<uuid:user_uuid>/role', methods=['POST'])
 @login_required
 @owner_required
-def update_user_role(user_id):
+def update_user_role(user_uuid):
     """Ajax endpoint to quickly update user role."""
     company_id = current_user.get_company_id()
-    target_user = User.query.filter_by(id=user_id, company_id=company_id).first()
+    target_user = User.find_by_uuid(str(user_uuid), company_id)
     
     if not target_user:
         return jsonify({'success': False, 'error': 'User not found'})

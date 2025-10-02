@@ -39,7 +39,8 @@
   {% endif %}
 {% endwith %}
 
-<form method="POST" action="{{ url_for('tenant.create') }}" id="createTenantForm">
+<form method="POST" action="{{ url_for('tenant.create') }}" id="createTenantForm" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <div class="card mb-3">
         <div class="card-header">
             <div class="row align-items-center">
@@ -68,13 +69,13 @@
                         <div class="invalid-feedback">Please enter a last name.</div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="email">Email</label>
-                        <input class="form-control email-field" type="email" name="email" id="email"/>
+                        <label class="form-label" for="email">Email <span class="text-danger">*</span></label>
+                        <input class="form-control email-field" type="email" name="email" id="email" required/>
                         <div class="invalid-feedback">Please enter a valid email address.</div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="phone">Phone</label>
-                        <input class="form-control phone-field" type="tel" name="phone" id="phone" placeholder="(555) 123-4567"/>
+                        <label class="form-label" for="phone">Phone <span class="text-danger">*</span></label>
+                        <input class="form-control phone-field" type="tel" name="phone" id="phone" placeholder="(555) 123-4567" required/>
                         <div class="invalid-feedback">Please enter a valid phone number.</div>
                     </div>
                     <div class="mb-3">
@@ -82,7 +83,7 @@
                         <select class="form-select" name="property" id="property">
                             <option value="">Select Property (Optional)</option>
                             {% for property in properties %}
-                            <option value="{{ property.id }}">{{ property.name }}</option>
+                            <option value="{{ property.uuid }}">{{ property.name }}</option>
                             {% endfor %}
                         </select>
                         <div class="form-text">You can assign this tenant to a property later</div>
@@ -118,7 +119,7 @@
             </div>
         </div>
         <div class="card-footer border-top text-end">
-            <button type="submit" class="btn btn-falcon-primary btn-sm ms-2" data-loading="Creating tenant...">
+            <button type="submit" class="btn btn-falcon-primary btn-sm ms-2">
                 <span class="fas fa-user-plus fs--2 me-1"></span>Create Tenant
             </button>
         </div>
@@ -127,19 +128,125 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Phone number formatting only
+    // Real-time validation functions
+    function validateField(field, isValid, errorMessage) {
+        const feedback = field.nextElementSibling;
+        if (isValid) {
+            field.classList.remove('is-invalid');
+            field.classList.add('is-valid');
+            if (feedback && feedback.classList.contains('invalid-feedback')) {
+                feedback.style.display = 'none';
+            }
+        } else {
+            field.classList.remove('is-valid');
+            field.classList.add('is-invalid');
+            if (feedback && feedback.classList.contains('invalid-feedback')) {
+                feedback.textContent = errorMessage;
+                feedback.style.display = 'block';
+            }
+        }
+    }
+
+    // Phone number formatting and validation
     const phoneField = document.getElementById('phone');
     if (phoneField) {
         phoneField.addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
+
+            // Format phone number
             if (value.length >= 6) {
                 value = value.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
             } else if (value.length >= 3) {
                 value = value.replace(/(\d{3})(\d{0,3})/, '($1) $2');
             }
             e.target.value = value;
+
+            // Validate phone number
+            const cleanValue = value.replace(/\D/g, '');
+            if (value === '') {
+                validateField(phoneField, false, 'Phone number is required.');
+            } else {
+                validateField(phoneField, cleanValue.length === 10, 'Please enter a valid 10-digit phone number.');
+            }
         });
     }
+
+    // Email validation
+    const emailField = document.getElementById('email');
+    if (emailField) {
+        emailField.addEventListener('blur', function(e) {
+            const email = e.target.value.trim();
+            if (email === '') {
+                validateField(emailField, false, 'Email is required.');
+            } else {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                validateField(emailField, emailRegex.test(email), 'Please enter a valid email address.');
+            }
+        });
+    }
+
+    // Required field validation
+    const requiredFields = document.querySelectorAll('input[required]');
+    requiredFields.forEach(field => {
+        field.addEventListener('blur', function(e) {
+            const value = e.target.value.trim();
+            validateField(field, value !== '', 'This field is required.');
+        });
+    });
+
+    // Form submission validation
+    document.getElementById('createTenantForm').addEventListener('submit', function(e) {
+        let isFormValid = true;
+
+        // Validate all required fields
+        requiredFields.forEach(field => {
+            const value = field.value.trim();
+            if (value === '') {
+                validateField(field, false, 'This field is required.');
+                isFormValid = false;
+            }
+        });
+
+        // Validate email (now required)
+        if (emailField) {
+            const email = emailField.value.trim();
+            if (email === '') {
+                validateField(emailField, false, 'Email is required.');
+                isFormValid = false;
+            } else {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    validateField(emailField, false, 'Please enter a valid email address.');
+                    isFormValid = false;
+                }
+            }
+        }
+
+        // Validate phone (now required)
+        if (phoneField) {
+            const phone = phoneField.value.trim();
+            if (phone === '') {
+                validateField(phoneField, false, 'Phone number is required.');
+                isFormValid = false;
+            } else {
+                const cleanPhone = phone.replace(/\D/g, '');
+                if (cleanPhone.length !== 10) {
+                    validateField(phoneField, false, 'Please enter a valid 10-digit phone number.');
+                    isFormValid = false;
+                }
+            }
+        }
+
+        if (!isFormValid) {
+            e.preventDefault();
+            // Scroll to first invalid field
+            const firstInvalid = document.querySelector('.is-invalid');
+            if (firstInvalid) {
+                firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstInvalid.focus();
+            }
+        }
+    });
 });
 </script>
 

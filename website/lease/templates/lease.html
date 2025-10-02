@@ -32,7 +32,7 @@
                 <a href="{{ url_for('lease.leases') }}" class="btn btn-falcon-default btn-sm">
                     <span class="fas fa-arrow-left me-1"></span>Back to Leases
                 </a>
-                <a href="{{ url_for('lease.update', id=lease.id) }}" class="btn btn-falcon-primary btn-sm ms-2">
+                <a href="{{ url_for('lease.update', uuid=lease.uuid) }}" class="btn btn-falcon-primary btn-sm ms-2">
                     <span class="fas fa-edit me-1"></span>Edit Lease
                 </a>
             </div>
@@ -56,7 +56,7 @@
                         <div>
                             {% if lease.unit_ref and lease.unit_ref.property_ref %}
                                 <div>
-                                    <a href="{{ url_for('property.home', id=lease.unit_ref.property_ref.id) }}" 
+                                    <a href="{{ url_for('property.show', uuid=lease.unit_ref.property_ref.uuid) }}"
                                        class="text-decoration-none fw-semi-bold">
                                         {{ lease.unit_ref.property_ref.name }}
                                     </a>
@@ -75,7 +75,7 @@
                         <div>
                             {% if lease.unit_ref %}
                                 <div>
-                                    <a href="{{ url_for('unit.show', id=lease.unit_ref.id) }}" 
+                                    <a href="{{ url_for('unit.show', uuid=lease.unit_ref.uuid) }}"
                                        class="text-decoration-none fw-semi-bold">
                                         {{ lease.unit_ref.name }}
                                     </a>
@@ -96,7 +96,7 @@
                         <div>
                             {% if lease.tenant_ref %}
                                 <div>
-                                    <a href="{{ url_for('tenant.home', id=lease.tenant_ref.id) }}" 
+                                    <a href="{{ url_for('tenant.home', uuid=lease.tenant_ref.uuid) }}"
                                        class="text-decoration-none fw-semi-bold">
                                         {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}
                                     </a>
@@ -117,12 +117,379 @@
                         <label class="form-label text-700">Monthly Rent</label>
                         <div>
                             {% if lease.rent %}
-                                <span class="h5 text-success mb-0">${{ "{:,}".format(lease.rent) }}</span>
+                                <span class="h5 text-success mb-0">{{ lease.rent|currency }}</span>
                             {% else %}
                                 <span class="text-400">Not set</span>
                             {% endif %}
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Details -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-dollar-sign me-2"></span>Financial Details
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Security Deposit</label>
+                        <div>
+                            {% if lease.security_deposit %}
+                                <span class="h6 text-info mb-0">{{ lease.security_deposit|currency }}</span>
+                            {% else %}
+                                <span class="text-600">$0</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Pet Deposit</label>
+                        <div>
+                            {% if lease.pet_deposit %}
+                                <span class="h6 text-warning mb-0">{{ lease.pet_deposit|currency }}</span>
+                            {% else %}
+                                <span class="text-600">$0</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Late Fee</label>
+                        <div>
+                            {% if lease.late_fee %}
+                                <span class="h6 text-danger mb-0">{{ lease.late_fee|currency }}</span>
+                            {% else %}
+                                <span class="text-600">$0</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Monthly Parking Fee</label>
+                        <div>
+                            {% if lease.parking_fee %}
+                                <span class="h6 text-secondary mb-0">{{ lease.parking_fee|currency }}</span>
+                            {% else %}
+                                <span class="text-600">$0</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Payment Due Date</label>
+                        <div>
+                            <span class="text-800">
+                                {% if lease.payment_due_date == 1 %}
+                                    1st of month
+                                {% elif lease.payment_due_date == 5 %}
+                                    5th of month
+                                {% elif lease.payment_due_date == 15 %}
+                                    15th of month
+                                {% elif lease.payment_due_date == 30 %}
+                                    30th of month
+                                {% else %}
+                                    {{ lease.payment_due_date }}{{ lease.payment_due_date|ordinal }} of month
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Grace Period</label>
+                        <div>
+                            <span class="text-800">{{ lease.grace_period_days or 5 }} days</span>
+                        </div>
+                    </div>
+
+                    {% if lease.utilities_included %}
+                    <div class="col-12">
+                        <label class="form-label text-700">Utilities Included</label>
+                        <div>
+                            <p class="text-800 mb-0">{{ lease.utilities_included }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Lease Terms & Conditions ---->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-file-contract me-2"></span>Lease Terms & Conditions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Lease Type</label>
+                        <div>
+                            <span class="text-800">
+                                {% if lease.lease_type == 'fixed' %}
+                                    Fixed Term
+                                {% elif lease.lease_type == 'month_to_month' %}
+                                    Month-to-Month
+                                {% elif lease.lease_type == 'periodic' %}
+                                    Periodic
+                                {% else %}
+                                    {{ lease.lease_type|title or 'Fixed Term' }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Auto Renewal</label>
+                        <div>
+                            <span class="text-800">
+                                {% if lease.auto_renewal == 'no' %}
+                                    No Auto Renewal
+                                {% elif lease.auto_renewal == 'month_to_month' %}
+                                    Convert to Month-to-Month
+                                {% elif lease.auto_renewal == 'same_term' %}
+                                    Renew Same Term
+                                {% else %}
+                                    {{ lease.auto_renewal|title or 'No Auto Renewal' }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Notice Period</label>
+                        <div>
+                            <span class="text-800">{{ lease.notice_period_days or 30 }} days</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Maximum Occupants</label>
+                        <div>
+                            <span class="text-800">{{ lease.max_occupants or 2 }} person{{ 's' if (lease.max_occupants or 2) != 1 else '' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Early Termination Fee</label>
+                        <div>
+                            {% if lease.early_termination_fee %}
+                                <span class="h6 text-warning mb-0">{{ lease.early_termination_fee|currency }}</span>
+                            {% else %}
+                                <span class="text-600">$0</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if lease.renewal_terms %}
+                    <div class="col-12">
+                        <label class="form-label text-700">Renewal Terms & Conditions</label>
+                        <div>
+                            <p class="text-800 mb-0">{{ lease.renewal_terms }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Operational Details -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-clipboard-check me-2"></span>Operational Details
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Lease Status</label>
+                        <div>
+                            <span class="badge badge-pill bg-{{ 'success' if lease.lease_status == 'active' else 'warning' if lease.lease_status == 'pending' else 'danger' if lease.lease_status == 'terminated' else 'secondary' }}">
+                                {{ lease.lease_status|title or 'Active' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    {% if lease.move_in_date %}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Actual Move-In Date</label>
+                        <div>
+                            <span class="text-800">{{ lease.move_in_date.strftime('%B %d, %Y') }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if lease.move_out_date %}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Actual Move-Out Date</label>
+                        <div>
+                            <span class="text-800">{{ lease.move_out_date.strftime('%B %d, %Y') }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if lease.key_deposit %}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Key/Access Deposit</label>
+                        <div>
+                            <span class="h6 text-info mb-0">{{ lease.key_deposit|currency }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if lease.emergency_contact_name %}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Emergency Contact</label>
+                        <div>
+                            <span class="text-800">{{ lease.emergency_contact_name }}</span>
+                            {% if lease.emergency_contact_phone %}
+                                <div class="fs--2 text-600">{{ lease.emergency_contact_phone }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if lease.move_in_inspection_notes %}
+                    <div class="col-12 mb-3">
+                        <label class="form-label text-700">Move-In Inspection Notes</label>
+                        <div>
+                            <p class="text-800 mb-0">{{ lease.move_in_inspection_notes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if lease.move_out_inspection_notes %}
+                    <div class="col-12 mb-3">
+                        <label class="form-label text-700">Move-Out Inspection Notes</label>
+                        <div>
+                            <p class="text-800 mb-0">{{ lease.move_out_inspection_notes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if lease.property_manager_notes %}
+                    <div class="col-12">
+                        <label class="form-label text-700">Property Manager Notes</label>
+                        <div>
+                            <p class="text-800 mb-0">{{ lease.property_manager_notes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Features -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-cogs me-2"></span>Advanced Features
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% if lease.lease_documents %}
+                    <div class="col-12 mb-3">
+                        <label class="form-label text-700">Lease Documents</label>
+                        <div>
+                            <p class="text-800 mb-0">{{ lease.lease_documents }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if lease.compliance_notes %}
+                    <div class="col-12 mb-3">
+                        <label class="form-label text-700">Compliance & Legal Notes</label>
+                        <div>
+                            <p class="text-800 mb-0">{{ lease.compliance_notes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Insurance Requirements</label>
+                        <div>
+                            <span class="badge badge-pill bg-{{ 'success' if lease.insurance_required else 'secondary' }}">
+                                {{ 'Required' if lease.insurance_required else 'Not Required' }}
+                            </span>
+                            {% if lease.insurance_required %}
+                                <span class="badge badge-pill bg-{{ 'success' if lease.insurance_verified else 'warning' }} ms-1">
+                                    {{ 'Verified' if lease.insurance_verified else 'Pending Verification' }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        {% if lease.insurance_expiry_date %}
+                            <div class="fs--2 text-600 mt-1">Expires: {{ lease.insurance_expiry_date.strftime('%B %d, %Y') }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Background Check</label>
+                        <div>
+                            <span class="badge badge-pill bg-{{ 'success' if lease.background_check_status == 'completed' else 'warning' if lease.background_check_status == 'pending' else 'danger' if lease.background_check_status == 'failed' else 'secondary' }}">
+                                {{ lease.background_check_status|title or 'Not Required' }}
+                            </span>
+                        </div>
+                        {% if lease.background_check_date %}
+                            <div class="fs--2 text-600 mt-1">Completed: {{ lease.background_check_date.strftime('%B %d, %Y') }}</div>
+                        {% endif %}
+                    </div>
+
+                    {% if lease.credit_score %}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Credit Score</label>
+                        <div>
+                            <span class="h6 mb-0 text-{{ 'success' if lease.credit_score >= 700 else 'warning' if lease.credit_score >= 600 else 'danger' }}">
+                                {{ lease.credit_score }}
+                            </span>
+                            <span class="fs--2 text-600">
+                                {% if lease.credit_score >= 700 %}
+                                    (Excellent)
+                                {% elif lease.credit_score >= 600 %}
+                                    (Good)
+                                {% else %}
+                                    (Fair)
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-700">Automatic Renewal</label>
+                        <div>
+                            <span class="badge badge-pill bg-{{ 'success' if lease.automatic_renewal_enabled else 'secondary' }}">
+                                {{ 'Enabled' if lease.automatic_renewal_enabled else 'Disabled' }}
+                            </span>
+                            {% if lease.automatic_renewal_enabled %}
+                                <div class="fs--2 text-600 mt-1">Reminder: {{ lease.renewal_reminder_days or 60 }} days before</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if lease.violation_history %}
+                    <div class="col-12 mb-3">
+                        <label class="form-label text-700">Violation History</label>
+                        <div>
+                            <p class="text-800 mb-0">{{ lease.violation_history }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if lease.maintenance_requests %}
+                    <div class="col-12">
+                        <label class="form-label text-700">Maintenance Requests Log</label>
+                        <div>
+                            <p class="text-800 mb-0">{{ lease.maintenance_requests }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -187,7 +554,7 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-auto">
-                        <a href="{{ url_for('lease.update', id=lease.id) }}" class="btn btn-falcon-primary">
+                        <a href="{{ url_for('lease.update', uuid=lease.uuid) }}" class="btn btn-falcon-primary">
                             <span class="fas fa-edit me-1"></span>Edit Lease
                         </a>
                     </div>
@@ -260,6 +627,7 @@
 
 <!-- Delete Form -->
 <form id="deleteForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 </form>
 
 <script>
@@ -269,7 +637,7 @@ function deleteLease() {
     
     if (confirm(`Are you sure you want to delete the lease for "${tenantName}" in "${unitName}"? This action cannot be undone.`)) {
         const form = document.getElementById('deleteForm');
-        form.action = `/lease/{{ lease.id }}/delete`;
+        form.action = `/lease/{{ lease.uuid }}/delete`;
         form.submit();
     }
 }

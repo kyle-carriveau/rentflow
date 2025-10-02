@@ -14,6 +14,7 @@ class LoadingManager {
         this.setupFormLoadingStates();
         this.setupButtonLoadingStates();
         this.setupAjaxLoadingStates();
+        this.setupKeyboardShortcuts();
     }
 
     createGlobalLoadingOverlay() {
@@ -142,20 +143,62 @@ class LoadingManager {
     }
 
     setupFormLoadingStates() {
-        // Add loading states to all forms
+        // Only add loading states to forms that explicitly request it
         document.addEventListener('submit', (e) => {
             const form = e.target;
-            if (form.tagName === 'FORM' && !form.classList.contains('no-loading')) {
+            if (form.tagName === 'FORM' && form.classList.contains('use-loading')) {
                 this.showFormLoading(form);
+
+                // Add error handling to clear loading state if submission fails
+                setTimeout(() => {
+                    // If form is still on page after reasonable time, assume error occurred
+                    if (document.contains(form) && form.classList.contains('form-loading')) {
+                        this.hideFormLoading(form);
+
+                        // Show error message if no flash messages are visible
+                        const existingAlerts = document.querySelectorAll('.alert');
+                        if (existingAlerts.length === 0) {
+                            this.showToast('Form submission failed. Please try again.', 'danger');
+                        }
+                    }
+                }, 10000); // 10 second timeout
             }
+        });
+
+        // Clear loading state on page navigation/reload
+        window.addEventListener('beforeunload', () => {
+            const loadingForms = document.querySelectorAll('.form-loading');
+            loadingForms.forEach(form => this.hideFormLoading(form));
+        });
+
+        // Clear loading state when flash messages appear (indicates form response)
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE &&
+                            (node.classList?.contains('alert') || node.querySelector?.('.alert'))) {
+                            // Flash message appeared, clear any loading forms
+                            const loadingForms = document.querySelectorAll('.form-loading');
+                            loadingForms.forEach(form => this.hideFormLoading(form));
+                        }
+                    });
+                }
+            });
+        });
+
+        // Observe the document for flash message additions
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
         });
     }
 
     setupButtonLoadingStates() {
-        // Add loading states to buttons with data-loading attribute
+        // Add loading states to buttons with data-loading attribute (opt-in only)
         document.addEventListener('click', (e) => {
             const btn = e.target.closest('[data-loading]');
-            if (btn) {
+            if (btn && btn.classList.contains('use-loading')) {
                 const loadingText = btn.getAttribute('data-loading') || 'Loading...';
                 this.showButtonLoading(btn, loadingText);
             }
@@ -168,8 +211,14 @@ class LoadingManager {
         window.fetch = (...args) => {
             this.showGlobalLoading('Processing request...');
             return originalFetch(...args)
-                .finally(() => {
+                .then(response => {
                     this.hideGlobalLoading();
+                    return response;
+                })
+                .catch(error => {
+                    this.hideGlobalLoading();
+                    this.showToast('Network error occurred. Please try again.', 'danger');
+                    throw error;
                 });
         };
     }
@@ -355,6 +404,46 @@ class LoadingManager {
             document.body.appendChild(container);
         }
         return container;
+    }
+
+    // Public method to manually clear all loading states
+    clearAllLoadingStates() {
+        // Clear form loading states
+        const loadingForms = document.querySelectorAll('.form-loading');
+        loadingForms.forEach(form => this.hideFormLoading(form));
+
+        // Clear button loading states
+        const loadingButtons = document.querySelectorAll('.btn-loading');
+        loadingButtons.forEach(btn => this.hideButtonLoading(btn));
+
+        // Clear global loading
+        this.hideGlobalLoading();
+    }
+
+    // Public method to manually clear loading state for a specific form
+    clearFormLoading(formSelector) {
+        const form = typeof formSelector === 'string'
+            ? document.querySelector(formSelector)
+            : formSelector;
+
+        if (form && form.classList.contains('form-loading')) {
+            this.hideFormLoading(form);
+        }
+    }
+
+    setupKeyboardShortcuts() {
+        // Add Escape key to clear loading states (useful for stuck forms)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const loadingForms = document.querySelectorAll('.form-loading');
+                const loadingButtons = document.querySelectorAll('.btn-loading');
+
+                if (loadingForms.length > 0 || loadingButtons.length > 0) {
+                    this.clearAllLoadingStates();
+                    this.showToast('Loading states cleared. You can try submitting again.', 'info', 3000);
+                }
+            }
+        });
     }
 }
 

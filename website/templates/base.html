@@ -185,10 +185,10 @@
                     </div>
                   </a>
                   
-                  <a class="nav-link {{ 'active' if request.endpoint and 'financial.reports' in request.endpoint else '' }}" href="{{ url_for('financial.reports') }}" role="button">
+                  <a class="nav-link {{ 'active' if request.endpoint and 'report.' in request.endpoint else '' }}" href="{{ url_for('report.dashboard') }}" role="button">
                     <div class="d-flex align-items-center">
                       <span class="nav-link-icon"><span class="fas fa-chart-bar"></span></span>
-                      <span class="nav-link-text ps-1">Reports</span>
+                      <span class="nav-link-text ps-1">Reports & Analytics</span>
                     </div>
                   </a>
                 </li>
@@ -322,7 +322,7 @@
           <footer class="footer">
             <div class="row g-0 justify-content-between fs--1 mt-4 mb-3">
               <div class="col-12 col-sm-auto text-center">
-                <p class="mb-0 text-600">Thank you for creating with Falcon <span class="d-none d-sm-inline-block">| </span><br class="d-sm-none" /> 2022 &copy;</p>
+                <p class="mb-0 text-600">Thank you for creating with RentFlow <span class="d-none d-sm-inline-block">| </span><br class="d-sm-none" /> 2022 &copy;</p>
               </div>
               <div class="col-12 col-sm-auto text-center">
                 <p class="mb-0 text-600">v0.0.1</p>
@@ -364,7 +364,9 @@
     <script src="{{ url_for('static', filename='assets/js/flatpickr.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/form-validation.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/confirmation-dialogs.js') }}"></script>
-    
+    <script src="{{ url_for('static', filename='assets/js/loading-states.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/form-autosave.js') }}"></script>
+
     {% block javascript %}{% endblock %}
   </body>
 </html>

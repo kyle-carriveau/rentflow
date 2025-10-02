@@ -4,30 +4,24 @@
 
 {% block content %}
 
-<!-- Page Header -->
-<div class="row align-items-center justify-content-between g-3 mb-4">
-    <div class="col-auto">
-        <h2 class="mb-0">Add Expense</h2>
-        <p class="mb-0 text-700">Record a property or business expense</p>
-    </div>
-    <div class="col-auto">
-        <a href="{{ url_for('financial.expenses') }}" class="btn btn-falcon-default btn-sm">
-            <span class="fas fa-arrow-left me-1"></span>Back to Expenses
-        </a>
-    </div>
-</div>
-
 <!-- Expense Form -->
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <span class="fas fa-receipt me-2"></span>Expense Details
-                </h6>
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h5 class="mb-0">Add Expense</h5>
+                <p class="mb-0 text-700">Record a property or business expense</p>
             </div>
-            <div class="card-body">
+            <div class="col-auto">
+                <a href="{{ url_for('financial.expenses') }}" class="btn btn-falcon-default btn-sm">
+                    <span class="fas fa-arrow-left me-1"></span>Back to Expenses
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body bg-light border-top">
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="row g-3">
                         <!-- Amount -->
                         <div class="col-md-6">
@@ -42,7 +36,7 @@
                         <div class="col-md-6">
                             <label for="expense_date" class="form-label">Expense Date <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" id="expense_date" name="expense_date" 
-                                   value="{{ datetime.now().strftime('%Y-%m-%d') }}" required>
+                                   value="{{ today }}" required>
                         </div>
 
                         <!-- Category -->
@@ -69,7 +63,7 @@
                             <select class="form-select" id="property_id" name="property_id">
                                 <option value="general">General Business Expense</option>
                                 {% for property in properties %}
-                                <option value="{{ property.id }}">{{ property.name }}</option>
+                                <option value="{{ property.uuid }}">{{ property.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -125,8 +119,6 @@
                         </div>
                     </div>
                 </form>
-            </div>
-        </div>
     </div>
 </div>
 

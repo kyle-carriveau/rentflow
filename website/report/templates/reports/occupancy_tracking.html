@@ -1,0 +1,469 @@
+{% extends "base.html" %}
+
+{% block title %}Occupancy Tracking - RentFlow{% endblock %}
+
+{% block content %}
+
+<!-- Occupancy Tracking Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('report.dashboard') }}">Reports</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Occupancy Tracking</li>
+            </ol>
+        </nav>
+        <h2 class="mb-0">Occupancy Rate Tracking</h2>
+        <p class="mb-0 text-700">Property-by-property occupancy rates and vacancy analysis.</p>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-falcon-default btn-sm" onclick="exportOccupancyData()">
+            <span class="fas fa-download me-1"></span>Export Report
+        </button>
+    </div>
+</div>
+
+<!-- Overall Occupancy Summary -->
+<div class="row g-3 mb-4">
+    <!-- Overall Occupancy Rate -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-1.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle {% if overall_occupancy >= 90 %}bg-success{% elif overall_occupancy >= 70 %}bg-warning{% else %}bg-danger{% endif %} text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-percentage"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">{{ overall_occupancy }}%</h4>
+                        <p class="text-800 fs--1 mb-0">Overall Occupancy</p>
+                        <small class="{% if overall_occupancy >= 90 %}text-success{% elif overall_occupancy >= 70 %}text-warning{% else %}text-danger{% endif %}">
+                            Portfolio average
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Units -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-2.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-info text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-home"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">{{ total_all_units }}</h4>
+                        <p class="text-800 fs--1 mb-0">Total Units</p>
+                        <small class="text-info">Across all properties</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Occupied Units -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-3.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-users"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">{{ total_occupied_units }}</h4>
+                        <p class="text-800 fs--1 mb-0">Occupied Units</p>
+                        <small class="text-success">Currently rented</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vacant Units -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-4.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-exclamation-triangle"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">{{ total_all_units - total_occupied_units }}</h4>
+                        <p class="text-800 fs--1 mb-0">Vacant Units</p>
+                        <small class="text-warning">Available for rent</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Occupancy Chart -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Occupancy Rates by Property</h5>
+                <p class="mb-0 text-600">Visual comparison of occupancy across properties</p>
+            </div>
+            <div class="card-body">
+                <canvas id="occupancyChart" style="height: 350px;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Stats</h5>
+                <p class="mb-0 text-600">Key occupancy insights</p>
+            </div>
+            <div class="card-body">
+                {% if property_occupancy %}
+                    <!-- Highest Occupancy -->
+                    {% set highest_occ = property_occupancy|sort(attribute='occupancy_rate', reverse=true)|first %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar avatar-l">
+                            <div class="avatar-name rounded-circle bg-soft-success text-success d-flex align-items-center justify-content-center">
+                                <span class="fas fa-trophy"></span>
+                            </div>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-0">Highest Occupancy</h6>
+                            <p class="mb-1 text-600">{{ highest_occ.property.name }}</p>
+                            <span class="badge badge-soft-success">{{ highest_occ.occupancy_rate }}%</span>
+                        </div>
+                    </div>
+
+                    <!-- Lowest Occupancy -->
+                    {% set lowest_occ = property_occupancy|sort(attribute='occupancy_rate')|first %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar avatar-l">
+                            <div class="avatar-name rounded-circle bg-soft-warning text-warning d-flex align-items-center justify-content-center">
+                                <span class="fas fa-exclamation-triangle"></span>
+                            </div>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-0">Needs Attention</h6>
+                            <p class="mb-1 text-600">{{ lowest_occ.property.name }}</p>
+                            <span class="badge badge-soft-warning">{{ lowest_occ.occupancy_rate }}%</span>
+                        </div>
+                    </div>
+
+                    <!-- Average Rent -->
+                    {% set avg_rent = (property_occupancy|sum(attribute='avg_rent') / property_occupancy|length) if property_occupancy else 0 %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar avatar-l">
+                            <div class="avatar-name rounded-circle bg-soft-info text-info d-flex align-items-center justify-content-center">
+                                <span class="fas fa-dollar-sign"></span>
+                            </div>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-0">Average Rent</h6>
+                            <p class="mb-1 text-600">${{ "%.2f"|format(avg_rent) }}</p>
+                            <span class="badge badge-soft-info">per unit</span>
+                        </div>
+                    </div>
+
+                    <!-- Revenue Loss -->
+                    {% set total_potential = property_occupancy|sum(attribute='potential_revenue') %}
+                    {% set total_actual = property_occupancy|sum(attribute='actual_revenue') %}
+                    {% set revenue_loss = total_potential - total_actual %}
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-l">
+                            <div class="avatar-name rounded-circle bg-soft-danger text-danger d-flex align-items-center justify-content-center">
+                                <span class="fas fa-chart-line-down"></span>
+                            </div>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-0">Revenue Loss</h6>
+                            <p class="mb-1 text-600">${{ "%.2f"|format((revenue_loss or 0)|float) }}</p>
+                            <span class="badge badge-soft-danger">from vacancies</span>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Property Occupancy Details -->
+{% if property_occupancy %}
+<div class="row g-3">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">Property Occupancy Details</h5>
+                        <p class="mb-0 text-600">Detailed breakdown by property</p>
+                    </div>
+                    <div class="col-auto">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary active" onclick="sortTable('occupancy')">
+                                <span class="fas fa-sort-amount-down me-1"></span>By Occupancy
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="sortTable('revenue')">
+                                <span class="fas fa-dollar-sign me-1"></span>By Revenue
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="occupancyTable">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th class="text-center">Total Units</th>
+                                <th class="text-center">Occupied</th>
+                                <th class="text-center">Vacant</th>
+                                <th class="text-center">Occupancy Rate</th>
+                                <th class="text-end">Avg Rent</th>
+                                <th class="text-end">Actual Revenue</th>
+                                <th class="text-end">Potential Revenue</th>
+                                <th class="text-end">Revenue Loss</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in property_occupancy %}
+                            <tr>
+                                <td>
+                                    <div>
+                                        <a href="{{ url_for('property.home', uuid=data.property.uuid) }}" class="fw-semi-bold text-decoration-none">
+                                            {{ data.property.name }}
+                                        </a>
+                                        {% if data.property.address %}
+                                            <div class="fs--2 text-600">{{ data.property.address }}</div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge badge-soft-info">{{ data.total_units }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge badge-soft-success">{{ data.occupied_units }}</span>
+                                </td>
+                                <td class="text-center">
+                                    {% set vacant_units = data.total_units - data.occupied_units %}
+                                    {% if vacant_units > 0 %}
+                                        <span class="badge badge-soft-warning">{{ vacant_units }}</span>
+                                    {% else %}
+                                        <span class="badge badge-soft-success">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                            {% if data.occupancy_rate >= 90 %}
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ data.occupancy_rate }}%"></div>
+                                            {% elif data.occupancy_rate >= 70 %}
+                                                <div class="progress-bar bg-warning" role="progressbar" style="width: {{ data.occupancy_rate }}%"></div>
+                                            {% else %}
+                                                <div class="progress-bar bg-danger" role="progressbar" style="width: {{ data.occupancy_rate }}%"></div>
+                                            {% endif %}
+                                        </div>
+                                        <span class="fs--1 fw-semi-bold">{{ data.occupancy_rate }}%</span>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    {% if data.avg_rent > 0 %}
+                                        <span class="text-700">${{ "%.2f"|format((data.avg_rent or 0)|float) }}</span>
+                                    {% else %}
+                                        <span class="text-400">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-success fw-bold">${{ "%.2f"|format((data.actual_revenue or 0)|float) }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-info">${{ "%.2f"|format((data.potential_revenue or 0)|float) }}</span>
+                                </td>
+                                <td class="text-end">
+                                    {% set revenue_loss = data.potential_revenue - data.actual_revenue %}
+                                    {% if revenue_loss > 0 %}
+                                        <span class="text-danger fw-bold">-${{ "%.2f"|format((revenue_loss or 0)|float) }}</span>
+                                    {% else %}
+                                        <span class="text-success">$0</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th>Totals</th>
+                                <th class="text-center">{{ property_occupancy|sum(attribute='total_units') }}</th>
+                                <th class="text-center">{{ property_occupancy|sum(attribute='occupied_units') }}</th>
+                                <th class="text-center">{{ property_occupancy|sum(attribute='total_units') - property_occupancy|sum(attribute='occupied_units') }}</th>
+                                <th class="text-center">{{ overall_occupancy }}%</th>
+                                <th class="text-end">
+                                    {% set total_avg_rent = (property_occupancy|sum(attribute='avg_rent') / property_occupancy|length) if property_occupancy else 0 %}
+                                    ${{ "%.2f"|format((total_avg_rent or 0)|float) }}
+                                </th>
+                                <th class="text-end fw-bold text-success">${{ "%.2f"|format((property_occupancy|sum(attribute='actual_revenue') or 0)|float) }}</th>
+                                <th class="text-end fw-bold text-info">${{ "%.2f"|format((property_occupancy|sum(attribute='potential_revenue') or 0)|float) }}</th>
+                                <th class="text-end fw-bold text-danger">
+                                    {% set total_loss = property_occupancy|sum(attribute='potential_revenue') - property_occupancy|sum(attribute='actual_revenue') %}
+                                    -${{ "%.2f"|format((total_loss or 0)|float) }}
+                                </th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- No Data State -->
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <span class="fas fa-home fa-3x text-300"></span>
+                </div>
+                <h5 class="mb-2">No Property Data Available</h5>
+                <p class="text-600 mb-4">Add properties and units to track occupancy rates.</p>
+                <a href="{{ url_for('property.create') }}" class="btn btn-falcon-primary">
+                    <span class="fas fa-plus me-1"></span>Add Property
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% if property_occupancy %}
+// Occupancy Chart
+const ctx = document.getElementById('occupancyChart').getContext('2d');
+const occupancyData = {{ property_occupancy|tojson }};
+
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: occupancyData.map(d => d.property.name),
+        datasets: [
+            {
+                label: 'Occupied Units',
+                data: occupancyData.map(d => d.occupied_units),
+                backgroundColor: '#2ECC71',
+                stack: 'units'
+            },
+            {
+                label: 'Vacant Units',
+                data: occupancyData.map(d => d.total_units - d.occupied_units),
+                backgroundColor: '#E74C3C',
+                stack: 'units'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            tooltip: {
+                callbacks: {
+                    afterBody: function(tooltipItems) {
+                        const dataIndex = tooltipItems[0].dataIndex;
+                        const occupancyRate = occupancyData[dataIndex].occupancy_rate;
+                        return `Occupancy Rate: ${occupancyRate}%`;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// Table sorting functions
+function sortTable(criteria) {
+    const table = document.getElementById('occupancyTable');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    // Remove active class from all buttons
+    document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+
+    if (criteria === 'occupancy') {
+        rows.sort((a, b) => {
+            const aOcc = parseFloat(a.children[4].querySelector('.fw-semi-bold').textContent);
+            const bOcc = parseFloat(b.children[4].querySelector('.fw-semi-bold').textContent);
+            return bOcc - aOcc;
+        });
+        event.target.closest('button').classList.add('active');
+    } else if (criteria === 'revenue') {
+        rows.sort((a, b) => {
+            const aRev = parseFloat(a.children[6].textContent.replace(/[$,]/g, ''));
+            const bRev = parseFloat(b.children[6].textContent.replace(/[$,]/g, ''));
+            return bRev - aRev;
+        });
+        event.target.closest('button').classList.add('active');
+    }
+
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+// Export function
+function exportOccupancyData() {
+    const table = document.getElementById('occupancyTable');
+    let csv = 'Property,Total Units,Occupied Units,Vacant Units,Occupancy Rate,Average Rent,Actual Revenue,Potential Revenue,Revenue Loss\n';
+
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const propertyName = cells[0].querySelector('a').textContent.trim();
+        const totalUnits = cells[1].textContent.trim();
+        const occupiedUnits = cells[2].textContent.trim();
+        const vacantUnits = cells[3].textContent.trim();
+        const occupancyRate = cells[4].querySelector('.fw-semi-bold').textContent.trim();
+        const avgRent = cells[5].textContent.trim();
+        const actualRevenue = cells[6].textContent.trim();
+        const potentialRevenue = cells[7].textContent.trim();
+        const revenueLoss = cells[8].textContent.trim();
+
+        csv += `"${propertyName}","${totalUnits}","${occupiedUnits}","${vacantUnits}","${occupancyRate}","${avgRent}","${actualRevenue}","${potentialRevenue}","${revenueLoss}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'occupancy_tracking.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+{% endif %}
+</script>
+
+{% endblock %}

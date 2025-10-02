@@ -30,17 +30,17 @@ def portfolios():
     
     return render_template("portfolios.html", user=current_user, portfolios=get_enhanced_portfolios())
 
-@portfolio.route('/<int:id>')
+@portfolio.route('/<uuid:uuid>')
 @login_required
-def home(id):
+def home(uuid):
     """View individual portfolio details."""
     company_id = current_user.get_company_id()
-    portfolio = Portfolio.query.filter_by(id=id, company_id=company_id).first()
+    portfolio = Portfolio.find_by_uuid(str(uuid), company_id)
     if not portfolio:
         return page_not_found(404)
     
     # Get portfolio properties with metrics
-    properties = Property.query.filter_by(portfolio_id=id, company_id=company_id).all()
+    properties = Property.query.filter_by(portfolio_id=portfolio.id, company_id=company_id).all()
     unassigned_properties = Property.query.filter_by(portfolio_id=None, company_id=company_id).all()
     
     # Calculate portfolio metrics
@@ -53,12 +53,12 @@ def home(id):
                          unassigned_properties=unassigned_properties,
                          metrics=metrics)
 
-@portfolio.route('/<int:id>/edit', methods=['GET', 'POST'])
+@portfolio.route('/<uuid:uuid>/edit', methods=['GET', 'POST'])
 @login_required
-def edit(id):
+def edit(uuid):
     """Edit portfolio details."""
     company_id = current_user.get_company_id()
-    portfolio = Portfolio.query.filter_by(id=id, company_id=company_id).first()
+    portfolio = Portfolio.find_by_uuid(str(uuid), company_id)
     if not portfolio:
         return page_not_found(404)
     
@@ -72,16 +72,16 @@ def edit(id):
         portfolio.name = name
         db.session.commit()
         flash('Portfolio updated successfully!', 'success')
-        return redirect(url_for('portfolio.home', id=id))
+        return redirect(url_for('portfolio.home', uuid=uuid))
     
     return render_template("edit_portfolio.html", user=current_user, portfolio=portfolio)
 
-@portfolio.route('/<int:id>/delete', methods=['POST'])
+@portfolio.route('/<uuid:uuid>/delete', methods=['POST'])
 @login_required
-def delete(id):
+def delete(uuid):
     """Delete a portfolio (moves properties to unassigned)."""
     company_id = current_user.get_company_id()
-    portfolio = Portfolio.query.filter_by(id=id, company_id=company_id).first()
+    portfolio = Portfolio.find_by_uuid(str(uuid), company_id)
     if not portfolio:
         return page_not_found(404)
     
@@ -89,7 +89,7 @@ def delete(id):
     
     try:
         # Move all properties in this portfolio to unassigned
-        Property.query.filter_by(portfolio_id=id, company_id=company_id).update({'portfolio_id': None})
+        Property.query.filter_by(portfolio_id=portfolio.id, company_id=company_id).update({'portfolio_id': None})
         db.session.delete(portfolio)
         db.session.commit()
         flash(f'Portfolio "{portfolio_name}" deleted. Properties moved to unassigned.', 'success')
@@ -99,47 +99,51 @@ def delete(id):
     
     return redirect(url_for('portfolio.portfolios'))
 
-@portfolio.route('/<int:id>/assign-property', methods=['POST'])
+@portfolio.route('/<uuid:uuid>/assign-property', methods=['POST'])
 @login_required
-def assign_property(id):
+def assign_property(uuid):
     """Assign a property to this portfolio."""
     company_id = current_user.get_company_id()
-    portfolio = Portfolio.query.filter_by(id=id, company_id=company_id).first()
+    portfolio = Portfolio.find_by_uuid(str(uuid), company_id)
     if not portfolio:
         return page_not_found(404)
     
-    property_id = request.form.get('property_id')
-    property = Property.query.filter_by(id=property_id, company_id=company_id).first()
+    property_uuid = request.form.get('property_uuid')
+    property = Property.find_by_uuid(property_uuid, company_id) if property_uuid else None
     
     if not property:
         flash('Property not found.', 'error')
-        return redirect(url_for('portfolio.home', id=id))
+        return redirect(url_for('portfolio.home', uuid=uuid))
     
-    property.portfolio_id = id
+    property.portfolio_id = portfolio.id
     db.session.commit()
     flash(f'Property "{property.name}" assigned to portfolio "{portfolio.name}".', 'success')
-    return redirect(url_for('portfolio.home', id=id))
+    return redirect(url_for('portfolio.home', uuid=uuid))
 
-@portfolio.route('/<int:id>/remove-property', methods=['POST'])
-@login_required  
-def remove_property(id):
+@portfolio.route('/<uuid:uuid>/remove-property', methods=['POST'])
+@login_required
+def remove_property(uuid):
     """Remove a property from this portfolio."""
     company_id = current_user.get_company_id()
-    portfolio = Portfolio.query.filter_by(id=id, company_id=company_id).first()
+    portfolio = Portfolio.find_by_uuid(str(uuid), company_id)
     if not portfolio:
         return page_not_found(404)
     
-    property_id = request.form.get('property_id')
-    property = Property.query.filter_by(id=property_id, portfolio_id=id, company_id=company_id).first()
+    property_uuid = request.form.get('property_uuid')
+    property = Property.find_by_uuid(property_uuid, company_id) if property_uuid else None
+
+    # Additional check to ensure property is in this portfolio
+    if property and property.portfolio_id != portfolio.id:
+        property = None
     
     if not property:
         flash('Property not found in this portfolio.', 'error')
-        return redirect(url_for('portfolio.home', id=id))
+        return redirect(url_for('portfolio.home', uuid=uuid))
     
     property.portfolio_id = None
     db.session.commit()
     flash(f'Property "{property.name}" removed from portfolio.', 'success')
-    return redirect(url_for('portfolio.home', id=id))
+    return redirect(url_for('portfolio.home', uuid=uuid))
 
 def get_enhanced_portfolios():
     """Get portfolios with enhanced metrics."""
@@ -151,6 +155,7 @@ def get_enhanced_portfolios():
         metrics = calculate_portfolio_metrics(portfolio)
         enhanced_portfolio = {
             'id': portfolio.id,
+            'uuid': portfolio.uuid,
             'name': portfolio.name,
             'property_count': metrics['property_count'],
             'total_units': metrics['total_units'],

@@ -84,7 +84,7 @@
                     {% endif %}
 
                     {% if user.is_owner() %}
-                    <a href="{{ url_for('user_management.invite') }}" class="btn btn-falcon-success btn-sm">
+                    <a href="{{ url_for('user_management.invite_user') }}" class="btn btn-falcon-success btn-sm">
                         <span class="fas fa-user-plus me-1"></span>Invite User
                     </a>
                     {% endif %}
@@ -313,7 +313,7 @@
                         </a>
 
                         {% if user.is_owner() %}
-                        <a href="{{ url_for('portfolio.create') }}" class="btn btn-falcon-warning btn-sm">
+                        <a href="{{ url_for('portfolio.portfolios') }}" class="btn btn-falcon-warning btn-sm">
                             <span class="fas fa-layer-group me-2"></span>Create Portfolio
                         </a>
                         {% endif %}

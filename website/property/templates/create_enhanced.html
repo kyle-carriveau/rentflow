@@ -79,7 +79,8 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ url_for('property.create_enhanced') }}" id="propertyWizardForm" enctype="multipart/form-data">
+    <form method="POST" action="{{ url_for('property.create') }}" id="createPropertyForm" class="no-loading" enctype="multipart/form-data" autocomplete="off">
+        {{ form.hidden_tag() }}
         <div class="card-body">
             <!-- Step 1: Basic Information -->
             <div class="wizard-step active" id="step-1">
@@ -89,47 +90,55 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label class="form-label" for="name">Property Name <span class="text-danger">*</span></label>
-                            <input class="form-control" type="text" name="name" id="name" required
-                                   placeholder="e.g., Sunset Apartments" maxlength="150">
+                            {{ form.name.label(class="form-label") }} <span class="text-danger">*</span>
+                            {{ form.name(class="form-control", placeholder="e.g., Sunset Apartments") }}
+                            {% if form.name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.name.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                             <div class="form-text">A unique name to identify this property</div>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label" for="type">Property Type</label>
-                            <select class="form-select" name="type" id="type">
-                                <option value="">Select Property Type</option>
-                                <option value="Single Family">Single Family Home</option>
-                                <option value="Duplex">Duplex</option>
-                                <option value="Triplex">Triplex</option>
-                                <option value="4 Plex">4-Plex</option>
-                                <option value="Multi Family">Multi-Family (5+ units)</option>
-                                <option value="Apartment">Apartment Building</option>
-                                <option value="Condominium">Condominium</option>
-                                <option value="Townhouse">Townhouse</option>
-                                <option value="Commercial">Commercial Property</option>
-                                <option value="Mixed Use">Mixed Use</option>
-                                <option value="Other">Other</option>
-                            </select>
+                            {{ form.type.label(class="form-label") }}
+                            {{ form.type(class="form-select") }}
+                            {% if form.type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.type.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label" for="portfolio_id">Portfolio Assignment</label>
-                            <select class="form-select" name="portfolio_id" id="portfolio_id">
-                                <option value="">No Portfolio (Unassigned)</option>
-                                {% for portfolio in portfolios %}
-                                <option value="{{ portfolio.id }}">{{ portfolio.name }}</option>
-                                {% endfor %}
-                            </select>
+                            {{ form.portfolio_id.label(class="form-label") }}
+                            {{ form.portfolio_id(class="form-select") }}
+                            {% if form.portfolio_id.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.portfolio_id.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                             <div class="form-text">Organize properties into portfolios for better management</div>
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label class="form-label" for="description">Property Description</label>
-                            <textarea class="form-control" name="description" id="description" rows="4"
-                                      placeholder="Brief description of the property..."></textarea>
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control", rows="4", placeholder="Brief description of the property...") }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.description.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                             <div class="form-text">Optional description for internal reference</div>
                         </div>
 
@@ -180,13 +189,15 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label class="form-label" for="state">State</label>
-                                    <select class="form-select" name="state" id="state">
-                                        <option value="">Select State</option>
-                                        {% for state in states %}
-                                        <option value="{{ state }}">{{ state }}</option>
-                                        {% endfor %}
-                                    </select>
+                                    {{ form.state.label(class="form-label") }}
+                                    {{ form.state(class="form-select") }}
+                                    {% if form.state.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.state.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -465,7 +476,7 @@
                     <button type="button" class="btn btn-falcon-primary me-2" id="next-btn">
                         Next<span class="fas fa-arrow-right ms-1"></span>
                     </button>
-                    <button type="submit" class="btn btn-primary" id="submit-btn" style="display: none;">
+                    <button type="submit" class="btn btn-primary me-2" id="submit-btn" style="display: none;">
                         <span class="fas fa-check me-1"></span>Create Property
                     </button>
                 </div>
@@ -474,7 +485,7 @@
     </form>
 </div>
 
-<!-- Wizard Navigation & Auto-save JavaScript -->
+<!-- Wizard Navigation JavaScript -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const steps = document.querySelectorAll('.wizard-step');
@@ -488,43 +499,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentStep = 1;
     const totalSteps = 5;
 
-    // Auto-save functionality
-    let autoSaveTimeout;
-    const formData = new FormData();
-
-    function autoSave() {
-        clearTimeout(autoSaveTimeout);
-        autoSaveTimeout = setTimeout(() => {
-            // Save form data to localStorage
-            const form = document.getElementById('propertyWizardForm');
-            const data = new FormData(form);
-            const savedData = {};
-            for (let [key, value] of data.entries()) {
-                savedData[key] = value;
-            }
-            localStorage.setItem('propertyWizardData', JSON.stringify(savedData));
-        }, 1000);
-    }
-
-    // Load saved data
-    function loadSavedData() {
-        const saved = localStorage.getItem('propertyWizardData');
-        if (saved) {
-            const data = JSON.parse(saved);
-            Object.keys(data).forEach(key => {
-                const field = document.querySelector(`[name="${key}"]`);
-                if (field) {
-                    field.value = data[key];
-                }
-            });
-        }
-    }
-
-    // Form field change listeners for auto-save
-    document.querySelectorAll('input, select, textarea').forEach(field => {
-        field.addEventListener('input', autoSave);
-        field.addEventListener('change', autoSave);
-    });
 
     function updateStepDisplay() {
         // Hide all steps
@@ -682,15 +656,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+
     // Initialize
-    loadSavedData();
     updateStepDisplay();
     updateFinancialMetrics();
-
-    // Clear auto-save on successful submit
-    document.getElementById('propertyWizardForm').addEventListener('submit', () => {
-        localStorage.removeItem('propertyWizardData');
-    });
 });
 </script>
 

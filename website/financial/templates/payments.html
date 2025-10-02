@@ -35,7 +35,7 @@
                 <select class="form-select" id="property" name="property">
                     <option value="all" {% if property_filter == 'all' %}selected{% endif %}>All Properties</option>
                     {% for property in properties %}
-                    <option value="{{ property.id }}" {% if property_filter == property.id|string %}selected{% endif %}>
+                    <option value="{{ property.uuid }}" {% if property_filter == property.uuid %}selected{% endif %}>
                         {{ property.name }}
                     </option>
                     {% endfor %}
@@ -98,7 +98,7 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <a href="{{ url_for('tenant.home', id=payment.lease_ref.tenant_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                    <a href="{{ url_for('tenant.home', uuid=payment.lease_ref.tenant_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
                                         {{ payment.lease_ref.tenant_ref.first_name }} {{ payment.lease_ref.tenant_ref.last_name }}
                                     </a>
                                 </div>
@@ -109,7 +109,7 @@
                         </td>
                         <td>
                             {% if payment.property_ref %}
-                            <a href="{{ url_for('property.home', id=payment.property_ref.id) }}" class="text-decoration-none">
+                            <a href="{{ url_for('property.home', uuid=payment.property_ref.uuid) }}" class="text-decoration-none">
                                 {{ payment.property_ref.name }}
                             </a>
                             {% else %}
@@ -147,7 +147,7 @@
                                     <span class="fas fa-ellipsis-h"></span>
                                 </button>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#paymentModal{{ payment.id }}">
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#paymentModal{{ payment.uuid }}">
                                         <span class="fas fa-eye me-2"></span>View Details
                                     </a></li>
                                     {% if payment.status == 'pending' %}
@@ -227,7 +227,7 @@
 
 <!-- Payment Detail Modals -->
 {% for payment in payments.items %}
-<div class="modal fade" id="paymentModal{{ payment.id }}" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="paymentModal{{ payment.uuid }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">

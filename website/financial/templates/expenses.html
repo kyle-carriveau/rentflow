@@ -38,7 +38,7 @@
                     <option value="all" {% if property_filter == 'all' %}selected{% endif %}>All Properties</option>
                     <option value="general" {% if property_filter == 'general' %}selected{% endif %}>General Business</option>
                     {% for property in properties %}
-                    <option value="{{ property.id }}" {% if property_filter == property.id|string %}selected{% endif %}>
+                    <option value="{{ property.uuid }}" {% if property_filter == property.uuid %}selected{% endif %}>
                         {{ property.name }}
                     </option>
                     {% endfor %}
@@ -103,7 +103,7 @@
                         </td>
                         <td>
                             {% if expense.property_ref %}
-                            <a href="{{ url_for('property.home', id=expense.property_ref.id) }}" class="text-decoration-none">
+                            <a href="{{ url_for('property.home', uuid=expense.property_ref.uuid) }}" class="text-decoration-none">
                                 {{ expense.property_ref.name }}
                             </a>
                             {% else %}
@@ -136,7 +136,7 @@
                                     <span class="fas fa-ellipsis-h"></span>
                                 </button>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#expenseModal{{ expense.id }}">
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#expenseModal{{ expense.uuid }}">
                                         <span class="fas fa-eye me-2"></span>View Details
                                     </a></li>
                                     <li><a class="dropdown-item" href="#">
@@ -223,7 +223,7 @@
 
 <!-- Expense Detail Modals -->
 {% for expense in expenses.items %}
-<div class="modal fade" id="expenseModal{{ expense.id }}" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="expenseModal{{ expense.uuid }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">

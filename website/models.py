@@ -1,9 +1,10 @@
-from . import db 
+from . import db
 from flask_login import UserMixin
 from sqlalchemy.sql import func
 from sqlalchemy import and_
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+import uuid
 
 class Company(db.Model):
     __tablename__ = 'company'
@@ -21,7 +22,7 @@ class Company(db.Model):
     # Enhanced company fields
     description = db.Column(db.Text)
     industry = db.Column(db.String(100))
-    company_size = db.Column(db.String(50))  # Small, Medium, Large, Enterprise
+    company_size = db.Column(db.String(50))  # Property count ranges: 1-10, 11-50, 51-100, 100+
     tax_id = db.Column(db.String(50))
     license_number = db.Column(db.String(100))
     established_date = db.Column(db.Date)
@@ -68,9 +69,11 @@ class User(db.Model, UserMixin):
     ROLES = [ROLE_OWNER, ROLE_MANAGER, ROLE_STAFF, ROLE_VIEWER]
     
     id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, index=True)
     first_name = db.Column(db.String(150), nullable=False)
     last_name = db.Column(db.String(150), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
+    phone = db.Column(db.String(20), nullable=True)
     address = db.Column(db.String(150))
     city = db.Column(db.String(150))
     state = db.Column(db.String(150))
@@ -79,24 +82,72 @@ class User(db.Model, UserMixin):
     company = db.Column(db.String(150))
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     role = db.Column(db.String(20), nullable=False, default=ROLE_OWNER)
-    
+    primary_role = db.Column(db.String(50), nullable=True)  # Business role: owner, manager, agent, other
+
+    # Email verification fields (disabled - always verified)
+    email_verified = db.Column(db.Boolean, nullable=False, default=True)
+    email_verified_at = db.Column(db.DateTime, nullable=True)
+
+    # Two-Factor Authentication fields
+    totp_secret = db.Column(db.String(32), nullable=True)  # Base32 encoded secret
+    totp_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    totp_backup_codes = db.Column(db.Text, nullable=True)  # Comma-separated backup codes
+    totp_enabled_at = db.Column(db.DateTime, nullable=True)
+
     # Relationships (tenants now managed at company level)
 
     def __init__(self, first_name="", last_name="", email="", password="", company_id=None, role=None):
+        self.uuid = str(uuid.uuid4())
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
         self.company_id = company_id
         self.role = role or self.ROLE_OWNER  # Default to owner role
+        # Set email as verified by default (email verification disabled)
+        self.email_verified = True
+        self.email_verified_at = db.func.current_timestamp()
         if password:
-            self.password_hash = generate_password_hash(password)
+            self.set_password(password, validate_policy=False)
         
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+    def set_password(self, password, validate_policy=True):
+        """
+        Set user password with optional policy validation.
+        Returns (success, error_messages) tuple when validate_policy=True.
+        """
+        if validate_policy:
+            from .password_policy import PasswordPolicy, PasswordHistory
+
+            # Validate password strength
+            is_valid, errors = PasswordPolicy.validate_password_strength(password)
+            if not is_valid:
+                return False, errors
+
+            # Check password reuse (only for existing users with ID)
+            if self.id and PasswordHistory.check_password_reuse(self.id, password):
+                return False, ["Password has been used recently. Please choose a different password."]
+
+        # Generate new password hash
+        new_hash = generate_password_hash(password)
+
+        # Save old password to history if this is a password change (user exists)
+        if validate_policy and self.id and self.password_hash:
+            from .password_policy import PasswordHistory
+            PasswordHistory.add_password_to_history(self.id, self.password_hash)
+
+        # Set new password
+        self.password_hash = new_hash
+
+        if validate_policy:
+            return True, []
+        return True
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-    
+
+    def get_id(self):
+        """Return the UUID for Flask-Login instead of the integer ID"""
+        return self.uuid
+
     def get_or_create_company(self):
         """Get user's company or create a default one for backward compatibility."""
         if self.company_id:
@@ -147,6 +198,13 @@ class User(db.Model, UserMixin):
     def can_edit(self):
         """Check if user can edit records."""
         return self.role in [self.ROLE_OWNER, self.ROLE_MANAGER, self.ROLE_STAFF]
+
+    @property
+    def properties(self):
+        """Get all properties for user's company."""
+        if self.company_ref:
+            return self.company_ref.properties
+        return []
     
     def can_delete(self):
         """Check if user can delete records."""
@@ -156,18 +214,41 @@ class User(db.Model, UserMixin):
         """Check if user can manage other users."""
         return self.role == self.ROLE_OWNER
 
+    @classmethod
+    def find_by_uuid(cls, user_uuid, company_id=None):
+        """Find user by UUID with optional company_id filter for security."""
+        query = cls.query.filter_by(uuid=user_uuid)
+        if company_id:
+            query = query.filter_by(company_id=company_id)
+        return query.first()
+
 class Portfolio(db.Model):
     __tablename__ = 'portfolio'
     id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, index=True)
     name = db.Column(db.String(150))
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
     # Relationships
     properties = db.relationship('Property', backref='portfolio_ref', lazy=True)
 
+    def __init__(self, name="", company_id=None):
+        self.uuid = str(uuid.uuid4())
+        self.name = name
+        self.company_id = company_id
+
+    @classmethod
+    def find_by_uuid(cls, portfolio_uuid, company_id=None):
+        """Find portfolio by UUID with optional company_id filter for security."""
+        query = cls.query.filter_by(uuid=portfolio_uuid)
+        if company_id:
+            query = query.filter_by(company_id=company_id)
+        return query.first()
+
 class Property(db.Model):
     __tablename__ = 'property'
     id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, index=True)
     name = db.Column(db.String(150), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolio.id'), nullable=True)
@@ -234,6 +315,20 @@ class Property(db.Model):
         else:
             return "Vacant"
 
+    def __init__(self, name="", company_id=None, portfolio_id=None):
+        self.uuid = str(uuid.uuid4())
+        self.name = name
+        self.company_id = company_id
+        self.portfolio_id = portfolio_id
+
+    @classmethod
+    def find_by_uuid(cls, property_uuid, company_id=None):
+        """Find property by UUID with optional company_id filter for security."""
+        query = cls.query.filter_by(uuid=property_uuid)
+        if company_id:
+            query = query.filter_by(company_id=company_id)
+        return query.first()
+
 class PropertyPhoto(db.Model):
     __tablename__ = 'property_photo'
     id = db.Column(db.Integer, primary_key=True)
@@ -263,6 +358,7 @@ class PropertyDocument(db.Model):
 class Unit(db.Model):
     __tablename__ = 'unit'
     id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, index=True)
     name = db.Column(db.String(150))
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'))
@@ -271,7 +367,78 @@ class Unit(db.Model):
     rent = db.Column(db.Integer)
     sqft = db.Column(db.Integer)
     description = db.Column(db.String(500))
-    
+
+    # Phase 1: Physical Details & Features
+    # HVAC & Climate
+    air_conditioning = db.Column(db.Boolean, default=False)  # Central AC, window units, etc.
+    heating_type = db.Column(db.String(50))  # Gas, Electric, Heat Pump, Radiant, etc.
+    thermostat_type = db.Column(db.String(50))  # Manual, Programmable, Smart
+
+    # Appliances & Kitchen
+    appliances_included = db.Column(db.Text)  # JSON or comma-separated list
+    dishwasher = db.Column(db.Boolean, default=False)
+    garbage_disposal = db.Column(db.Boolean, default=False)
+    microwave = db.Column(db.Boolean, default=False)
+    refrigerator = db.Column(db.Boolean, default=False)
+    range_oven = db.Column(db.Boolean, default=False)
+    washer_dryer = db.Column(db.String(50))  # In-unit, Hook-ups, Shared, None
+
+    # Flooring & Interior
+    flooring_type = db.Column(db.Text)  # JSON for different rooms
+    ceiling_height = db.Column(db.Integer)  # in feet
+    windows_type = db.Column(db.String(50))  # Single-pane, Double-pane, etc.
+    natural_light = db.Column(db.String(20))  # Excellent, Good, Fair, Limited
+
+    # Storage & Space
+    closet_space = db.Column(db.String(50))  # Excellent, Good, Limited
+    storage_units = db.Column(db.Integer, default=0)  # Number of additional storage units
+    balcony_patio = db.Column(db.Boolean, default=False)
+    balcony_sqft = db.Column(db.Integer)
+
+    # Parking & Access
+    parking_type = db.Column(db.String(50))  # Garage, Covered, Open, Street, None
+    parking_spaces = db.Column(db.Integer, default=0)
+    garage_type = db.Column(db.String(50))  # Attached, Detached, Carport, None
+
+    # Bathroom Features
+    bathroom_features = db.Column(db.Text)  # JSON array of features
+    master_bath = db.Column(db.Boolean, default=False)
+    bathtub = db.Column(db.Boolean, default=False)
+    shower_type = db.Column(db.String(50))  # Stand-up, Shower/tub combo, Walk-in
+
+    # Condition & Maintenance
+    last_renovated = db.Column(db.Date)
+    condition_rating = db.Column(db.Integer)  # 1-5 scale
+    recent_updates = db.Column(db.Text)  # Recent renovations/updates
+    upcoming_maintenance = db.Column(db.Text)  # Scheduled maintenance
+
+    # Accessibility & Compliance
+    ada_compliant = db.Column(db.Boolean, default=False)
+    wheelchair_accessible = db.Column(db.Boolean, default=False)
+    accessibility_features = db.Column(db.Text)  # JSON array of features
+
+    # Utilities & Energy
+    utilities_included = db.Column(db.Text)  # What utilities are included
+    utility_cost_estimate = db.Column(db.Integer)  # Monthly estimate for tenant
+    energy_efficiency_rating = db.Column(db.String(10))  # Energy Star rating
+
+    # Pet Policy
+    pets_allowed = db.Column(db.Boolean, default=False)
+    pet_restrictions = db.Column(db.Text)  # Breed, size, number restrictions
+    pet_fee_monthly = db.Column(db.Integer, default=0)
+    pet_deposit = db.Column(db.Integer, default=0)
+
+    # Security Features
+    security_features = db.Column(db.Text)  # JSON array of security features
+    alarm_system = db.Column(db.Boolean, default=False)
+    secure_entry = db.Column(db.Boolean, default=False)
+
+    # Technology & Internet
+    internet_included = db.Column(db.Boolean, default=False)
+    cable_ready = db.Column(db.Boolean, default=False)
+    internet_speed = db.Column(db.String(50))  # Speed capabilities
+    smart_home_features = db.Column(db.Text)  # JSON array of smart features
+
     # Relationships with cascade delete
     leases = db.relationship('Lease', backref='unit_ref', cascade='all, delete-orphan')
     
@@ -323,14 +490,29 @@ class Unit(db.Model):
             return min(future_leases, key=lambda x: x.start.date())
         return None
 
+    def __init__(self, name="", company_id=None, property_id=None):
+        self.uuid = str(uuid.uuid4())
+        self.name = name
+        self.company_id = company_id
+        self.property_id = property_id
+
+    @classmethod
+    def find_by_uuid(cls, unit_uuid, company_id=None):
+        """Find unit by UUID with optional company_id filter for security."""
+        query = cls.query.filter_by(uuid=unit_uuid)
+        if company_id:
+            query = query.filter_by(company_id=company_id)
+        return query.first()
+
 class Tenant(db.Model):
     __tablename__ = 'tenant'
     id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, index=True)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     first_name = db.Column(db.String(150), nullable=False)
     last_name = db.Column(db.String(150), nullable=False)
-    email = db.Column(db.String(150))
-    phone = db.Column(db.String(20))
+    email = db.Column(db.String(150), nullable=False)
+    phone = db.Column(db.Integer, nullable=False)
     address = db.Column(db.String(150))
     city = db.Column(db.String(150))
     state = db.Column(db.String(150))
@@ -389,17 +571,85 @@ class Tenant(db.Model):
             return current_lease.unit_ref
         return None
 
+    def __init__(self, first_name="", last_name="", company_id=None):
+        self.uuid = str(uuid.uuid4())
+        self.first_name = first_name
+        self.last_name = last_name
+        self.company_id = company_id
+
+    @classmethod
+    def find_by_uuid(cls, tenant_uuid, company_id=None):
+        """Find tenant by UUID with optional company_id filter for security."""
+        query = cls.query.filter_by(uuid=tenant_uuid)
+        if company_id:
+            query = query.filter_by(company_id=company_id)
+        return query.first()
+
 class Lease(db.Model):
     __tablename__ = 'lease'
     id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, index=True)
     tenant_id = db.Column(db.Integer, db.ForeignKey('tenant.id'), nullable=False)
     unit_id = db.Column(db.Integer, db.ForeignKey('unit.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     start = db.Column(db.DateTime, nullable=False)
     end = db.Column(db.DateTime, nullable=False)
-    rent = db.Column(db.Integer, nullable=False)
-    
+    rent = db.Column(db.Numeric(10, 2), nullable=False)
+
+    # Phase 1: Financial Fields
+    security_deposit = db.Column(db.Numeric(10, 2), nullable=True, default=0)
+    pet_deposit = db.Column(db.Numeric(10, 2), nullable=True, default=0)
+    late_fee = db.Column(db.Numeric(10, 2), nullable=True, default=0)
+    payment_due_date = db.Column(db.Integer, nullable=True, default=1)  # Day of month (1-31)
+    grace_period_days = db.Column(db.Integer, nullable=True, default=5)  # Days before late fee applies
+    utilities_included = db.Column(db.Text, nullable=True)  # Comma-separated list or text description
+    parking_fee = db.Column(db.Numeric(10, 2), nullable=True, default=0)
+
+    # Additional Financial Fields for Comprehensive Tracking
+    application_fee = db.Column(db.Numeric(10, 2), nullable=True, default=0)  # One-time application fee
+    broker_fee = db.Column(db.Numeric(10, 2), nullable=True, default=0)  # Broker/agent fee
+    cleaning_fee = db.Column(db.Numeric(10, 2), nullable=True, default=0)  # Move-out cleaning fee
+    administrative_fee = db.Column(db.Numeric(10, 2), nullable=True, default=0)  # Administrative/processing fee
+    last_month_rent = db.Column(db.Numeric(10, 2), nullable=True, default=0)  # Last month's rent (prepaid)
+    utility_deposits = db.Column(db.Numeric(10, 2), nullable=True, default=0)  # Utility connection deposits
+    storage_fee = db.Column(db.Numeric(10, 2), nullable=True, default=0)  # Monthly storage fee
+    concessions = db.Column(db.Numeric(10, 2), nullable=True, default=0)  # Rent discounts/concessions
+    pet_fee = db.Column(db.Numeric(10, 2), nullable=True, default=0)  # Monthly pet fee (different from deposit)
+
+    # Phase 2: Lease Terms & Conditions
+    lease_type = db.Column(db.String(50), nullable=True, default='fixed')  # fixed, month_to_month, periodic
+    auto_renewal = db.Column(db.String(20), nullable=True, default='no')  # no, month_to_month, same_term
+    notice_period_days = db.Column(db.Integer, nullable=True, default=30)  # Required notice for termination (days)
+    early_termination_fee = db.Column(db.Numeric(10, 2), nullable=True, default=0)  # Fee for breaking lease early
+    max_occupants = db.Column(db.Integer, nullable=True, default=2)  # Maximum number of occupants
+    renewal_terms = db.Column(db.Text, nullable=True)  # Conditions for lease renewal
+
+    # Phase 3: Operational Details
+    move_in_date = db.Column(db.Date, nullable=True)  # Actual move-in date (may differ from lease start)
+    move_out_date = db.Column(db.Date, nullable=True)  # Actual move-out date (may differ from lease end)
+    key_deposit = db.Column(db.Numeric(10, 2), nullable=True, default=0)  # Deposit for keys/access cards
+    move_in_inspection_notes = db.Column(db.Text, nullable=True)  # Notes from move-in inspection
+    move_out_inspection_notes = db.Column(db.Text, nullable=True)  # Notes from move-out inspection
+    lease_status = db.Column(db.String(20), nullable=True, default='active')  # active, terminated, expired, pending
+    property_manager_notes = db.Column(db.Text, nullable=True)  # Internal notes for property management
+    emergency_contact_name = db.Column(db.String(100), nullable=True)  # Emergency contact information
+    emergency_contact_phone = db.Column(db.String(20), nullable=True)  # Emergency contact phone
+
+    # Phase 4: Advanced Features
+    lease_documents = db.Column(db.Text, nullable=True)  # JSON array of document metadata (filename, type, upload_date)
+    compliance_notes = db.Column(db.Text, nullable=True)  # Compliance and regulatory notes
+    insurance_required = db.Column(db.Boolean, nullable=True, default=False)  # Whether renter's insurance is required
+    insurance_verified = db.Column(db.Boolean, nullable=True, default=False)  # Whether insurance has been verified
+    insurance_expiry_date = db.Column(db.Date, nullable=True)  # Insurance policy expiration date
+    background_check_status = db.Column(db.String(20), nullable=True, default='pending')  # pending, approved, rejected
+    background_check_date = db.Column(db.Date, nullable=True)  # Date background check was completed
+    credit_score = db.Column(db.Integer, nullable=True)  # Tenant credit score (if disclosed)
+    # Removed: duplicate of auto_renewal field
+    renewal_reminder_days = db.Column(db.Integer, nullable=True, default=60)  # Days before lease end to send renewal reminder
+    violation_history = db.Column(db.Text, nullable=True)  # JSON array of lease violations
+    maintenance_requests = db.Column(db.Text, nullable=True)  # JSON array of maintenance request references
+
     # Relationships
     payments = db.relationship('Payment', backref='lease_ref', lazy=True, cascade='all, delete-orphan')
     
@@ -442,6 +692,151 @@ class Lease(db.Model):
         """Check if rent payment is overdue."""
         return self.get_outstanding_balance() > 0
 
+    def get_total_upfront_costs(self):
+        """Calculate total upfront costs tenant pays at move-in."""
+        upfront_costs = (
+            float(self.security_deposit or 0) +
+            float(self.pet_deposit or 0) +
+            float(self.application_fee or 0) +
+            float(self.broker_fee or 0) +
+            float(self.cleaning_fee or 0) +
+            float(self.administrative_fee or 0) +
+            float(self.last_month_rent or 0) +
+            float(self.utility_deposits or 0) +
+            float(self.key_deposit or 0)
+        )
+        return upfront_costs
+
+    def get_monthly_recurring_costs(self):
+        """Calculate total monthly recurring costs."""
+        monthly_costs = (
+            float(self.rent or 0) +
+            float(self.parking_fee or 0) +
+            float(self.storage_fee or 0) +
+            float(self.pet_fee or 0)
+        )
+        return monthly_costs
+
+    def get_net_effective_rent(self):
+        """Calculate net effective monthly rent after concessions."""
+        base_rent = float(self.rent or 0)
+        monthly_concessions = float(self.concessions or 0)
+        return max(0, base_rent - monthly_concessions)
+
+    def get_total_lease_value(self):
+        """Calculate total financial value of the entire lease term."""
+        from dateutil.relativedelta import relativedelta
+        import calendar
+
+        lease_start = self.start.date() if self.start else None
+        lease_end = self.end.date() if self.end else None
+
+        if not lease_start or not lease_end:
+            return 0
+
+        total_value = 0
+        current_date = lease_start.replace(day=1)
+
+        while current_date <= lease_end:
+            if current_date.month == lease_start.month and current_date.year == lease_start.year:
+                # Prorate first month
+                days_in_month = calendar.monthrange(current_date.year, current_date.month)[1]
+                days_occupied = days_in_month - lease_start.day + 1
+                monthly_charge = self.get_monthly_recurring_costs()
+                total_value += (monthly_charge * days_occupied) / days_in_month
+            elif current_date <= lease_end:
+                total_value += self.get_monthly_recurring_costs()
+            current_date += relativedelta(months=1)
+
+        # Add one-time fees and deposits
+        total_value += self.get_total_upfront_costs()
+        return total_value
+
+    def get_move_in_costs(self):
+        """Calculate what tenant needs to pay at move-in (first month + deposits)."""
+        first_month_rent = float(self.rent or 0)
+        upfront_costs = self.get_total_upfront_costs()
+        return first_month_rent + upfront_costs
+
+    def calculate_prorated_rent(self, start_date, end_date):
+        """Calculate prorated rent for a specific date range."""
+        import calendar
+        from datetime import timedelta
+
+        if start_date >= end_date:
+            return 0
+
+        # Get the month and year
+        month = start_date.month
+        year = start_date.year
+
+        # Get days in the month
+        days_in_month = calendar.monthrange(year, month)[1]
+
+        # Calculate days occupied
+        if start_date.month == end_date.month:
+            days_occupied = (end_date - start_date).days + 1
+        else:
+            # For simplicity, calculate for the start month only
+            days_occupied = days_in_month - start_date.day + 1
+
+        # Calculate prorated amount
+        daily_rate = float(self.rent or 0) / days_in_month
+        return daily_rate * days_occupied
+
+    def get_payment_schedule(self):
+        """Generate expected payment schedule for the lease term."""
+        from dateutil.relativedelta import relativedelta
+        import calendar
+
+        schedule = []
+        if not self.start or not self.end:
+            return schedule
+
+        lease_start = self.start.date()
+        lease_end = self.end.date()
+        current_date = lease_start.replace(day=self.payment_due_date or 1)
+
+        # Adjust first payment date if it's before lease start
+        if current_date < lease_start:
+            current_date = current_date + relativedelta(months=1)
+
+        payment_number = 1
+        while current_date <= lease_end:
+            # Calculate amount (may be prorated for first/last month)
+            if payment_number == 1 and lease_start.day != (self.payment_due_date or 1):
+                # First month may be prorated
+                amount = self.calculate_prorated_rent(lease_start,
+                    min(lease_start.replace(day=calendar.monthrange(lease_start.year, lease_start.month)[1]), lease_end))
+            else:
+                amount = self.get_monthly_recurring_costs()
+
+            schedule.append({
+                'payment_number': payment_number,
+                'due_date': current_date,
+                'amount': amount,
+                'description': f'Month {payment_number} Rent'
+            })
+
+            current_date += relativedelta(months=1)
+            payment_number += 1
+
+        return schedule
+
+    def get_financial_summary(self):
+        """Get comprehensive financial summary for the lease."""
+        return {
+            'total_upfront_costs': self.get_total_upfront_costs(),
+            'monthly_recurring_costs': self.get_monthly_recurring_costs(),
+            'net_effective_rent': self.get_net_effective_rent(),
+            'total_lease_value': self.get_total_lease_value(),
+            'move_in_costs': self.get_move_in_costs(),
+            'total_paid': self.get_total_paid(),
+            'outstanding_balance': self.get_outstanding_balance(),
+            'is_overdue': self.is_overdue(),
+            'payment_schedule_count': len(self.get_payment_schedule())
+        }
+
     @staticmethod
     def check_tenant_overlap(tenant_id, start_date, end_date, company_id, exclude_lease_id=None):
         """Check if a tenant has overlapping leases."""
@@ -481,6 +876,24 @@ class Lease(db.Model):
             query = query.filter(Lease.id != exclude_lease_id)
 
         return query.first() is not None
+
+    def __init__(self, tenant_id=None, unit_id=None, property_id=None, company_id=None, start=None, end=None, rent=None):
+        self.uuid = str(uuid.uuid4())
+        self.tenant_id = tenant_id
+        self.unit_id = unit_id
+        self.property_id = property_id
+        self.company_id = company_id
+        self.start = start
+        self.end = end
+        self.rent = rent
+
+    @classmethod
+    def find_by_uuid(cls, lease_uuid, company_id=None):
+        """Find lease by UUID with optional company_id filter for security."""
+        query = cls.query.filter_by(uuid=lease_uuid)
+        if company_id:
+            query = query.filter_by(company_id=company_id)
+        return query.first()
 
 
 class Payment(db.Model):
@@ -567,7 +980,90 @@ class Expense(db.Model):
     def get_categories():
         """Get list of expense categories."""
         return [
-            'maintenance', 'repairs', 'utilities', 'insurance', 'taxes', 
+            'maintenance', 'repairs', 'utilities', 'insurance', 'taxes',
             'management_fees', 'legal_fees', 'advertising', 'cleaning',
             'landscaping', 'mortgage_interest', 'depreciation', 'other'
         ]
+
+
+class PasswordHistoryModel(db.Model):
+    """
+    Store password history for users to prevent password reuse.
+    Part of enhanced security implementation.
+    """
+    __tablename__ = 'password_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    password_hash = db.Column(db.String(1500), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    # Relationship
+    user = db.relationship('User', backref='password_history', lazy=True)
+
+    def __repr__(self):
+        return f'<PasswordHistory {self.user_id} - {self.created_at}>'
+
+
+class AuditLogModel(db.Model):
+    """
+    Comprehensive audit logging for security and compliance.
+    Tracks all significant events and user activities.
+    """
+    __tablename__ = 'audit_log'
+
+    id = db.Column(db.String(36), primary_key=True)  # UUID
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+    # Event information
+    event_type = db.Column(db.String(100), nullable=False, index=True)
+    category = db.Column(db.String(50), nullable=False, index=True)
+    severity = db.Column(db.String(20), nullable=False, default='info', index=True)
+    success = db.Column(db.Boolean, nullable=False, default=True)
+
+    # User context
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
+    user_email = db.Column(db.String(150), nullable=True, index=True)
+    user_role = db.Column(db.String(20), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True, index=True)
+
+    # Request context
+    session_id = db.Column(db.String(255), nullable=True)
+    ip_address = db.Column(db.String(45), nullable=True, index=True)  # IPv6 compatible
+    user_agent = db.Column(db.Text, nullable=True)
+    endpoint = db.Column(db.String(200), nullable=True)
+    http_method = db.Column(db.String(10), nullable=True)
+    url = db.Column(db.Text, nullable=True)
+
+    # Resource context
+    resource_type = db.Column(db.String(100), nullable=True, index=True)
+    resource_id = db.Column(db.String(100), nullable=True, index=True)
+
+    # Additional details (JSON)
+    details = db.Column(db.Text, nullable=True)
+
+    # Relationships
+    user = db.relationship('User', backref='audit_logs', lazy=True)
+    company = db.relationship('Company', backref='audit_logs', lazy=True)
+
+    def __repr__(self):
+        return f'<AuditLog {self.event_type} - {self.user_email} - {self.timestamp}>'
+
+
+class EmailVerificationAttempt(db.Model):
+    """
+    Track email verification attempts for rate limiting.
+    Part of enhanced security implementation.
+    """
+    __tablename__ = 'email_verification_attempt'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    email = db.Column(db.String(150), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    # Relationship
+    user = db.relationship('User', backref='verification_attempts', lazy=True)
+
+    def __repr__(self):
+        return f'<EmailVerificationAttempt {self.user_id} - {self.email} - {self.created_at}>'

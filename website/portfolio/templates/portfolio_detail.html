@@ -2,6 +2,15 @@
 
 {% block content %}
 
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('profile.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('portfolio.portfolios') }}">Portfolios</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ portfolio.name }}</li>
+  </ol>
+</nav>
+
 <!-- Portfolio Header -->
 <div class="card mb-3">
     <div class="card-header">
@@ -17,7 +26,10 @@
             </div>
             <div class="col-auto">
                 <div class="btn-group">
-                    <a href="{{ url_for('portfolio.edit', id=portfolio.id) }}" class="btn btn-falcon-default btn-sm">
+                    <a href="{{ url_for('property.create') }}" class="btn btn-falcon-primary btn-sm">
+                        <span class="fas fa-plus fs--2 me-1"></span>Create New Property
+                    </a>
+                    <a href="{{ url_for('portfolio.edit', uuid=portfolio.uuid) }}" class="btn btn-falcon-default btn-sm">
                         <span class="fas fa-edit fs--2 me-1"></span>Edit Portfolio
                     </a>
                     <a href="{{ url_for('portfolio.portfolios') }}" class="btn btn-falcon-default btn-sm">
@@ -33,7 +45,7 @@
 <div class="row g-3 mb-3">
     <div class="col-sm-6 col-xl-3">
         <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url(../static/assets/img/icons/spot-illustrations/corner-1.png);"></div>
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-1.png') }});"></div>
             <div class="card-body position-relative">
                 <h6 class="text-600">Properties</h6>
                 <div class="display-4 fs-4 mb-2 fw-normal font-sans-serif text-primary">{{ metrics.property_count }}</div>
@@ -43,7 +55,7 @@
     </div>
     <div class="col-sm-6 col-xl-3">
         <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url(../static/assets/img/icons/spot-illustrations/corner-2.png);"></div>
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-2.png') }});"></div>
             <div class="card-body position-relative">
                 <h6 class="text-600">Total Units</h6>
                 <div class="display-4 fs-4 mb-2 fw-normal font-sans-serif text-info">{{ metrics.total_units }}</div>
@@ -53,20 +65,20 @@
     </div>
     <div class="col-sm-6 col-xl-3">
         <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url(../static/assets/img/icons/spot-illustrations/corner-3.png);"></div>
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-3.png') }});"></div>
             <div class="card-body position-relative">
                 <h6 class="text-600">Monthly Revenue</h6>
-                <div class="display-4 fs-4 mb-2 fw-normal font-sans-serif text-success">${{ "{:,}".format(metrics.total_revenue) }}</div>
+                <div class="display-4 fs-4 mb-2 fw-normal font-sans-serif text-success">{{ metrics.total_revenue|currency }}</div>
                 <div class="fs--2 text-600">From active leases</div>
             </div>
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
         <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url(../static/assets/img/icons/spot-illustrations/corner-4.png);"></div>
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-4.png') }});"></div>
             <div class="card-body position-relative">
                 <h6 class="text-600">Occupancy Rate</h6>
-                <div class="display-4 fs-4 mb-2 fw-normal font-sans-serif text-warning">{{ "%.1f"|format(metrics.occupancy_rate) }}%</div>
+                <div class="display-4 fs-4 mb-2 fw-normal font-sans-serif text-warning">{{ metrics.occupancy_rate|percentage }}</div>
                 <div class="fs--2 text-600">Overall occupancy</div>
             </div>
         </div>
@@ -103,7 +115,6 @@
                                     <th class="text-900 text-center">Occupied</th>
                                     <th class="text-900 text-center">Occupancy</th>
                                     <th class="text-900 text-end">Revenue</th>
-                                    <th class="text-900 text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -114,7 +125,7 @@
                                         <div class="d-flex align-items-center">
                                             <span class="fas fa-building text-primary me-2"></span>
                                             <div>
-                                                <a href="{{ url_for('property.home', id=property.id) }}" class="text-800 fw-semi-bold">
+                                                <a href="{{ url_for('property.home', uuid=property.uuid) }}" class="text-800 fw-semi-bold">
                                                     {{ property.name }}
                                                 </a>
                                                 {% if property.address %}
@@ -140,29 +151,8 @@
                                     </td>
                                     <td class="text-end">
                                         <span class="text-success fw-semi-bold">
-                                            ${{ "{:,}".format(property_metrics.revenue if property_metrics else 0) }}
+                                            {{ (property_metrics.revenue if property_metrics else 0)|currency }}
                                         </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="dropdown">
-                                            <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal" 
-                                                    type="button" data-bs-toggle="dropdown">
-                                                <span class="fas fa-ellipsis-h fs--1"></span>
-                                            </button>
-                                            <div class="dropdown-menu dropdown-menu-end">
-                                                <a class="dropdown-item" href="{{ url_for('property.home', id=property.id) }}">
-                                                    <span class="fas fa-eye me-1"></span>View Property
-                                                </a>
-                                                <div class="dropdown-divider"></div>
-                                                <form method="POST" action="{{ url_for('portfolio.remove_property', id=portfolio.id) }}" style="display: inline;">
-                                                    <input type="hidden" name="property_id" value="{{ property.id }}">
-                                                    <button type="submit" class="dropdown-item text-danger" 
-                                                            onclick="return confirm('Remove {{ property.name }} from this portfolio?')">
-                                                        <span class="fas fa-times me-1"></span>Remove from Portfolio
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -191,34 +181,8 @@
         </div>
     </div>
 
-    <!-- Portfolio Actions & Stats -->
+    <!-- Portfolio Stats -->
     <div class="col-lg-4 mb-3">
-        <div class="card mb-3">
-            <div class="card-header">
-                <h6 class="mb-0">Portfolio Actions</h6>
-            </div>
-            <div class="card-body">
-                <div class="list-group list-group-flush">
-                    <a href="{{ url_for('property.create') }}" class="list-group-item list-group-item-action d-flex align-items-center">
-                        <span class="fas fa-plus-circle text-primary me-2"></span>
-                        Add New Property
-                    </a>
-                    {% if unassigned_properties %}
-                    <a href="#" class="list-group-item list-group-item-action d-flex align-items-center" 
-                       data-bs-toggle="modal" data-bs-target="#assignPropertyModal">
-                        <span class="fas fa-arrow-right text-info me-2"></span>
-                        Assign Existing Property
-                        <span class="badge badge-soft-info ms-auto">{{ unassigned_properties|length }}</span>
-                    </a>
-                    {% endif %}
-                    <a href="{{ url_for('portfolio.edit', id=portfolio.id) }}" class="list-group-item list-group-item-action d-flex align-items-center">
-                        <span class="fas fa-edit text-success me-2"></span>
-                        Edit Portfolio Details
-                    </a>
-                </div>
-            </div>
-        </div>
-
         <div class="card">
             <div class="card-header">
                 <h6 class="mb-0">Performance Insights</h6>
@@ -228,7 +192,7 @@
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
                             <span class="fs--1">Occupancy Rate</span>
-                            <span class="fs--1 fw-semi-bold">{{ "%.1f"|format(metrics.occupancy_rate) }}%</span>
+                            <span class="fs--1 fw-semi-bold">{{ metrics.occupancy_rate|percentage }}</span>
                         </div>
                         <div class="progress" style="height: 6px;">
                             <div class="progress-bar bg-success" style="width: {{ metrics.occupancy_rate }}%"></div>
@@ -241,13 +205,13 @@
                         
                         <div class="mb-2">
                             <small class="text-600">Best Performing:</small>
-                            <div class="fw-semi-bold text-success">{{ best_property.name }} ({{ "%.0f"|format(best_property.occupancy_rate) }}%)</div>
+                            <div class="fw-semi-bold text-success">{{ best_property.name }} ({{ best_property.occupancy_rate|percentage(0) }})</div>
                         </div>
                         
                         {% if worst_property.occupancy_rate < best_property.occupancy_rate %}
                         <div class="mb-2">
                             <small class="text-600">Needs Attention:</small>
-                            <div class="fw-semi-bold text-warning">{{ worst_property.name }} ({{ "%.0f"|format(worst_property.occupancy_rate) }}%)</div>
+                            <div class="fw-semi-bold text-warning">{{ worst_property.name }} ({{ worst_property.occupancy_rate|percentage(0) }})</div>
                         </div>
                         {% endif %}
                     {% endif %}
@@ -256,7 +220,7 @@
                         <small class="text-600">Average Revenue per Unit:</small>
                         <div class="fw-semi-bold">
                             {% if metrics.total_units > 0 %}
-                                ${{ "{:,.0f}".format(metrics.total_revenue / metrics.total_units) }}
+                                {{ (metrics.total_revenue / metrics.total_units)|currency }}
                             {% else %}
                                 $0
                             {% endif %}
@@ -275,18 +239,19 @@
 <div class="modal fade" id="assignPropertyModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="{{ url_for('portfolio.assign_property', id=portfolio.id) }}">
+            <form method="POST" action="{{ url_for('portfolio.assign_property', uuid=portfolio.uuid) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-header">
                     <h5 class="modal-title">Assign Property to Portfolio</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="property_id" class="form-label">Select Property</label>
-                        <select class="form-select" id="property_id" name="property_id" required>
+                        <label for="property_uuid" class="form-label">Select Property</label>
+                        <select class="form-select" id="property_uuid" name="property_uuid" required>
                             <option value="">Choose a property...</option>
                             {% for property in unassigned_properties %}
-                            <option value="{{ property.id }}">
+                            <option value="{{ property.uuid }}">
                                 {{ property.name }}{% if property.address %} - {{ property.address }}{% endif %}
                             </option>
                             {% endfor %}

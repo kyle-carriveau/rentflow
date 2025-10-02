@@ -1,12 +1,20 @@
 {% extends "base.html" %} 
 
-{% block content %} 
+{% block content %}
+
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('profile.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Leases</li>
+  </ol>
+</nav>
 
 <!-- Lease Summary Cards -->
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-lg-3">
         <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url(/static/img/corner-1.png);"></div>
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-1.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -25,7 +33,7 @@
     
     <div class="col-sm-6 col-lg-3">
         <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url(/static/img/corner-2.png);"></div>
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-2.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -35,7 +43,7 @@
                     </div>
                     <div class="ms-3">
                         {% set total_rent = leases|sum(attribute='rent') or 0 %}
-                        <h4 class="mb-0">${{ "{:,}".format(total_rent) }}</h4>
+                        <h4 class="mb-0">{{ total_rent|currency }}</h4>
                         <p class="text-800 fs--1 mb-0">Monthly Rent</p>
                     </div>
                 </div>
@@ -45,7 +53,7 @@
     
     <div class="col-sm-6 col-lg-3">
         <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url(/static/img/corner-3.png);"></div>
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-3.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -70,7 +78,7 @@
     
     <div class="col-sm-6 col-lg-3">
         <div class="card overflow-hidden">
-            <div class="bg-holder bg-card" style="background-image:url(/static/img/corner-4.png);"></div>
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-4.png') }});"></div>
             <div class="card-body position-relative">
                 <div class="d-flex align-items-center">
                     <div class="avatar avatar-2xl">
@@ -106,26 +114,10 @@
             </div>
             <div class="col-8 col-sm-auto text-end ps-2">
                 <div id="table-leases-replace-element" class="d-flex align-items-center justify-content-end gap-2">
-                    <div class="dropdown">
-                        <button class="btn btn-falcon-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
-                            <span class="d-none d-sm-inline-block ms-1">New Lease</span>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-end">
-                            {% for property in user.properties %}
-                                <a class="dropdown-item" href="{{ url_for('lease.create', id=property.id) }}">
-                                    <span class="fas fa-building me-2"></span>{{ property.name }}
-                                </a>
-                            {% endfor %}
-                            {% if not user.properties %}
-                                <span class="dropdown-item-text text-muted">No properties available</span>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="{{ url_for('property.create') }}">
-                                    <span class="fas fa-plus me-2"></span>Create Property First
-                                </a>
-                            {% endif %}
-                        </div>
-                    </div>
+                    <a href="{{ url_for('lease.create_general') }}" class="btn btn-falcon-primary btn-sm">
+                        <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                        <span class="d-none d-sm-inline-block ms-1">New Lease</span>
+                    </a>
                     <div class="dropdown">
                         <button class="btn btn-falcon-default btn-sm" type="button" id="statusFilter" data-bs-toggle="dropdown" aria-expanded="false">
                             <span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span>
@@ -174,15 +166,15 @@
                                 </button>
                                 <div class="dropdown-menu dropdown-menu-end border py-0">
                                     <div class="py-2">
-                                        <a class="dropdown-item" href="{{ url_for('lease.show', id=lease.id) }}">
+                                        <a class="dropdown-item" href="{{ url_for('lease.show', uuid=lease.uuid) }}">
                                             <span class="fas fa-eye me-1"></span>View Details
                                         </a>
-                                        <a class="dropdown-item" href="{{ url_for('lease.update', id=lease.id) }}">
+                                        <a class="dropdown-item" href="{{ url_for('lease.update', uuid=lease.uuid) }}">
                                             <span class="fas fa-edit me-1"></span>Edit Lease
                                         </a>
                                         <div class="dropdown-divider"></div>
                                         <a class="dropdown-item text-danger" href="#" 
-                                           onclick="deleteLease({{ lease.id }}, '{{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}', '{{ lease.unit_ref.name }}')">
+                                           onclick="deleteLease('{{ lease.uuid }}', '{{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}', '{{ lease.unit_ref.name }}')">
                                             <span class="fas fa-trash me-1"></span>Delete Lease
                                         </a>
                                     </div>
@@ -192,7 +184,7 @@
                         <td class="property">
                             {% if lease.unit_ref and lease.unit_ref.property_ref %}
                                 <div>
-                                    <a href="{{ url_for('property.home', id=lease.unit_ref.property_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                    <a href="{{ url_for('property.show', uuid=lease.unit_ref.property_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
                                         {{ lease.unit_ref.property_ref.name }}
                                     </a>
                                     {% if lease.unit_ref.property_ref.address %}
@@ -206,7 +198,7 @@
                         <td class="unit">
                             {% if lease.unit_ref %}
                                 <div>
-                                    <a href="{{ url_for('unit.show', id=lease.unit_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                    <a href="{{ url_for('unit.show', uuid=lease.unit_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
                                         {{ lease.unit_ref.name }}
                                     </a>
                                     <div class="fs--2 text-600">
@@ -222,7 +214,7 @@
                         <td class="tenant">
                             {% if lease.tenant_ref %}
                                 <div>
-                                    <a href="{{ url_for('tenant.home', id=lease.tenant_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                    <a href="{{ url_for('tenant.home', uuid=lease.tenant_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
                                         {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}
                                     </a>
                                     {% if lease.tenant_ref.email %}
@@ -235,7 +227,7 @@
                         </td>
                         <td class="rent">
                             {% if lease.rent %}
-                                <span class="text-success fw-bold">${{ "{:,}".format(lease.rent) }}</span>
+                                <span class="text-success fw-bold">{{ lease.rent|currency }}</span>
                             {% else %}
                                 <span class="text-400">Not set</span>
                             {% endif %}
@@ -279,15 +271,15 @@
                     </button>
                     <div class="dropdown-menu">
                         {% for property in user.properties %}
-                            <a class="dropdown-item" href="{{ url_for('lease.create', id=property.id) }}">
+                            <a class="dropdown-item" href="{{ url_for('lease.create_general', property=property.uuid) }}">
                                 <span class="fas fa-building me-2"></span>{{ property.name }}
                             </a>
                         {% endfor %}
                     </div>
                 </div>
             {% else %}
-                <a href="{{ url_for('property.create') }}" class="btn btn-falcon-primary btn-sm">
-                    <span class="fas fa-building fs--2 me-1"></span>Create Property First
+                <a href="{{ url_for('lease.create_general') }}" class="btn btn-falcon-primary btn-sm">
+                    <span class="fas fa-file-contract fs--2 me-1"></span>Create New Lease
                 </a>
             {% endif %}
         </div>
@@ -308,13 +300,14 @@
 
 <!-- Delete form -->
 <form id="deleteForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 </form>
 
 <script>
-function deleteLease(leaseId, tenantName, unitName) {
+function deleteLease(leaseUuid, tenantName, unitName) {
     if (confirm(`Are you sure you want to delete the lease for "${tenantName}" in "${unitName}"? This action cannot be undone.`)) {
         const form = document.getElementById('deleteForm');
-        form.action = `/lease/${leaseId}/delete`;
+        form.action = `/lease/${leaseUuid}/delete`;
         form.submit();
     }
 }

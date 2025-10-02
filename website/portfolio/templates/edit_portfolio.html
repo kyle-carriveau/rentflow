@@ -16,7 +16,7 @@
                 </div>
             </div>
             <div class="col-auto">
-                <a href="{{ url_for('portfolio.home', id=portfolio.id) }}" class="btn btn-falcon-default btn-sm">
+                <a href="{{ url_for('portfolio.home', uuid=portfolio.uuid) }}" class="btn btn-falcon-default btn-sm">
                     <span class="fas fa-arrow-left fs--2 me-1"></span>Back to Portfolio
                 </a>
             </div>
@@ -33,6 +33,7 @@
             </div>
             <div class="card-body">
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label for="name" class="form-label">Portfolio Name *</label>
                         <input type="text" class="form-control" id="name" name="name" 
@@ -53,7 +54,7 @@
                             <span class="fas fa-trash fs--2 me-1"></span>Delete Portfolio
                         </button>
                         <div>
-                            <a href="{{ url_for('portfolio.home', id=portfolio.id) }}" class="btn btn-secondary me-2">
+                            <a href="{{ url_for('portfolio.home', uuid=portfolio.uuid) }}" class="btn btn-secondary me-2">
                                 Cancel
                             </a>
                             <button type="submit" class="btn btn-primary">
@@ -68,7 +69,8 @@
 </div>
 
 <!-- Delete confirmation form -->
-<form id="deleteForm" action="{{ url_for('portfolio.delete', id=portfolio.id) }}" method="POST" style="display: none;">
+<form id="deleteForm" action="{{ url_for('portfolio.delete', uuid=portfolio.uuid) }}" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 </form>
 
 <script>

@@ -76,6 +76,21 @@ def can_delete_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def manager_required(f):
+    """Decorator to require manager role or higher."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            flash('Please log in to access this page.', 'error')
+            return redirect(url_for('auth.login'))
+
+        if not (current_user.is_manager() or current_user.is_owner()):
+            flash('Manager permissions or higher required to access this page.', 'error')
+            abort(403)
+
+        return f(*args, **kwargs)
+    return decorated_function
+
 def owner_required(f):
     """Decorator to require owner role."""
     @wraps(f)
@@ -83,10 +98,10 @@ def owner_required(f):
         if not current_user.is_authenticated:
             flash('Please log in to access this page.', 'error')
             return redirect(url_for('auth.login'))
-        
+
         if not current_user.is_owner():
             flash('Only company owners can access this page.', 'error')
             abort(403)
-            
+
         return f(*args, **kwargs)
     return decorated_function

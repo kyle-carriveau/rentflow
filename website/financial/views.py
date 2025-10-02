@@ -112,17 +112,17 @@ def payments():
 def record_payment():
     """Record a new payment."""
     if request.method == 'POST':
-        lease_id = request.form.get('lease_id')
+        lease_uuid = request.form.get('lease_uuid')
         amount = request.form.get('amount')
         payment_date = request.form.get('payment_date')
         payment_method = request.form.get('payment_method', 'cash')
         reference_number = request.form.get('reference_number', '')
         notes = request.form.get('notes', '')
-        
+
         # Enhanced validation with specific error messages
         errors = []
-        
-        if not lease_id:
+
+        if not lease_uuid:
             errors.append('Please select a lease.')
         if not amount:
             errors.append('Please enter a payment amount.')
@@ -137,8 +137,9 @@ def record_payment():
             return redirect(url_for('financial.record_payment'))
         
         try:
-            # Validate lease exists and belongs to user
-            lease = Lease.query.filter_by(id=lease_id).first()
+            # Validate lease exists and belongs to user's company
+            company_id = current_user.get_company_id()
+            lease = Lease.find_by_uuid(lease_uuid, company_id) if lease_uuid else None
             if not lease:
                 flash('The selected lease could not be found.', 'error')
                 return redirect(url_for('financial.record_payment'))
@@ -293,7 +294,8 @@ def add_expense():
     return render_template('add_expense.html',
                          user=current_user,
                          properties=properties,
-                         categories=categories)
+                         categories=categories,
+                         today=datetime.now().strftime('%Y-%m-%d'))
 
 @financial.route('/reports')
 @login_required

@@ -39,7 +39,7 @@
                 <a href="{{ url_for('tenant.tenants') }}" class="btn btn-falcon-default btn-sm">
                     <span class="fas fa-arrow-left me-1"></span>Back to Tenants
                 </a>
-                <a href="{{ url_for('tenant.edit', id=tenant.id) }}" class="btn btn-falcon-primary btn-sm ms-2">
+                <a href="{{ url_for('tenant.edit', uuid=tenant.uuid) }}" class="btn btn-falcon-primary btn-sm ms-2">
                     <span class="fas fa-edit me-1"></span>Edit Tenant
                 </a>
             </div>
@@ -135,7 +135,7 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <a href="{{ url_for('property.home', id=current_lease.unit_ref.property_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                    <a href="{{ url_for('property.home', uuid=current_lease.unit_ref.property_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
                                         {{ current_lease.unit_ref.property_ref.name }}
                                     </a>
                                     {% if current_lease.unit_ref.property_ref.address %}
@@ -158,7 +158,7 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <a href="{{ url_for('unit.show', id=current_lease.unit_ref.id) }}" class="fw-semi-bold text-decoration-none">
+                                    <a href="{{ url_for('unit.show', uuid=current_lease.unit_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
                                         {{ current_lease.unit_ref.name }}
                                     </a>
                                     <div class="fs--2 text-600">
@@ -198,10 +198,10 @@
                 </div>
                 
                 <div class="mt-3">
-                    <a href="{{ url_for('lease.show', id=current_lease.id) }}" class="btn btn-falcon-default btn-sm">
+                    <a href="{{ url_for('lease.show', uuid=current_lease.uuid) }}" class="btn btn-falcon-default btn-sm">
                         <span class="fas fa-eye me-1"></span>View Lease Details
                     </a>
-                    <a href="{{ url_for('lease.update', id=current_lease.id) }}" class="btn btn-falcon-primary btn-sm ms-2">
+                    <a href="{{ url_for('lease.update', uuid=current_lease.uuid) }}" class="btn btn-falcon-primary btn-sm ms-2">
                         <span class="fas fa-edit me-1"></span>Edit Lease
                     </a>
                 </div>
@@ -266,7 +266,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('lease.show', id=lease.id) }}" class="btn btn-link btn-sm p-0">
+                                    <a href="{{ url_for('lease.show', uuid=lease.uuid) }}" class="btn btn-link btn-sm p-0">
                                         <span class="fas fa-eye"></span>
                                     </a>
                                 </td>
@@ -342,7 +342,7 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a href="{{ url_for('tenant.edit', id=tenant.id) }}" class="btn btn-falcon-primary w-100">
+                    <a href="{{ url_for('tenant.edit', uuid=tenant.uuid) }}" class="btn btn-falcon-primary w-100">
                         <span class="fas fa-edit me-1"></span>Edit Tenant Info
                     </a>
                     
@@ -353,7 +353,7 @@
                             </button>
                             <div class="dropdown-menu w-100">
                                 {% for property in user.properties %}
-                                    <a class="dropdown-item" href="{{ url_for('lease.create', id=property.id) }}?tenant={{ tenant.id }}">
+                                    <a class="dropdown-item" href="{{ url_for('lease.create_general', property=property.uuid, tenant=tenant.uuid) }}">
                                         <span class="fas fa-building me-2"></span>{{ property.name }}
                                     </a>
                                 {% endfor %}
@@ -375,13 +375,14 @@
 
 <!-- Delete Form -->
 <form id="deleteForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 </form>
 
 <script>
 function deleteTenant() {
     if (confirm('Are you sure you want to delete tenant "{{ tenant.first_name }} {{ tenant.last_name }}"? This action cannot be undone.')) {
         const form = document.getElementById('deleteForm');
-        form.action = `/tenant/{{ tenant.id }}/delete`;
+        form.action = `/tenant/{{ tenant.uuid }}/delete`;
         form.submit();
     }
 }

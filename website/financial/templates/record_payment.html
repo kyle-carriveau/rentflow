@@ -4,39 +4,33 @@
 
 {% block content %}
 
-<!-- Page Header -->
-<div class="row align-items-center justify-content-between g-3 mb-4">
-    <div class="col-auto">
-        <h2 class="mb-0">Record Payment</h2>
-        <p class="mb-0 text-700">Record a rent payment from a tenant</p>
-    </div>
-    <div class="col-auto">
-        <a href="{{ url_for('financial.payments') }}" class="btn btn-falcon-default btn-sm">
-            <span class="fas fa-arrow-left me-1"></span>Back to Payments
-        </a>
-    </div>
-</div>
-
 <!-- Payment Form -->
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <span class="fas fa-dollar-sign me-2"></span>Payment Details
-                </h6>
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h5 class="mb-0">Record Payment</h5>
+                <p class="mb-0 text-700">Record a rent payment from a tenant</p>
             </div>
-            <div class="card-body">
+            <div class="col-auto">
+                <a href="{{ url_for('financial.payments') }}" class="btn btn-falcon-default btn-sm">
+                    <span class="fas fa-arrow-left me-1"></span>Back to Payments
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body bg-light border-top">
                 <form method="POST" id="recordPaymentForm" class="needs-validation" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="row g-3">
                         <!-- Lease Selection -->
                         <div class="col-md-12">
-                            <label for="lease_id" class="form-label">Select Lease <span class="text-danger">*</span></label>
-                            <select class="form-select" id="lease_id" name="lease_id" required>
+                            <label for="lease_uuid" class="form-label">Select Lease <span class="text-danger">*</span></label>
+                            <select class="form-select" id="lease_uuid" name="lease_uuid" required>
                                 <option value="">Choose a lease...</option>
                                 {% for lease in leases %}
-                                <option value="{{ lease.id }}" 
-                                        {% if request.args.get('lease') == lease.id|string %}selected{% endif %}>
+                                <option value="{{ lease.uuid }}"
+                                        {% if request.args.get('lease') == lease.uuid %}selected{% endif %}>
                                     {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }} - 
                                     {{ lease.lease_property_ref.name }} (Unit {{ lease.unit_ref.name }}) - 
                                     ${{ "{:,.2f}".format(lease.rent) }}/month
@@ -97,15 +91,13 @@
                         <div class="col-12">
                             <div class="d-flex justify-content-end gap-2">
                                 <a href="{{ url_for('financial.payments') }}" class="btn btn-falcon-default">Cancel</a>
-                                <button type="submit" class="btn btn-falcon-success" data-loading="Recording payment...">
+                                <button type="submit" class="btn btn-falcon-success">
                                     <span class="fas fa-save me-1"></span>Record Payment
                                 </button>
                             </div>
                         </div>
                     </div>
                 </form>
-            </div>
-        </div>
     </div>
 </div>
 

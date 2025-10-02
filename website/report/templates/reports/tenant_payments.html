@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Tenant Payments - RentFlow{% endblock %}
+
+{% block content %}
+
+<!-- Tenant Payments Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('report.dashboard') }}">Reports</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Tenant Payments</li>
+            </ol>
+        </nav>
+        <h2 class="mb-0">Tenant Payment Analysis</h2>
+        <p class="mb-0 text-700">Payment history, late payments, and outstanding balances.</p>
+    </div>
+    <div class="col-auto">
+        <form method="GET" class="d-flex align-items-center gap-2">
+            <input type="date" class="form-control form-control-sm" name="start_date" value="{{ start_date }}" style="width: 140px;">
+            <span class="text-600">to</span>
+            <input type="date" class="form-control form-control-sm" name="end_date" value="{{ end_date }}" style="width: 140px;">
+            <button type="submit" class="btn btn-falcon-primary btn-sm">Filter</button>
+        </form>
+    </div>
+</div>
+
+<!-- Payment Summary Cards -->
+<div class="row g-3 mb-4">
+    <!-- Total Payments -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-1.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-dollar-sign"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        {% set total_collected = payment_analysis|sum(attribute='total_paid') %}
+                        <h4 class="mb-0">${{ "%.0f"|format((total_collected or 0)|float) }}</h4>
+                        <p class="text-800 fs--1 mb-0">Total Collected</p>
+                        <small class="text-success">Period total</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Outstanding Balance -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-2.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-exclamation-triangle"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        {% set total_outstanding = outstanding_balances|sum(attribute='balance') %}
+                        <h4 class="mb-0">${{ "%.0f"|format((total_outstanding or 0)|float) }}</h4>
+                        <p class="text-800 fs--1 mb-0">Outstanding</p>
+                        <small class="text-warning">{{ outstanding_balances|length }} tenants</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Late Payments -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-3.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-danger text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-clock"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">{{ late_payments|length }}</h4>
+                        <p class="text-800 fs--1 mb-0">Late Payments</p>
+                        <small class="text-danger">This period</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Tenants -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-4.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-info text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-users"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">{{ payment_analysis|length }}</h4>
+                        <p class="text-800 fs--1 mb-0">Active Tenants</p>
+                        <small class="text-info">With payments</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Outstanding Balances -->
+{% if outstanding_balances %}
+<div class="row g-3 mb-4">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">Outstanding Balances</h5>
+                        <p class="mb-0 text-600">Tenants with outstanding rent payments</p>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge badge-soft-danger">{{ outstanding_balances|length }} tenant(s)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Tenant</th>
+                                <th>Property</th>
+                                <th>Unit</th>
+                                <th class="text-end">Outstanding Balance</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for balance in outstanding_balances %}
+                            <tr>
+                                <td>
+                                    <div>
+                                        <a href="{{ url_for('tenant.tenant_detail', uuid=balance.tenant.uuid) }}" class="fw-semi-bold text-decoration-none">
+                                            {{ balance.tenant.first_name }} {{ balance.tenant.last_name }}
+                                        </a>
+                                        {% if balance.tenant.email %}
+                                            <div class="fs--2 text-600">{{ balance.tenant.email }}</div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>{{ balance.property }}</td>
+                                <td>{{ balance.unit }}</td>
+                                <td class="text-end">
+                                    <span class="text-danger fw-bold">${{ "%.2f"|format((balance.balance or 0)|float) }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="{{ url_for('financial.record_payment') }}?tenant_uuid={{ balance.tenant.uuid }}" class="btn btn-falcon-primary btn-sm">
+                                        <span class="fas fa-plus me-1"></span>Record Payment
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Payment Analysis by Tenant -->
+{% if payment_analysis %}
+<div class="row g-3">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Payment Analysis by Tenant</h5>
+                <p class="mb-0 text-600">Detailed payment history from {{ start_date }} to {{ end_date }}</p>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Tenant</th>
+                                <th class="text-center">Total Payments</th>
+                                <th class="text-end">Amount Paid</th>
+                                <th class="text-center">Last Payment</th>
+                                <th class="text-center">Payment Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tenant, total_paid, payment_count, last_payment in payment_analysis %}
+                            <tr>
+                                <td>
+                                    <div>
+                                        <a href="{{ url_for('tenant.tenant_detail', uuid=tenant.uuid) }}" class="fw-semi-bold text-decoration-none">
+                                            {{ tenant.first_name }} {{ tenant.last_name }}
+                                        </a>
+                                        {% if tenant.email %}
+                                            <div class="fs--2 text-600">{{ tenant.email }}</div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge badge-soft-info">{{ payment_count }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-success fw-bold">${{ "%.2f"|format((total_paid or 0)|float) }}</span>
+                                </td>
+                                <td class="text-center">
+                                    {% if last_payment %}
+                                        <span class="fs--1">{{ last_payment.strftime('%m/%d/%Y') }}</span>
+                                    {% else %}
+                                        <span class="text-400">No payments</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if last_payment %}
+                                        {% set days_since = (date_today - last_payment.date()).days %}
+                                        {% if days_since <= 30 %}
+                                            <span class="badge badge-soft-success">Current</span>
+                                        {% elif days_since <= 60 %}
+                                            <span class="badge badge-soft-warning">Attention</span>
+                                        {% else %}
+                                            <span class="badge badge-soft-danger">Overdue</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge badge-soft-secondary">No Data</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

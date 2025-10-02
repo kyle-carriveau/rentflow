@@ -165,11 +165,114 @@ The application runs in debug mode on `http://127.0.0.1:5000` and automatically 
 - Implement proper role-based access control
 - Maintain consistent error handling and user feedback
 
-### Testing Strategy
-- Test multi-tenant isolation thoroughly
-- Verify role-based permissions
-- Validate financial calculations and reporting
-- Test user management and invitation flows
+### Testing Strategy & Requirements
+
+#### Testing Philosophy
+- **Test-Driven Development**: Write unit tests for all new code before implementation
+- **Multi-Tenant Testing**: Ensure complete data isolation between companies
+- **Security-First**: Validate role-based permissions and access controls
+- **Financial Accuracy**: Rigorous testing for all monetary calculations
+- **Coverage Target**: Maintain minimum 80% test coverage
+
+#### Test Organization Structure
+```
+tests/
+├── conftest.py                 # Shared fixtures and setup
+├── unit/                      # Unit tests (models, utilities)
+│   ├── test_models.py
+│   ├── test_auth.py
+│   └── test_utils.py
+├── integration/               # Integration tests (workflows)
+│   ├── test_tenant_workflows.py
+│   ├── test_financial_workflows.py
+│   └── test_property_workflows.py
+├── views/                     # View/endpoint tests
+│   ├── test_auth_views.py
+│   ├── test_property_views.py
+│   ├── test_financial_views.py
+│   └── test_report_views.py
+└── fixtures/                  # Test data factories
+    ├── user_fixtures.py
+    └── property_fixtures.py
+```
+
+#### Testing Framework Stack
+- **pytest**: Primary testing framework with fixtures
+- **pytest-flask**: Flask application testing utilities
+- **pytest-cov**: Code coverage reporting and enforcement
+- **factory-boy**: Test data generation and factories
+- **Flask-Testing**: Flask-specific testing helpers
+
+#### Test Categories & Markers
+Use pytest markers to categorize tests:
+- `@pytest.mark.unit` - Fast, isolated unit tests
+- `@pytest.mark.integration` - Multi-component integration tests
+- `@pytest.mark.views` - HTTP endpoint and view tests
+- `@pytest.mark.auth` - Authentication and authorization tests
+- `@pytest.mark.models` - Database model tests
+- `@pytest.mark.financial` - Financial calculation tests
+- `@pytest.mark.security` - Security and permission tests
+
+#### Naming Conventions
+- **Test files**: `test_[module_name].py`
+- **Test classes**: `Test[ClassName]` (PascalCase)
+- **Test methods**: `test_[specific_behavior]` (snake_case)
+- **Fixtures**: `[fixture_name]_factory` or `[fixture_name]_fixture`
+
+#### Multi-Tenant Testing Requirements
+All tests involving data must ensure:
+```python
+# Example: Company isolation test
+def test_property_query_respects_company_isolation(app, company_a, company_b):
+    with app.app_context():
+        # Create properties for each company
+        property_a = create_property(company_id=company_a.id)
+        property_b = create_property(company_id=company_b.id)
+
+        # Verify company A only sees their data
+        with login_as_company(company_a):
+            properties = Property.query.filter_by(company_id=company_a.id).all()
+            assert property_a in properties
+            assert property_b not in properties
+```
+
+#### Security Testing Requirements
+Every endpoint must be tested for:
+- **Authentication**: Unauthenticated access blocked
+- **Authorization**: Role-based access enforced
+- **Data Isolation**: Company-level data separation
+- **Input Validation**: XSS, CSRF, and injection prevention
+
+#### Financial Testing Requirements
+All monetary calculations require:
+- **Decimal Precision**: Use `Decimal` for currency, test rounding
+- **Edge Cases**: Zero amounts, negative values, large numbers
+- **Currency Formatting**: Display and storage consistency
+- **Audit Trails**: Payment and expense tracking validation
+
+#### Running Tests
+```bash
+# Run all tests with coverage
+pytest --cov=website --cov-report=term-missing --cov-report=html
+
+# Run specific test categories
+pytest -m unit                 # Fast unit tests only
+pytest -m integration          # Integration tests only
+pytest -m "unit or views"      # Multiple markers
+
+# Run tests for specific modules
+pytest tests/views/test_property_views.py
+pytest tests/unit/test_models.py
+
+# Run with verbose output
+pytest -v -s
+```
+
+#### Test Database Setup
+- **Isolation**: Each test gets fresh database state
+- **Transactions**: Tests run in separate transactions (rolled back)
+- **Fixtures**: Use factories for consistent test data
+- **Performance**: In-memory SQLite for fast test execution
 
 ## Architecture Benefits
 

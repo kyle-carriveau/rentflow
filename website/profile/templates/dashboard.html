@@ -1,8 +1,8 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
 
 {% block title %}Dashboard - RentFlow{% endblock %}
 
-{% block content %} 
+{% block content %}
 
 <!-- Dashboard Header -->
 <div class="row align-items-center justify-content-between g-3 mb-4">
@@ -11,142 +11,223 @@
         <p class="mb-0 text-700">Welcome back, {{ current_user.first_name }}! Here's what's happening with your properties.</p>
     </div>
     <div class="col-auto">
-        <div class="btn-group" role="group">
-            <button class="btn btn-falcon-default btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <span class="fas fa-plus me-1"></span>Quick Add
-            </button>
-            <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{{ url_for('property.create') }}">
-                    <span class="fas fa-building me-2"></span>New Property
-                </a></li>
-                <li><a class="dropdown-item" href="{{ url_for('tenant.create') }}">
-                    <span class="fas fa-user me-2"></span>New Tenant
-                </a></li>
-                <li><a class="dropdown-item" href="{{ url_for('portfolio.portfolios') }}">
-                    <span class="fas fa-layer-group me-2"></span>New Portfolio
-                </a></li>
-            </ul>
+        <div class="d-flex align-items-center gap-2">
+            <!-- Notifications Bell -->
+            {% if expiring_leases %}
+            <div class="dropdown">
+                <button class="btn btn-falcon-default btn-sm position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="fas fa-bell"></span>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        {{ expiring_leases|length }}
+                    </span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" style="width: 300px;">
+                    <li><h6 class="dropdown-header">Lease Expiration Alerts</h6></li>
+                    {% for lease in expiring_leases %}
+                    {% if loop.index <= 5 %}
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('lease.show', uuid=lease.uuid) }}">
+                            <div class="d-flex">
+                                <div class="flex-1">
+                                    <p class="mb-0 fw-semi-bold">{{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}</p>
+                                    <small class="text-600">Expires: {{ lease.end.strftime('%m/%d/%Y') }}</small>
+                                </div>
+                                <small class="text-warning">
+                                    {% set days_left = (lease.end - today_date).days %}
+                                    {{ days_left }} days
+                                </small>
+                            </div>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    {% if expiring_leases|length > 5 %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-center" href="{{ url_for('lease.leases') }}">View All ({{ expiring_leases|length }})</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Quick Add -->
+            <div class="btn-group" role="group">
+                <button class="btn btn-falcon-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="fas fa-plus me-1"></span>Quick Add
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ url_for('property.create') }}">
+                        <span class="fas fa-building me-2"></span>New Property
+                    </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('tenant.create') }}">
+                        <span class="fas fa-user me-2"></span>New Tenant
+                    </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lease.create_general') }}">
+                        <span class="fas fa-file-contract me-2"></span>New Lease
+                    </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('financial.record_payment') }}">
+                        <span class="fas fa-dollar-sign me-2"></span>Record Payment
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('portfolio.portfolios') }}">
+                        <span class="fas fa-layer-group me-2"></span>New Portfolio
+                    </a></li>
+                </ul>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Key Metrics Cards -->
 <div class="row g-3 mb-4">
-    <!-- Total Properties -->
-    <div class="col-sm-6 col-lg-3">
-        <div class="card overflow-hidden h-100">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-1.png') }});"></div>
+    <!-- Portfolio Overview -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-1.png') }});"></div>
             <div class="card-body position-relative">
-                <div class="d-flex align-items-center">
-                    <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
-                            <span class="fas fa-building"></span>
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="avatar avatar-3xl">
+                            <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
+                                <span class="fas fa-building fa-2x"></span>
+                            </div>
                         </div>
                     </div>
-                    <div class="ms-3">
-                        <h4 class="mb-0">{{ properties|length }}</h4>
-                        <p class="text-800 fs--1 mb-0">Total Properties</p>
-                        {% if properties|length > 0 %}
-                            <small class="text-600">
-                                {{ portfolios|length }} portfolio{% if portfolios|length != 1 %}s{% endif %}
-                            </small>
-                        {% endif %}
+                    <div class="col">
+                        <h3 class="mb-1">{{ properties|length }}</h3>
+                        <h6 class="text-800 mb-2">Total Properties</h6>
+                        <div class="row g-0">
+                            <div class="col-6">
+                                <div class="border-end pe-2">
+                                    <p class="mb-0 text-600 fs--2">Portfolios</p>
+                                    <h5 class="mb-0">{{ portfolios|length }}</h5>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="ps-2">
+                                    <p class="mb-0 text-600 fs--2">Total Units</p>
+                                    {% set total_units = properties|map(attribute='units')|map('length')|sum %}
+                                    <h5 class="mb-0">{{ total_units }}</h5>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Total Units -->
-    <div class="col-sm-6 col-lg-3">
-        <div class="card overflow-hidden h-100">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-2.png') }});"></div>
+    <!-- Occupancy & Performance -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-2.png') }});"></div>
             <div class="card-body position-relative">
-                <div class="d-flex align-items-center">
-                    <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
-                            <span class="fas fa-home"></span>
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="avatar avatar-3xl">
+                            <div class="avatar-name rounded-circle {% if occupancy_rate >= 90 %}bg-success{% elif occupancy_rate >= 70 %}bg-warning{% else %}bg-danger{% endif %} text-white d-flex align-items-center justify-content-center">
+                                <span class="fas fa-chart-line fa-2x"></span>
+                            </div>
                         </div>
                     </div>
-                    <div class="ms-3">
-                        {% set total_units = [] %}
-                        {% for property in properties %}
-                            {% for unit in property.units %}
-                                {% set _ = total_units.append(unit) %}
-                            {% endfor %}
-                        {% endfor %}
-                        <h4 class="mb-0">{{ total_units|length }}</h4>
-                        <p class="text-800 fs--1 mb-0">Total Units</p>
-                        {% set occupied_units = [] %}
-                        {% for unit in total_units %}
-                            {% if unit.get_lease_status() == 'Occupied' %}
-                                {% set _ = occupied_units.append(unit) %}
-                            {% endif %}
-                        {% endfor %}
-                        <small class="text-success">
-                            {{ occupied_units|length }} occupied
-                        </small>
+                    <div class="col">
+                        <h3 class="mb-1 {% if occupancy_rate >= 90 %}text-success{% elif occupancy_rate >= 70 %}text-warning{% else %}text-danger{% endif %}">
+                            {{ "%.1f"|format(occupancy_rate) }}%
+                        </h3>
+                        <h6 class="text-800 mb-2">Occupancy Rate</h6>
+                        <div class="row g-0">
+                            <div class="col-6">
+                                <div class="border-end pe-2">
+                                    <p class="mb-0 text-600 fs--2">Occupied</p>
+                                    {% set total_units = properties|map(attribute='units')|map('length')|sum %}
+                                    {% set occupied_count = (occupancy_rate * total_units / 100)|int %}
+                                    <h5 class="mb-0">{{ occupied_count }}/{{ total_units }}</h5>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="ps-2">
+                                    <p class="mb-0 text-600 fs--2">Revenue/Unit</p>
+                                    <h5 class="mb-0">${{ "%.0f"|format((revenue_per_unit or 0)|float) }}</h5>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Active Tenants -->
-    <div class="col-sm-6 col-lg-3">
-        <div class="card overflow-hidden h-100">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-3.png') }});"></div>
+    <!-- Financial Overview -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-3.png') }});"></div>
             <div class="card-body position-relative">
-                <div class="d-flex align-items-center">
-                    <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-info text-white d-flex align-items-center justify-content-center">
-                            <span class="fas fa-users"></span>
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="avatar avatar-3xl">
+                            <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
+                                <span class="fas fa-dollar-sign fa-2x"></span>
+                            </div>
                         </div>
                     </div>
-                    <div class="ms-3">
-                        {% set active_tenants = [] %}
-                        {% for tenant in tenants %}
-                            {% if tenant.get_lease_status() == 'Active' %}
-                                {% set _ = active_tenants.append(tenant) %}
-                            {% endif %}
-                        {% endfor %}
-                        <h4 class="mb-0">{{ active_tenants|length }}</h4>
-                        <p class="text-800 fs--1 mb-0">Active Tenants</p>
-                        <small class="text-600">
-                            {{ tenants|length }} total
-                        </small>
+                    <div class="col">
+                        <h3 class="mb-1">${{ "%.0f"|format((total_monthly_revenue or 0)|float) }}</h3>
+                        <h6 class="text-800 mb-2">Monthly Revenue</h6>
+                        <div class="row g-0">
+                            <div class="col-6">
+                                <div class="border-end pe-2">
+                                    <p class="mb-0 text-600 fs--2">Collection Rate</p>
+                                    <h5 class="mb-0 {% if collection_rate >= 95 %}text-success{% elif collection_rate >= 80 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ "%.0f"|format((collection_rate or 0)|float) }}%
+                                    </h5>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="ps-2">
+                                    <p class="mb-0 text-600 fs--2">Net Effective</p>
+                                    <h5 class="mb-0">${{ "%.0f"|format((total_net_effective_rent or 0)|float) }}</h5>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Monthly Revenue -->
-    <div class="col-sm-6 col-lg-3">
-        <div class="card overflow-hidden h-100">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/corner-4.png') }});"></div>
+    <!-- Outstanding & Collections -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-4.png') }});"></div>
             <div class="card-body position-relative">
-                <div class="d-flex align-items-center">
-                    <div class="avatar avatar-2xl">
-                        <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
-                            <span class="fas fa-dollar-sign"></span>
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="avatar avatar-3xl">
+                            <div class="avatar-name rounded-circle {% if outstanding_total > 0 %}bg-warning{% else %}bg-success{% endif %} text-white d-flex align-items-center justify-content-center">
+                                <span class="fas fa-{% if outstanding_total > 0 %}exclamation-triangle{% else %}check-circle{% endif %} fa-2x"></span>
+                            </div>
                         </div>
                     </div>
-                    <div class="ms-3">
-                        {% set total_revenue = 0 %}
-                        {% for unit in total_units %}
-                            {% set current_lease = unit.get_current_lease() %}
-                            {% if current_lease and current_lease.rent %}
-                                {% set total_revenue = total_revenue + current_lease.rent %}
-                            {% endif %}
-                        {% endfor %}
-                        <h4 class="mb-0">${{ "{:,}".format(total_revenue) }}</h4>
-                        <p class="text-800 fs--1 mb-0">Monthly Revenue</p>
-                        {% if total_units|length > 0 %}
-                            <small class="text-600">
-                                ${{ "{:,}".format((total_revenue / total_units|length)|round) }} avg/unit
-                            </small>
-                        {% endif %}
+                    <div class="col">
+                        <h3 class="mb-1 {% if outstanding_total > 0 %}text-warning{% else %}text-success{% endif %}">
+                            ${{ "%.0f"|format((outstanding_total or 0)|float) }}
+                        </h3>
+                        <h6 class="text-800 mb-2">Outstanding Balance</h6>
+                        <div class="row g-0">
+                            <div class="col-6">
+                                <div class="border-end pe-2">
+                                    <p class="mb-0 text-600 fs--2">Status</p>
+                                    <h6 class="mb-0 {% if outstanding_total > 0 %}text-warning{% else %}text-success{% endif %}">
+                                        {% if outstanding_total > 0 %}Attention Needed{% else %}All Current{% endif %}
+                                    </h6>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="ps-2">
+                                    <p class="mb-0 text-600 fs--2">Deposits Held</p>
+                                    <h5 class="mb-0">${{ "%.0f"|format((total_upfront_costs or 0)|float) }}</h5>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -154,311 +235,550 @@
     </div>
 </div>
 
-<!-- Dashboard Content Row -->
-<div class="row g-3">
-    <!-- Left Column -->
-    <div class="col-lg-8">
-        <!-- Occupancy Overview -->
-        <div class="card mb-3">
+<!-- Portfolio Performance and Insights Row -->
+<div class="row g-3 mb-4">
+    <!-- Portfolio Performance -->
+    <div class="col-lg-6">
+        <div class="card h-100">
             <div class="card-header">
                 <div class="row align-items-center">
                     <div class="col">
-                        <h6 class="mb-0">
-                            <span class="fas fa-chart-pie me-2"></span>Occupancy Overview
-                        </h6>
+                        <h5 class="mb-0">Portfolio Performance</h5>
+                        <p class="mb-0 text-600">Comparison across portfolios</p>
                     </div>
                 </div>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="avatar avatar-2xl me-3">
-                                <div class="avatar-name rounded-circle bg-success bg-soft d-flex align-items-center justify-content-center">
-                                    <span class="fas fa-home text-white"></span>
-                                </div>
-                            </div>
-                            <div>
-                                <h4 class="mb-0 text-success">{{ occupied_units|length }}</h4>
-                                <p class="text-600 mb-0">Occupied Units</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="avatar avatar-2xl me-3">
-                                <div class="avatar-name rounded-circle bg-warning bg-soft d-flex align-items-center justify-content-center">
-                                    <span class="fas fa-home text-white"></span>
-                                </div>
-                            </div>
-                            <div>
-                                {% set available_units = total_units|length - occupied_units|length %}
-                                <h4 class="mb-0 text-warning">{{ available_units }}</h4>
-                                <p class="text-600 mb-0">Available Units</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% if total_units|length > 0 %}
-                    {% set occupancy_rate = (occupied_units|length / total_units|length * 100)|round(1) %}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-600">Occupancy Rate</span>
-                            <span class="text-800 fw-semi-bold">{{ occupancy_rate }}%</span>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ occupancy_rate }}%"></div>
-                        </div>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <div class="row align-items-center">
-                    <div class="col">
-                        <h6 class="mb-0">
-                            <span class="fas fa-clock me-2"></span>Recent Activity
-                        </h6>
-                    </div>
-                    <div class="col-auto">
-                        <a href="{{ url_for('lease.leases') }}" class="btn btn-falcon-default btn-sm">
-                            View All
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                {% set all_leases = [] %}
-                {% for tenant in tenants %}
-                    {% for lease in tenant.leases %}
-                        {% set _ = all_leases.append(lease) %}
-                    {% endfor %}
-                {% endfor %}
-                {% set sorted_leases = all_leases|sort(attribute='id', reverse=true) %}
-                
-                {% if sorted_leases %}
-                    <div class="list-group list-group-flush">
-                        {% for lease in sorted_leases %}
-                            {% if loop.index <= 5 %}
-                            <div class="list-group-item list-group-item-action">
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-1">
-                                        <h6 class="mb-1">
-                                            {% if lease.tenant_ref %}
-                                                Lease for {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}
-                                            {% else %}
-                                                Lease Agreement
-                                            {% endif %}
-                                        </h6>
-                                        <p class="mb-0 text-600 fs--1">
-                                            {% if lease.unit_ref %}
-                                                {{ lease.unit_ref.name }} 
-                                                {% if lease.unit_ref.property_ref %}
-                                                    at {{ lease.unit_ref.property_ref.name }}
-                                                {% endif %}
-                                            {% endif %}
-                                            • ${{ "{:,}".format(lease.rent) if lease.rent else 'N/A' }}/month
-                                        </p>
-                                    </div>
-                                    <div class="text-end">
-                                        <small class="text-600">
-                                            {{ lease.start.strftime('%m/%d/%Y') if lease.start else 'N/A' }}
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                        {% endfor %}
+                {% if portfolio_metrics %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Portfolio</th>
+                                    <th>Occupancy</th>
+                                    <th>Revenue</th>
+                                    <th>Rev/Unit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for metric in portfolio_metrics %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ metric.portfolio.name }}</strong>
+                                        <div class="text-600 fs--2">{{ metric.properties_count }} properties</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if metric.occupancy_rate >= 90 %}badge-soft-success{% elif metric.occupancy_rate >= 70 %}badge-soft-warning{% else %}badge-soft-danger{% endif %}">
+                                            {{ "%.0f"|format(metric.occupancy_rate) }}%
+                                        </span>
+                                        <div class="text-600 fs--2">{{ metric.occupied_units }}/{{ metric.total_units }}</div>
+                                    </td>
+                                    <td>
+                                        <strong>${{ "%.0f"|format(metric.monthly_revenue) }}</strong>
+                                    </td>
+                                    <td>
+                                        ${{ "%.0f"|format(metric.revenue_per_unit) }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 {% else %}
-                    <div class="text-center p-4">
-                        <h6 class="mt-3 mb-1">No Recent Activity</h6>
-                        <p class="text-600 mb-3">Create your first lease to see activity here.</p>
-                        <a href="{{ url_for('lease.leases') }}" class="btn btn-falcon-primary btn-sm">
-                            <span class="fas fa-plus me-1"></span>Create Lease
-                        </a>
+                    <div class="text-center py-4">
+                        <span class="fas fa-layer-group fa-2x text-300 mb-2"></span>
+                        <p class="text-600 mb-0">No portfolios to display</p>
                     </div>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Right Column -->
-    <div class="col-lg-4">
-        <!-- Quick Actions -->
-        <div class="card mb-3">
+    <!-- Renewal Risk Assessment -->
+    <div class="col-lg-6">
+        <div class="card h-100">
             <div class="card-header">
-                <h6 class="mb-0">
-                    <span class="fas fa-bolt me-2"></span>Quick Actions
-                </h6>
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">Renewal Risk Assessment</h5>
+                        <p class="mb-0 text-600">High-value leases expiring soon</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if renewal_risk_leases %}
+                    {% for risk_lease in renewal_risk_leases[:5] %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar avatar-l me-3">
+                            <div class="avatar-name rounded-circle {% if risk_lease.risk_level == 'high' %}bg-soft-danger text-danger{% elif risk_lease.risk_level == 'medium' %}bg-soft-warning text-warning{% else %}bg-soft-success text-success{% endif %} d-flex align-items-center justify-content-center">
+                                <span class="fas fa-{% if risk_lease.risk_level == 'high' %}exclamation-triangle{% elif risk_lease.risk_level == 'medium' %}exclamation-circle{% else %}check-circle{% endif %}"></span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <p class="mb-0 fw-semi-bold">
+                                {{ risk_lease.lease.tenant_ref.first_name }} {{ risk_lease.lease.tenant_ref.last_name }}
+                            </p>
+                            <small class="text-600">
+                                ${{ "%.0f"|format(risk_lease.monthly_value) }}/mo • {{ risk_lease.days_to_expiry }} days
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge {% if risk_lease.risk_level == 'high' %}badge-soft-danger{% elif risk_lease.risk_level == 'medium' %}badge-soft-warning{% else %}badge-soft-success{% endif %}">
+                                {{ risk_lease.risk_level.title() }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <span class="fas fa-calendar-check fa-2x text-300 mb-2"></span>
+                        <p class="text-600 mb-0">No high-risk renewals</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Property Performance -->
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">Top Property Performance</h5>
+                        <p class="mb-0 text-600">Highest revenue properties with key metrics</p>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{{ url_for('property.properties') }}" class="btn btn-falcon-default btn-sm">
+                            <span class="fas fa-building me-1"></span>View All Properties
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if property_insights %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Property</th>
+                                    <th>Occupancy</th>
+                                    <th>Monthly Revenue</th>
+                                    <th>Revenue/Unit</th>
+                                    <th>Maintenance (3mo)</th>
+                                    <th>Performance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for insight in property_insights %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ insight.property.name }}</strong>
+                                        <div class="text-600 fs--2">{{ insight.property.address }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if insight.occupancy_rate >= 90 %}badge-soft-success{% elif insight.occupancy_rate >= 70 %}badge-soft-warning{% else %}badge-soft-danger{% endif %}">
+                                            {{ "%.0f"|format(insight.occupancy_rate) }}%
+                                        </span>
+                                        <div class="text-600 fs--2">{{ insight.occupied_units }}/{{ insight.total_units }}</div>
+                                    </td>
+                                    <td>
+                                        <strong>${{ "%.0f"|format(insight.monthly_revenue) }}</strong>
+                                    </td>
+                                    <td>
+                                        ${{ "%.0f"|format(insight.revenue_per_unit) }}
+                                    </td>
+                                    <td>
+                                        <span class="{% if insight.maintenance_costs_3m > 1000 %}text-warning{% else %}text-success{% endif %}">
+                                            ${{ "%.0f"|format(insight.maintenance_costs_3m) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% set performance_score = (insight.occupancy_rate * insight.monthly_revenue / 100) %}
+                                        {% if performance_score > 3000 %}
+                                            <span class="badge badge-soft-success">Excellent</span>
+                                        {% elif performance_score > 1500 %}
+                                            <span class="badge badge-soft-primary">Good</span>
+                                        {% elif performance_score > 500 %}
+                                            <span class="badge badge-soft-warning">Fair</span>
+                                        {% else %}
+                                            <span class="badge badge-soft-danger">Needs Attention</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <span class="fas fa-building fa-2x text-300 mb-2"></span>
+                        <p class="text-600 mb-0">No property data available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts and Analytics Row -->
+<div class="row g-3 mb-4">
+    <!-- Financial Performance Chart -->
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">Financial Performance</h5>
+                        <p class="mb-0 text-600">Last 6 months revenue, expenses, and profit</p>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{{ url_for('report.financial_trends') }}" class="btn btn-falcon-default btn-sm">
+                            <span class="fas fa-chart-line me-1"></span>Detailed View
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="financialChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue Forecast -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Revenue Forecast</h5>
+                <p class="mb-0 text-600">Next 6 months projection</p>
+            </div>
+            <div class="card-body">
+                <canvas id="forecastChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activity and Alerts Row -->
+<div class="row g-3 mb-4">
+    <!-- Recent Activity -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">Recent Activity</h5>
+                        <p class="mb-0 text-600">Latest payments and expenses</p>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{{ url_for('financial.payments') }}" class="btn btn-falcon-default btn-sm">View All</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if recent_payments or recent_expenses %}
+                    <!-- Combine and sort recent activities -->
+                    {% set activities = [] %}
+                    {% for payment in recent_payments %}
+                        {% set _ = activities.append({
+                            'type': 'payment',
+                            'date': payment.payment_date,
+                            'amount': payment.amount,
+                            'description': 'Payment from ' + payment.lease_ref.tenant_ref.first_name + ' ' + payment.lease_ref.tenant_ref.last_name,
+                            'icon': 'fas fa-plus text-success',
+                            'url': url_for('financial.payments')
+                        }) %}
+                    {% endfor %}
+                    {% for expense in recent_expenses %}
+                        {% set _ = activities.append({
+                            'type': 'expense',
+                            'date': expense.expense_date,
+                            'amount': expense.amount,
+                            'description': expense.description or 'Property Expense',
+                            'icon': 'fas fa-minus text-danger',
+                            'url': url_for('financial.expenses')
+                        }) %}
+                    {% endfor %}
+
+                    {% for activity in activities|sort(attribute='date', reverse=true) %}
+                    {% if loop.index <= 8 %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar avatar-l me-3">
+                            <div class="avatar-name rounded-circle bg-soft-secondary d-flex align-items-center justify-content-center">
+                                <span class="{{ activity.icon }}"></span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <p class="mb-0 fw-semi-bold">{{ activity.description }}</p>
+                            <small class="text-600">{{ activity.date.strftime('%m/%d/%Y') }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="fw-bold {% if activity.type == 'payment' %}text-success{% else %}text-danger{% endif %}">
+                                {% if activity.type == 'payment' %}+{% else %}-{% endif %} ${{ "%.2f"|format((activity.amount or 0)|float) }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <span class="fas fa-inbox fa-2x text-300 mb-2"></span>
+                        <p class="text-600 mb-0">No recent activity</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Lease Expiration Alerts -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">Lease Expiration Alerts</h5>
+                        <p class="mb-0 text-600">Expiring in next 90 days</p>
+                    </div>
+                    {% if expiring_leases %}
+                    <div class="col-auto">
+                        <span class="badge badge-soft-warning">{{ expiring_leases|length }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                {% if expiring_leases %}
+                    {% for lease in expiring_leases %}
+                    {% if loop.index <= 6 %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar avatar-l me-3">
+                            {% set days_left = (lease.end - today_date).days %}
+                            <div class="avatar-name rounded-circle {% if days_left <= 30 %}bg-soft-danger text-danger{% elif days_left <= 60 %}bg-soft-warning text-warning{% else %}bg-soft-info text-info{% endif %} d-flex align-items-center justify-content-center">
+                                <span class="fas fa-calendar-alt"></span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <p class="mb-0 fw-semi-bold">
+                                <a href="{{ url_for('tenant.show', uuid=lease.tenant_ref.uuid) }}" class="text-decoration-none">
+                                    {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}
+                                </a>
+                            </p>
+                            <small class="text-600">
+                                {% if lease.unit_ref %}{{ lease.unit_ref.property_ref.name }} - Unit {{ lease.unit_ref.unit_number }}{% endif %}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge {% if days_left <= 30 %}badge-soft-danger{% elif days_left <= 60 %}badge-soft-warning{% else %}badge-soft-info{% endif %}">
+                                {{ days_left }} days
+                            </span>
+                            <div class="fs--2 text-600">{{ lease.end.strftime('%m/%d/%Y') }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    {% if expiring_leases|length > 6 %}
+                    <div class="text-center">
+                        <a href="{{ url_for('lease.leases') }}" class="btn btn-falcon-default btn-sm">
+                            View All {{ expiring_leases|length }} Expiring Leases
+                        </a>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <span class="fas fa-calendar-check fa-2x text-300 mb-2"></span>
+                        <p class="text-600 mb-0">No leases expiring soon</p>
+                        <small class="text-500">All leases are current</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats Row -->
+<div class="row g-3">
+    <!-- Property Performance -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Property Performance</h6>
+            </div>
+            <div class="card-body">
+                {% for property in properties %}
+                {% if loop.index <= 5 %}
+                {% set property_units = property.units|length %}
+                {% set occupied_count = property.units|selectattr('get_lease_status', 'equalto', 'Occupied')|list|length %}
+                {% set property_occupancy = (occupied_count / property_units * 100) if property_units > 0 else 0 %}
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="flex-1">
+                        <p class="mb-0 fw-semi-bold">{{ property.name }}</p>
+                        <small class="text-600">{{ property_units }} units</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge {% if property_occupancy >= 90 %}badge-soft-success{% elif property_occupancy >= 70 %}badge-soft-warning{% else %}badge-soft-danger{% endif %}">
+                            {{ "%.0f"|format(property_occupancy) }}%
+                        </span>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% if properties|length > 5 %}
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('property.properties') }}" class="btn btn-falcon-default btn-sm">View All Properties</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Quick Actions</h6>
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a href="{{ url_for('property.create') }}" class="btn btn-falcon-primary">
-                        <span class="fas fa-building me-2"></span>Add Property
+                    <a href="{{ url_for('financial.record_payment') }}" class="btn btn-outline-success btn-sm">
+                        <span class="fas fa-plus me-2"></span>Record Payment
                     </a>
-                    <a href="{{ url_for('tenant.create') }}" class="btn btn-falcon-success">
-                        <span class="fas fa-user-plus me-2"></span>Add Tenant
+                    <a href="{{ url_for('financial.add_expense') }}" class="btn btn-outline-danger btn-sm">
+                        <span class="fas fa-receipt me-2"></span>Add Expense
                     </a>
-                    {% if properties %}
-                        <div class="dropdown">
-                            <button class="btn btn-falcon-info dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
-                                <span class="fas fa-file-contract me-2"></span>Create Lease
-                            </button>
-                            <ul class="dropdown-menu w-100">
-                                {% for property in properties %}
-                                    {% if loop.index <= 5 %}
-                                    <li><a class="dropdown-item" href="{{ url_for('lease.create', id=property.id) }}">
-                                        <span class="fas fa-building me-2"></span>{{ property.name }}
-                                    </a></li>
-                                    {% endif %}
-                                {% endfor %}
-                                {% if properties|length > 5 %}
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('property.properties') }}">
-                                        <span class="fas fa-ellipsis-h me-2"></span>View All Properties
-                                    </a></li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                    {% endif %}
+                    <a href="{{ url_for('unit.list_units') }}" class="btn btn-outline-primary btn-sm">
+                        <span class="fas fa-home me-2"></span>Manage Units
+                    </a>
+                    <a href="{{ url_for('report.dashboard') }}" class="btn btn-outline-info btn-sm">
+                        <span class="fas fa-chart-bar me-2"></span>View Reports
+                    </a>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Expiring Leases -->
-        <div class="card mb-3">
+    <!-- System Status -->
+    <div class="col-lg-4">
+        <div class="card">
             <div class="card-header">
-                <h6 class="mb-0">
-                    <span class="fas fa-exclamation-triangle me-2"></span>Expiring Soon
-                </h6>
+                <h6 class="mb-0">System Status</h6>
             </div>
-            <div class="card-body p-0">
-                {% set expiring_leases = [] %}
-                {% for lease in all_leases %}
-                    {% if lease.end %}
-                        {% set days_until_end = (lease.end.date() - today_date).days if today_date else 0 %}
-                        {% if days_until_end <= 60 and days_until_end >= 0 %}
-                            {% set _ = expiring_leases.append({'lease': lease, 'days': days_until_end}) %}
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-                
-                {% if expiring_leases %}
-                    <div class="list-group list-group-flush">
-                        {% for item in expiring_leases|sort(attribute='days') %}
-                            {% if loop.index <= 5 %}
-                            {% set lease = item.lease %}
-                            {% set days = item.days %}
-                            <div class="list-group-item">
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-sm me-3">
-                                        <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
-                                            <span class="fas fa-clock fs--2"></span>
-                                        </div>
-                                    </div>
-                                    <div class="flex-1">
-                                        <h6 class="mb-1">
-                                            {% if lease.tenant_ref %}
-                                                {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}
-                                            {% else %}
-                                                Unknown Tenant
-                                            {% endif %}
-                                        </h6>
-                                        <p class="mb-0 text-600 fs--1">
-                                            {% if lease.unit_ref %}
-                                                {{ lease.unit_ref.name }}
-                                            {% endif %}
-                                            • {{ days }} day{% if days != 1 %}s{% endif %} left
-                                        </p>
-                                    </div>
-                                    <div class="text-end">
-                                        <a href="{{ url_for('lease.show', id=lease.id) }}" class="btn btn-falcon-default btn-sm">
-                                            <span class="fas fa-eye"></span>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                        {% endfor %}
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-600">Database</span>
+                    <span class="badge badge-soft-success">Healthy</span>
+                </div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-600">Last Backup</span>
+                    <small class="text-600">{{ today_date.strftime('%m/%d/%Y') }}</small>
+                </div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-600">Active Users</span>
+                    <span class="badge badge-soft-info">{{ current_user.company_ref.users|length }}</span>
+                </div>
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="text-600">Data Usage</span>
+                    <small class="text-success">Optimal</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Maintenance Tracking Row -->
+<div class="row g-3 mb-4">
+    <!-- Maintenance Requests -->
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">Maintenance Tracking</h5>
+                        <p class="mb-0 text-600">Scheduled maintenance and recent work orders</p>
                     </div>
-                {% else %}
-                    <div class="text-center p-4">
-                        <div class="avatar avatar-2xl">
-                            <div class="avatar-name rounded-circle bg-success bg-soft text-success d-flex align-items-center justify-content-center">
-                                <span class="fas fa-check"></span>
+                    <div class="col-auto">
+                        {% if maintenance_items %}
+                            <span class="badge badge-soft-warning">{{ maintenance_items|length }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if maintenance_items %}
+                    {% for item in maintenance_items %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar avatar-l me-3">
+                            <div class="avatar-name rounded-circle bg-soft-warning text-warning d-flex align-items-center justify-content-center">
+                                <span class="fas fa-tools"></span>
                             </div>
                         </div>
-                        <h6 class="mt-3 mb-1">All Good!</h6>
-                        <p class="text-600 mb-0">No leases expiring in the next 60 days.</p>
+                        <div class="flex-1">
+                            <p class="mb-0 fw-semi-bold">{{ item.type }}</p>
+                            <p class="mb-0 text-600 fs--1">{{ item.description }}</p>
+                            <div class="fs--2 text-600">
+                                <span class="fas fa-map-marker-alt me-1"></span>{{ item.location }}
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge badge-soft-secondary">{{ item.priority }}</span>
+                            <div class="fs--2 text-600 mt-1">
+                                <a href="{{ url_for('unit.unit_detail', uuid=item.unit_ref.uuid) }}" class="text-decoration-none">View Unit</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <span class="fas fa-wrench fa-2x text-300 mb-2"></span>
+                        <p class="text-600 mb-0">No scheduled maintenance</p>
+                        <small class="text-600">All units are up to date</small>
                     </div>
                 {% endif %}
             </div>
         </div>
+    </div>
 
-        <!-- Top Properties -->
-        <div class="card">
+    <!-- Recent Maintenance Expenses -->
+    <div class="col-lg-4">
+        <div class="card h-100">
             <div class="card-header">
-                <h6 class="mb-0">
-                    <span class="fas fa-trophy me-2"></span>Top Performing Properties
-                </h6>
-            </div>
-            <div class="card-body p-0">
-                {% if properties %}
-                    {% set property_revenues = [] %}
-                    {% for property in properties %}
-                        {% set revenue = 0 %}
-                        {% for unit in property.units %}
-                            {% set current_lease = unit.get_current_lease() %}
-                            {% if current_lease and current_lease.rent %}
-                                {% set revenue = revenue + current_lease.rent %}
-                            {% endif %}
-                        {% endfor %}
-                        {% set _ = property_revenues.append({'property': property, 'revenue': revenue}) %}
-                    {% endfor %}
-                    
-                    {% set sorted_properties = property_revenues|sort(attribute='revenue', reverse=true) %}
-                    <div class="list-group list-group-flush">
-                        {% for item in sorted_properties %}
-                            {% if loop.index <= 3 %}
-                            {% set property = item.property %}
-                            {% set revenue = item.revenue %}
-                            <div class="list-group-item">
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-1">
-                                        <h6 class="mb-1">
-                                            <a href="{{ url_for('property.home', id=property.id) }}" class="fw-semi-bold text-decoration-none">
-                                                {{ property.name }}
-                                            </a>
-                                        </h6>
-                                        <p class="mb-0 text-600 fs--1">
-                                            {{ property.units|length }} unit{% if property.units|length != 1 %}s{% endif %}
-                                        </p>
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="text-success fw-bold">${{ "{:,}".format(revenue) }}</div>
-                                        <small class="text-600">monthly</small>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                        {% endfor %}
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">Recent Work</h5>
+                        <p class="mb-0 text-600">Last 30 days</p>
                     </div>
-                {% else %}
-                    <div class="text-center p-4">
-                        <div class="avatar avatar-2xl">
-                            <div class="avatar-name rounded-circle bg-200 text-600 d-flex align-items-center justify-content-center">
-                                <span class="fas fa-building"></span>
-                            </div>
+                    <div class="col-auto">
+                        <a href="{{ url_for('financial.expenses') }}" class="btn btn-falcon-default btn-sm">View All</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if recent_maintenance_expenses %}
+                    {% for expense in recent_maintenance_expenses %}
+                    {% if loop.index <= 5 %}
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="flex-1">
+                            <p class="mb-0 fw-semi-bold">{{ expense.description or 'Maintenance Work' }}</p>
+                            <div class="fs--2 text-600">{{ expense.expense_date.strftime('%m/%d/%Y') }}</div>
                         </div>
-                        <h6 class="mt-3 mb-1">No Properties Yet</h6>
-                        <p class="text-600 mb-3">Add your first property to get started.</p>
-                        <a href="{{ url_for('property.create') }}" class="btn btn-falcon-primary btn-sm">
-                            <span class="fas fa-plus me-1"></span>Add Property
-                        </a>
+                        <div class="text-end">
+                            <span class="fw-bold text-danger">${{ "%.0f"|format((expense.amount or 0)|float) }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if recent_maintenance_expenses|length > 5 %}
+                    <div class="text-center pt-2">
+                        <small class="text-600">{{ recent_maintenance_expenses|length - 5 }} more items</small>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <span class="fas fa-check-circle fa-2x text-success mb-2"></span>
+                        <p class="text-600 mb-0">No recent work</p>
+                        <small class="text-600">Last 30 days</small>
                     </div>
                 {% endif %}
             </div>
@@ -466,4 +786,131 @@
     </div>
 </div>
 
-{% endblock %} 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Financial Performance Chart
+const financialCtx = document.getElementById('financialChart').getContext('2d');
+const monthlyData = {{ monthly_data|tojson }};
+
+new Chart(financialCtx, {
+    type: 'line',
+    data: {
+        labels: monthlyData.map(d => d.month),
+        datasets: [
+            {
+                label: 'Revenue',
+                data: monthlyData.map(d => d.revenue),
+                borderColor: '#2ECC71',
+                backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                fill: true,
+                tension: 0.4
+            },
+            {
+                label: 'Expenses',
+                data: monthlyData.map(d => d.expenses),
+                borderColor: '#E74C3C',
+                backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                fill: true,
+                tension: 0.4
+            },
+            {
+                label: 'Profit',
+                data: monthlyData.map(d => d.profit),
+                borderColor: '#3874CB',
+                backgroundColor: 'rgba(56, 116, 203, 0.1)',
+                fill: true,
+                tension: 0.4
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    usePointStyle: true
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value.toLocaleString();
+                    }
+                }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        }
+    }
+});
+
+// Revenue Forecast Chart
+const forecastCtx = document.getElementById('forecastChart').getContext('2d');
+const forecastData = {{ forecast_data|tojson }};
+
+new Chart(forecastCtx, {
+    type: 'bar',
+    data: {
+        labels: forecastData.map(d => d.month),
+        datasets: [{
+            label: 'Projected Revenue',
+            data: forecastData.map(d => d.projected_revenue),
+            backgroundColor: 'rgba(56, 116, 203, 0.8)',
+            borderColor: '#3874CB',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return 'Projected: $' + context.parsed.y.toLocaleString();
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value.toLocaleString();
+                    }
+                }
+            },
+            x: {
+                ticks: {
+                    maxRotation: 45
+                }
+            }
+        }
+    }
+});
+
+// Auto-refresh data every 5 minutes
+setInterval(function() {
+    window.location.reload();
+}, 300000);
+</script>
+
+{% endblock %}

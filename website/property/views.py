@@ -1,17 +1,18 @@
 from flask import render_template, Blueprint, request, redirect, url_for, flash
-from website.models import Tenant, Property, Unit, Lease
-from website import db 
+from website.models import Tenant, Property, Unit, Lease, Portfolio
+from website import db
 from flask_login import login_required, current_user
 from website.views import get_properties, get_portfolios, get_states, get_units
 from website.errors import page_not_found
 from website.auth_utils import can_create_required, can_edit_required, can_delete_required
+from website.property.forms import PropertyForm, PropertyEditForm
 from datetime import datetime
 
 property = Blueprint('property', __name__, template_folder='templates')
 
-@property.route('/finances/<int:id>', methods=['GET', 'POST'])
+@property.route('/finances/<uuid:uuid>', methods=['GET', 'POST'])
 @login_required
-def finances(id):
+def finances(uuid):
     return render_template("finances.html", user=current_user)
 
 @property.route('/', methods=['GET', 'POST'])
@@ -37,15 +38,15 @@ def properties():
         return redirect(url_for("property.properties"))
     return render_template("properties.html", user=current_user, properties=get_properties(), portfolios=get_portfolios())
 
-@property.route('/<int:id>', methods=['GET', 'POST'])
+@property.route('/<uuid:uuid>', methods=['GET', 'POST'])
 @login_required
-def home(id):
+def home(uuid):
     company_id = current_user.get_company_id()
-    property = Property.query.filter_by(id=id, company_id=company_id).first()
+    property = Property.find_by_uuid(str(uuid), company_id)
     today = datetime.today()
     if property:
-        tenants = Tenant.query.filter_by(property_id=id, company_id=company_id)
-        leases = db.session.query(Unit, Lease, Tenant).filter_by(company_id=company_id, property_id=id).join(Lease, Lease.unit_id==Unit.id).join(Tenant, Tenant.id==Lease.tenant_id).all()     
+        tenants = Tenant.query.filter_by(property_id=property.id, company_id=company_id)
+        leases = db.session.query(Unit, Lease, Tenant).filter_by(company_id=company_id, property_id=property.id).join(Lease, Lease.unit_id==Unit.id).join(Tenant, Tenant.id==Lease.tenant_id).all()     
         return render_template("property.html", user=current_user, property=property, leases=leases, tenants=tenants, units=get_units(property.id), today=today)
     return page_not_found(404)
 
@@ -53,208 +54,135 @@ def home(id):
 @login_required
 @can_create_required
 def create():
-    if request.method == "POST":
-        # Basic Information
-        name = request.form.get('name', '').strip()
-        type = request.form.get('type')
-        portfolio_id = request.form.get('portfolio_id')
-        description = request.form.get('description', '').strip()
-        property_status = request.form.get('property_status', 'Active')
-        maintenance_priority = request.form.get('maintenance_priority', 'Medium')
+    company_id = current_user.get_company_id()
+    portfolios = Portfolio.query.filter_by(company_id=company_id).all()
+    form = PropertyForm(portfolios=portfolios)
 
-        # Location & Address
-        address = request.form.get('address', '').strip()
-        city = request.form.get('city', '').strip()
-        state = request.form.get('state')
-        zip_code = request.form.get('zip_code', '').strip()
-        neighborhood = request.form.get('neighborhood', '').strip()
-        latitude = request.form.get('latitude')
-        longitude = request.form.get('longitude')
-
-        # Property Details
-        year_built = request.form.get('year_built')
-        lot_size = request.form.get('lot_size')
-        building_sqft = request.form.get('building_sqft')
-        stories = request.form.get('stories')
-        parking_spaces = request.form.get('parking_spaces')
-
-        # Financial Information
-        purchase_price = request.form.get('purchase_price')
-        purchase_date = request.form.get('purchase_date')
-        current_market_value = request.form.get('current_market_value')
-        annual_property_tax = request.form.get('annual_property_tax')
-        annual_insurance = request.form.get('annual_insurance')
-        monthly_hoa_fees = request.form.get('monthly_hoa_fees')
-        acquisition_method = request.form.get('acquisition_method')
-
-        # Management & Operations
-        property_manager = request.form.get('property_manager', '').strip()
-
-        # Server-side validation
-        if not name:
-            flash('Property name is required.', 'error')
-            return render_template("/create_enhanced.html", user=current_user, states=get_states(), portfolios=get_portfolios())
-
-        if zip_code and not zip_code.isdigit():
-            flash('Zip code must contain only numbers.', 'error')
-            return render_template("/create_enhanced.html", user=current_user, states=get_states(), portfolios=get_portfolios())
-
-        if zip_code and len(zip_code) != 5:
-            flash('Zip code must be exactly 5 digits.', 'error')
-            return render_template("/create_enhanced.html", user=current_user, states=get_states(), portfolios=get_portfolios())
-
-        if year_built and (int(year_built) < 1800 or int(year_built) > 2030):
-            flash('Year built must be between 1800 and 2030.', 'error')
-            return render_template("/create_enhanced.html", user=current_user, states=get_states(), portfolios=get_portfolios())
-
-        # Data conversion and validation
+    if form.validate_on_submit():
         try:
-            # Convert empty strings to None for optional fields
-            portfolio_id = int(portfolio_id) if portfolio_id else None
-            year_built = int(year_built) if year_built else None
-            lot_size = int(lot_size) if lot_size else None
-            building_sqft = int(building_sqft) if building_sqft else None
-            stories = int(stories) if stories else None
-            parking_spaces = int(parking_spaces) if parking_spaces else None
+            # Convert portfolio UUID to database ID if provided
+            portfolio_db_id = None
+            if form.portfolio_id.data:
+                portfolio = Portfolio.find_by_uuid(form.portfolio_id.data, company_id)
+                if portfolio:
+                    portfolio_db_id = portfolio.id
+                else:
+                    flash('Selected portfolio not found.', 'error')
+                    return render_template("/create_enhanced.html", user=current_user, form=form)
 
-            # Convert coordinates
-            latitude = float(latitude) if latitude else None
-            longitude = float(longitude) if longitude else None
-
-            # Convert financial fields
-            purchase_price = float(purchase_price) if purchase_price else None
-            current_market_value = float(current_market_value) if current_market_value else None
-            annual_property_tax = float(annual_property_tax) if annual_property_tax else None
-            annual_insurance = float(annual_insurance) if annual_insurance else None
-            monthly_hoa_fees = float(monthly_hoa_fees) if monthly_hoa_fees else None
-
-            # Convert date
-            from datetime import datetime
-            purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d').date() if purchase_date else None
-
-        except ValueError as e:
-            flash('Invalid numeric value provided. Please check your inputs.', 'error')
-            return render_template("/create_enhanced.html", user=current_user, states=get_states(), portfolios=get_portfolios())
-
-        # Create property with all fields
-        try:
-            from datetime import datetime
-            company_id = current_user.get_company_id()
+            # Create new property with only constructor parameters
             new_property = Property(
-                # Basic Information
-                name=name,
+                name=form.name.data,
                 company_id=company_id,
-                portfolio_id=portfolio_id,
-                type=type,
-                description=description,
-                property_status=property_status,
-                maintenance_priority=maintenance_priority,
-
-                # Location & Address
-                address=address,
-                city=city,
-                state=state,
-                zip_code=zip_code,
-                neighborhood=neighborhood,
-                latitude=latitude,
-                longitude=longitude,
-
-                # Property Details
-                year_built=year_built,
-                lot_size=lot_size,
-                building_sqft=building_sqft,
-                stories=stories,
-                parking_spaces=parking_spaces,
-
-                # Financial Information
-                purchase_price=purchase_price,
-                purchase_date=purchase_date,
-                current_market_value=current_market_value,
-                annual_property_tax=annual_property_tax,
-                annual_insurance=annual_insurance,
-                monthly_hoa_fees=monthly_hoa_fees,
-                acquisition_method=acquisition_method,
-
-                # Management & Operations
-                property_manager=property_manager,
-
-                # Metadata
-                created_date=datetime.now(),
-                updated_date=datetime.now()
+                portfolio_id=portfolio_db_id
             )
+
+            # Set all other attributes after initialization
+            new_property.type = form.type.data
+            new_property.description = form.description.data
+            new_property.property_status = form.property_status.data
+            new_property.maintenance_priority = form.maintenance_priority.data
+            new_property.address = form.address.data
+            new_property.city = form.city.data
+            new_property.state = form.state.data
+            new_property.zip_code = form.zip_code.data
+            new_property.neighborhood = form.neighborhood.data
+            new_property.latitude = form.latitude.data
+            new_property.longitude = form.longitude.data
+            new_property.year_built = form.year_built.data
+            new_property.lot_size = form.lot_size.data
+            new_property.building_sqft = form.building_sqft.data
+            new_property.stories = form.stories.data
+            new_property.parking_spaces = form.parking_spaces.data
+            new_property.purchase_price = form.purchase_price.data
+            new_property.purchase_date = form.purchase_date.data
+            new_property.current_market_value = form.current_market_value.data
+            new_property.annual_property_tax = form.annual_property_tax.data
+            new_property.annual_insurance = form.annual_insurance.data
+            new_property.monthly_hoa_fees = form.monthly_hoa_fees.data
+            new_property.acquisition_method = form.acquisition_method.data
+            new_property.property_manager = form.property_manager.data
+            new_property.created_date = datetime.now()
+            new_property.updated_date = datetime.now()
 
             db.session.add(new_property)
             db.session.commit()
 
-            flash(f'Property "{name}" created successfully with enhanced details!', 'success')
+            flash(f'Property "{form.name.data}" created successfully!', 'success')
             return redirect(url_for('property.properties'))
 
         except Exception as e:
             db.session.rollback()
             flash(f'Error creating property: {str(e)}', 'error')
-            return render_template("/create_enhanced.html", user=current_user, states=get_states(), portfolios=get_portfolios())
 
-    # GET request - show the enhanced form
-    return render_template("/create_enhanced.html", user=current_user, states=get_states(), portfolios=get_portfolios())
+    # Display form errors if validation failed
+    if form.errors:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'error')
 
-@property.route('/create/enhanced', methods=['GET', 'POST'])
-@login_required
-@can_create_required
-def create_enhanced():
-    """Enhanced property creation with wizard interface"""
-    return create()  # Use the same logic, just different template route
+    return render_template("/create_enhanced.html", user=current_user, form=form)
 
-@property.route('/<int:id>/edit', methods=['GET', 'POST'])
+
+@property.route('/<uuid:uuid>/edit', methods=['GET', 'POST'])
 @login_required
 @can_edit_required
-def edit(id):
+def edit(uuid):
     company_id = current_user.get_company_id()
-    property = Property.query.filter_by(id=id, company_id=company_id).first()
-    if not property:
+    property_obj = Property.find_by_uuid(str(uuid), company_id)
+    if not property_obj:
         return page_not_found(404)
-        
-    if request.method == "POST":
-        name = request.form.get('name', '').strip()
-        type = request.form.get('type')
-        address = request.form.get('address', '').strip()
-        city = request.form.get('city', '').strip()
-        state = request.form.get('state')
-        zip_code = request.form.get('zip_code', '').strip()
-        
-        # Server-side validation
-        if not name:
-            flash('Property name is required.', 'error')
-            return render_template("/edit.html", user=current_user, property=property, states=get_states())
-        
-        if zip_code and not zip_code.isdigit():
-            flash('Zip code must contain only numbers.', 'error')
-            return render_template("/edit.html", user=current_user, property=property, states=get_states())
-        
-        if zip_code and len(zip_code) != 5:
-            flash('Zip code must be exactly 5 digits.', 'error')
-            return render_template("/edit.html", user=current_user, property=property, states=get_states())
 
-        # Update property with validated data
-        property.name = name
-        property.type = type
-        property.address = address
-        property.city = city
-        property.state = state
-        property.zip_code = int(zip_code) if zip_code else None
+    portfolios = Portfolio.query.filter_by(company_id=company_id).all()
+    form = PropertyEditForm(portfolios=portfolios, obj=property_obj)
 
-        db.session.commit()
-        flash('Property updated successfully!', 'success')
-        return redirect(url_for('property.home', id=id))
+    # Convert portfolio database ID to UUID for the form
+    if property_obj.portfolio_id and portfolios:
+        for portfolio in portfolios:
+            if portfolio.id == property_obj.portfolio_id:
+                form.portfolio_id.data = portfolio.uuid
+                break
 
-    return render_template("/edit.html", user=current_user, property=property, states=get_states())
+    if form.validate_on_submit():
+        try:
+            # Convert portfolio UUID to database ID if provided
+            portfolio_db_id = None
+            if form.portfolio_id.data:
+                portfolio = Portfolio.find_by_uuid(form.portfolio_id.data, company_id)
+                if portfolio:
+                    portfolio_db_id = portfolio.id
+                else:
+                    flash('Selected portfolio not found.', 'error')
+                    return render_template("/edit.html", user=current_user, form=form, property=property_obj)
 
-@property.route('/<int:id>/delete', methods=['POST'])
+            # Update property with form data
+            form.populate_obj(property_obj)
+            property_obj.portfolio_id = portfolio_db_id
+            property_obj.updated_date = datetime.now()
+
+            db.session.commit()
+            flash('Property updated successfully!', 'success')
+            return redirect(url_for('property.home', uuid=uuid))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating property: {str(e)}', 'error')
+
+    # Display form errors if validation failed
+    if form.errors:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'error')
+
+    return render_template("/edit.html", user=current_user, form=form, property=property_obj)
+
+@property.route('/<uuid:uuid>/delete', methods=['POST'])
 @login_required
 @can_delete_required
-def delete(id):
+def delete(uuid):
     """Delete a property and all associated data."""
     company_id = current_user.get_company_id()
-    property = Property.query.filter_by(id=id, company_id=company_id).first()
+    property = Property.find_by_uuid(str(uuid), company_id)
     if not property:
         return page_not_found(404)
     
