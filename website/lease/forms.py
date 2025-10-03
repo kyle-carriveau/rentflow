@@ -85,6 +85,7 @@ class LeaseForm(FlaskForm):
 
 class GeneralLeaseForm(FlaskForm):
     property = SelectField('Property', validators=[DataRequired()], render_kw={"data-placeholder": "Choose a property..."})
+    template = SelectField('Lease Template (Optional)', coerce=int, validators=[Optional()], render_kw={"data-placeholder": "Select a template..."})
     tenant = SelectField('Tenant', validators=[DataRequired()], render_kw={"data-placeholder": "Choose a tenant..."})
     unit = SelectField('Unit', validators=[DataRequired()], render_kw={"data-placeholder": "Choose a unit..."})
     start = DateField('Start Date', validators=[DataRequired()])

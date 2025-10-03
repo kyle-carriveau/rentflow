@@ -93,6 +93,25 @@
           </div>
         </div>
         <div class="col-md-6">
+          <div class="d-flex mb-2"><span class="fas fa-chart-pie text-success me-2" data-fa-transform="down-5"></span>
+            <div class="flex-1">
+              <p class="fs--1 mb-0 text-600">Occupancy Status</p>
+              <p class="fs--1 mb-0 fw-semi-bold">
+                {% if property.occupancy_status == 'Fully Occupied' %}
+                  <span class="badge badge-soft-success">{{ property.occupancy_status }}</span>
+                {% elif property.occupancy_status == 'Partially Occupied' %}
+                  <span class="badge badge-soft-warning">{{ property.occupancy_status }}</span>
+                {% else %}
+                  <span class="badge badge-soft-secondary">{{ property.occupancy_status or 'Vacant' }}</span>
+                {% endif %}
+                {% if property.status_updated_at %}
+                  <small class="text-600 ms-2">Updated: {{ property.status_updated_at.strftime('%m/%d/%Y') }}</small>
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
           <div class="d-flex mb-2"><span class="fas fa-map-marker-alt text-danger me-2" data-fa-transform="down-5"></span>
             <div class="flex-1">
               <p class="fs--1 mb-0 text-600">Full Address</p>
@@ -143,7 +162,7 @@
         <!-- Set occupancy variables once for efficiency -->
         {% set occupied_units = [] %}
         {% for unit in units %}
-          {% if unit.get_lease_status() == 'Occupied' %}
+          {% if unit.occupancy_status == 'Occupied' %}
             {% set _ = occupied_units.append(unit) %}
           {% endif %}
         {% endfor %}

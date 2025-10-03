@@ -45,7 +45,7 @@
                         {% set occupied_units = [] %}
                         {% if units %}
                             {% for unit in units %}
-                                {% if unit.get_lease_status() == 'Occupied' %}
+                                {% if unit.occupancy_status == 'Occupied' %}
                                     {% set _ = occupied_units.append(unit) %}
                                 {% endif %}
                             {% endfor %}
@@ -72,7 +72,7 @@
                         {% set available_units = [] %}
                         {% if units %}
                             {% for unit in units %}
-                                {% if unit.get_lease_status() == 'Available' %}
+                                {% if unit.occupancy_status == 'Available' %}
                                     {% set _ = available_units.append(unit) %}
                                 {% endif %}
                             {% endfor %}
@@ -145,6 +145,7 @@
                             <li><a class="dropdown-item" href="#" onclick="filterUnits('Occupied')">Occupied Only</a></li>
                             <li><a class="dropdown-item" href="#" onclick="filterUnits('Available')">Available Only</a></li>
                             <li><a class="dropdown-item" href="#" onclick="filterUnits('Reserved')">Reserved Only</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterUnits('Maintenance')">Maintenance Only</a></li>
                         </ul>
                     </div>
                     <button class="btn btn-falcon-default btn-sm" type="button" onclick="exportUnits()">
@@ -172,10 +173,9 @@
                 </thead>
                 <tbody class="list">
                     {% for unit in units %}
-                    {% set lease_status = unit.get_lease_status() %}
                     {% set current_tenant = unit.get_current_tenant() %}
                     {% set current_lease = unit.get_current_lease() %}
-                    <tr class="align-middle unit-row" data-status="{{ lease_status }}" 
+                    <tr class="align-middle unit-row" data-status="{{ unit.occupancy_status }}" 
                         data-unit="{{ unit.name }}" 
                         data-property="{{ unit.property_ref.name if unit.property_ref else '' }}">
                         <td class="unit">
@@ -212,7 +212,7 @@
                                         <div class="fs--2 text-600">Until {{ current_lease.end.strftime('%m/%d/%Y') }}</div>
                                     {% endif %}
                                 </div>
-                            {% elif lease_status == 'Reserved' %}
+                            {% elif unit.occupancy_status == 'Reserved' %}
                                 {% set next_lease = unit.get_next_lease() %}
                                 {% if next_lease and next_lease.tenant_ref %}
                                     <div>
@@ -255,19 +255,25 @@
                             {% endif %}
                         </td>
                         <td class="status">
-                            {% set lease_status = unit.get_lease_status() %}
-                            {% if lease_status == 'Occupied' %}
+                            {% if unit.occupancy_status == 'Occupied' %}
                                 <span class="badge bg-success">
                                     Occupied<span class="ms-1 fas fa-user" data-fa-transform="shrink-2"></span>
                                 </span>
-                            {% elif lease_status == 'Reserved' %}
+                            {% elif unit.occupancy_status == 'Reserved' %}
                                 <span class="badge bg-info">
                                     Reserved<span class="ms-1 fas fa-calendar" data-fa-transform="shrink-2"></span>
+                                </span>
+                            {% elif unit.occupancy_status == 'Maintenance' %}
+                                <span class="badge bg-danger">
+                                    Maintenance<span class="ms-1 fas fa-tools" data-fa-transform="shrink-2"></span>
                                 </span>
                             {% else %}
                                 <span class="badge bg-warning text-dark">
                                     Available<span class="ms-1 fas fa-home" data-fa-transform="shrink-2"></span>
                                 </span>
+                            {% endif %}
+                            {% if unit.status_updated_at %}
+                                <div class="fs--2 text-600 mt-1">{{ unit.status_updated_at.strftime('%m/%d/%Y') }}</div>
                             {% endif %}
                         </td>
                         <td class="text-nowrap">
@@ -284,7 +290,7 @@
                                         <a class="dropdown-item" href="{{ url_for('unit.edit', uuid=unit.uuid) }}">
                                             <span class="fas fa-edit me-1"></span>Edit Unit
                                         </a>
-                                        {% if lease_status == 'Available' %}
+                                        {% if unit.occupancy_status == 'Available' %}
                                             <div class="dropdown-divider"></div>
                                             <div class="dropdown-submenu">
                                                 <a class="dropdown-item" href="#" data-bs-toggle="dropdown">

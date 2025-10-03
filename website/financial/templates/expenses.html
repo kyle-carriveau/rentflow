@@ -44,13 +44,15 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-falcon-primary">
-                    <span class="fas fa-filter me-1"></span>Filter
-                </button>
-                <a href="{{ url_for('financial.expenses') }}" class="btn btn-falcon-default ms-2">
-                    <span class="fas fa-times me-1"></span>Clear
-                </a>
+            <div class="col-md-6 text-end">
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn btn-falcon-primary btn-sm">
+                        <span class="fas fa-filter me-1"></span>Filter
+                    </button>
+                    <a href="{{ url_for('financial.expenses') }}" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-times me-1"></span>Clear
+                    </a>
+                </div>
             </div>
         </form>
     </div>

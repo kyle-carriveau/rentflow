@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}403 - Access Forbidden{% endblock %}
+
+{% block content %}
+
+<div class="row min-vh-75 justify-content-center align-items-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body text-center p-5">
+                <!-- Icon -->
+                <div class="avatar avatar-4xl mb-4">
+                    <div class="avatar-name rounded-circle bg-soft-danger">
+                        <span class="fas fa-ban fs-4 text-danger"></span>
+                    </div>
+                </div>
+
+                <!-- Error Code -->
+                <h1 class="display-1 fw-bold text-danger mb-3">403</h1>
+
+                <!-- Title -->
+                <h4 class="mb-3">Access Forbidden</h4>
+
+                <!-- Description -->
+                <p class="text-700 mb-4">
+                    You don't have permission to access this page. This could be because:
+                </p>
+
+                <!-- Reasons -->
+                <div class="text-start mx-auto mb-4" style="max-width: 400px;">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <span class="fas fa-circle-check text-danger me-2"></span>
+                            Your role ({{ current_user.role|title if current_user.is_authenticated else 'Guest' }}) doesn't have the required permissions
+                        </li>
+                        <li class="mb-2">
+                            <span class="fas fa-circle-check text-danger me-2"></span>
+                            This feature is restricted to Managers and Owners
+                        </li>
+                        <li class="mb-2">
+                            <span class="fas fa-circle-check text-danger me-2"></span>
+                            You're trying to access data from another company
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- What to do -->
+                <div class="alert alert-soft-info d-inline-block text-start mb-4">
+                    <div class="d-flex align-items-start">
+                        <span class="fas fa-info-circle mt-1 me-2"></span>
+                        <div>
+                            <strong>Need access?</strong><br>
+                            Contact your company owner or administrator to request elevated permissions.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex gap-2 justify-content-center">
+                    <button onclick="window.history.back()" class="btn btn-falcon-default">
+                        <span class="fas fa-arrow-left me-1"></span>Go Back
+                    </button>
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('profile.dashboard') }}" class="btn btn-falcon-primary">
+                        <span class="fas fa-home me-1"></span>Dashboard
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-falcon-primary">
+                        <span class="fas fa-sign-in-alt me-1"></span>Login
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

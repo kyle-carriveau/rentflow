@@ -32,6 +32,11 @@
                 <a href="{{ url_for('lease.leases') }}" class="btn btn-falcon-default btn-sm">
                     <span class="fas fa-arrow-left me-1"></span>Back to Leases
                 </a>
+                {% if lease.template_id %}
+                <a href="{{ url_for('lease.view_contract', uuid=lease.uuid) }}" class="btn btn-falcon-success btn-sm ms-2">
+                    <span class="fas fa-file-alt me-1"></span>View Contract
+                </a>
+                {% endif %}
                 <a href="{{ url_for('lease.update', uuid=lease.uuid) }}" class="btn btn-falcon-primary btn-sm ms-2">
                     <span class="fas fa-edit me-1"></span>Edit Lease
                 </a>
@@ -310,9 +315,22 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-700">Lease Status</label>
                         <div>
-                            <span class="badge badge-pill bg-{{ 'success' if lease.lease_status == 'active' else 'warning' if lease.lease_status == 'pending' else 'danger' if lease.lease_status == 'terminated' else 'secondary' }}">
-                                {{ lease.lease_status|title or 'Active' }}
-                            </span>
+                            {% if lease.lease_status == 'active' %}
+                                <span class="badge badge-pill bg-success">Active</span>
+                            {% elif lease.lease_status == 'expiring' %}
+                                <span class="badge badge-pill bg-warning text-dark">Expiring</span>
+                            {% elif lease.lease_status == 'expired' %}
+                                <span class="badge badge-pill bg-danger">Expired</span>
+                            {% elif lease.lease_status == 'pending' %}
+                                <span class="badge badge-pill bg-secondary">Pending</span>
+                            {% elif lease.lease_status == 'terminated' %}
+                                <span class="badge badge-pill bg-dark">Terminated</span>
+                            {% else %}
+                                <span class="badge badge-pill bg-light text-dark">{{ lease.lease_status|title }}</span>
+                            {% endif %}
+                            {% if lease.status_updated_at %}
+                                <div class="fs--2 text-600 mt-1">Updated: {{ lease.status_updated_at.strftime('%m/%d/%Y %I:%M %p') }}</div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -579,14 +597,37 @@
             <div class="card-body text-center">
                 <div class="mb-3">
                     <div class="avatar avatar-3xl">
-                        <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
+                        <div class="avatar-name rounded-circle bg-{{ 'success' if lease.lease_status == 'active' else 'warning' if lease.lease_status == 'expiring' else 'danger' if lease.lease_status == 'expired' else 'secondary' if lease.lease_status == 'pending' else 'dark' }} text-white d-flex align-items-center justify-content-center">
                             <span class="fas fa-file-contract fa-2x"></span>
                         </div>
                     </div>
                 </div>
-                
-                <h5 class="text-primary">Lease Active</h5>
-                <p class="text-600 mb-0">This lease agreement is currently in effect.</p>
+
+                {% if lease.lease_status == 'active' %}
+                    <h5 class="text-success">Lease Active</h5>
+                    <p class="text-600 mb-0">This lease agreement is currently in effect.</p>
+                {% elif lease.lease_status == 'expiring' %}
+                    <h5 class="text-warning">Lease Expiring Soon</h5>
+                    <p class="text-600 mb-0">This lease is expiring within 30 days.</p>
+                {% elif lease.lease_status == 'expired' %}
+                    <h5 class="text-danger">Lease Expired</h5>
+                    <p class="text-600 mb-0">This lease has ended and is no longer active.</p>
+                {% elif lease.lease_status == 'pending' %}
+                    <h5 class="text-secondary">Lease Pending</h5>
+                    <p class="text-600 mb-0">This lease has not started yet.</p>
+                {% elif lease.lease_status == 'terminated' %}
+                    <h5 class="text-dark">Lease Terminated</h5>
+                    <p class="text-600 mb-0">This lease was terminated early.</p>
+                {% else %}
+                    <h5 class="text-primary">{{ lease.lease_status|title }}</h5>
+                    <p class="text-600 mb-0">Current lease status.</p>
+                {% endif %}
+
+                {% if lease.status_updated_at %}
+                    <div class="fs--2 text-600 mt-2">
+                        <span class="fas fa-clock me-1"></span>Status updated: {{ lease.status_updated_at.strftime('%m/%d/%Y') }}
+                    </div>
+                {% endif %}
             </div>
         </div>
 

@@ -609,7 +609,7 @@
                 {% for property in properties %}
                 {% if loop.index <= 5 %}
                 {% set property_units = property.units|length %}
-                {% set occupied_count = property.units|selectattr('get_lease_status', 'equalto', 'Occupied')|list|length %}
+                {% set occupied_count = property.units|selectattr('occupancy_status', 'equalto', 'Occupied')|list|length %}
                 {% set property_occupancy = (occupied_count / property_units * 100) if property_units > 0 else 0 %}
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <div class="flex-1">

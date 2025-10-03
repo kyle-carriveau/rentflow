@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}404 - Page Not Found{% endblock %}
+{% block title %}500 - Server Error{% endblock %}
 
 {% block content %}
 
@@ -10,47 +10,46 @@
             <div class="card-body text-center p-5">
                 <!-- Icon -->
                 <div class="avatar avatar-4xl mb-4">
-                    <div class="avatar-name rounded-circle bg-soft-warning">
-                        <span class="fas fa-search fs-4 text-warning"></span>
+                    <div class="avatar-name rounded-circle bg-soft-danger">
+                        <span class="fas fa-exclamation-triangle fs-4 text-danger"></span>
                     </div>
                 </div>
 
                 <!-- Error Code -->
-                <h1 class="display-1 fw-bold text-warning mb-3">404</h1>
+                <h1 class="display-1 fw-bold text-danger mb-3">500</h1>
 
                 <!-- Title -->
-                <h4 class="mb-3">Page Not Found</h4>
+                <h4 class="mb-3">Internal Server Error</h4>
 
                 <!-- Description -->
                 <p class="text-700 mb-4">
-                    The page you're looking for doesn't exist or may have been moved.
+                    Something went wrong on our end. We're working to fix it!
                 </p>
 
                 <!-- What to do -->
                 <div class="alert alert-soft-info d-inline-block text-start mb-4">
                     <div class="d-flex align-items-start">
-                        <span class="fas fa-lightbulb mt-1 me-2"></span>
+                        <span class="fas fa-info-circle mt-1 me-2"></span>
                         <div>
                             <strong>What you can do:</strong><br>
-                            • Check the URL for typos<br>
-                            • Use the navigation menu to find what you need<br>
-                            • Go back to the previous page
+                            • Try refreshing the page<br>
+                            • Go back and try again<br>
+                            • Contact support if the problem persists
                         </div>
                     </div>
                 </div>
 
                 <!-- Action Buttons -->
                 <div class="d-flex gap-2 justify-content-center">
+                    <button onclick="window.location.reload()" class="btn btn-falcon-default">
+                        <span class="fas fa-sync me-1"></span>Refresh
+                    </button>
                     <button onclick="window.history.back()" class="btn btn-falcon-default">
                         <span class="fas fa-arrow-left me-1"></span>Go Back
                     </button>
                     {% if current_user.is_authenticated %}
                     <a href="{{ url_for('profile.dashboard') }}" class="btn btn-falcon-primary">
                         <span class="fas fa-home me-1"></span>Dashboard
-                    </a>
-                    {% else %}
-                    <a href="{{ url_for('main.landing') }}" class="btn btn-falcon-primary">
-                        <span class="fas fa-home me-1"></span>Home
                     </a>
                     {% endif %}
                 </div>

@@ -164,7 +164,7 @@
                     {% set total_property_units = property.units|length %}
                     {% set property_revenue = 0 %}
                     {% for unit in property.units %}
-                        {% if unit.get_lease_status() == 'Occupied' %}
+                        {% if unit.occupancy_status == 'Occupied' %}
                             {% set _ = occupied_units.append(unit) %}
                         {% endif %}
                         {% set current_lease = unit.get_current_lease() %}
@@ -219,6 +219,15 @@
                             </div>
                         </td>
                         <td class="occupancy">
+                            {% if property.occupancy_status %}
+                                {% if property.occupancy_status == 'Fully Occupied' %}
+                                    <span class="badge bg-success mb-1">Fully Occupied</span>
+                                {% elif property.occupancy_status == 'Partially Occupied' %}
+                                    <span class="badge bg-warning text-dark mb-1">Partially Occupied</span>
+                                {% else %}
+                                    <span class="badge bg-secondary mb-1">Vacant</span>
+                                {% endif %}
+                            {% endif %}
                             {% if total_property_units > 0 %}
                                 {% set occupancy_rate = (occupied_units|length / total_property_units * 100)|round(1) %}
                                 <div class="d-flex align-items-center" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ occupied_units|length }}/{{ total_property_units }} units occupied ({{ occupancy_rate }}%)">

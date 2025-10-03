@@ -54,6 +54,9 @@ def create_app():
     from website.lease.views import lease
     app.register_blueprint(lease, url_prefix='/lease')
 
+    from website.lease_template.views import lease_template
+    app.register_blueprint(lease_template, url_prefix='/lease-templates')
+
     from website.portfolio.views import portfolio
     app.register_blueprint(portfolio, url_prefix='/portfolio')
 
@@ -69,13 +72,15 @@ def create_app():
     from website.report.views import report
     app.register_blueprint(report, url_prefix='/reports')
 
-    from website.errors import page_not_found
+    from website.errors import page_not_found, forbidden, internal_server_error
     app.register_error_handler(404, page_not_found)
+    app.register_error_handler(403, forbidden)
+    app.register_error_handler(500, internal_server_error)
 
     # Import all models to ensure they're registered with SQLAlchemy
     from website.models import (
         User, Company, Portfolio, Property, Unit,
-        Tenant, Lease, Payment, Expense, PasswordHistoryModel, AuditLogModel, EmailVerificationAttempt
+        Tenant, Lease, LeaseTemplate, Payment, Expense, PasswordHistoryModel, AuditLogModel, EmailVerificationAttempt
     )
     
     with app.app_context():

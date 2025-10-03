@@ -28,6 +28,31 @@ def show(uuid):
     today_date = datetime.now()
     return render_template("lease.html", user=current_user, lease=lease, today_date=today_date)
 
+
+@lease.route('/<uuid:uuid>/contract', methods=['GET'])
+@login_required
+def view_contract(uuid):
+    """View generated lease contract."""
+    company_id = current_user.get_company_id()
+    lease = Lease.find_by_uuid(str(uuid), company_id)
+    if not lease:
+        return page_not_found(404)
+
+    # Check if lease has a template
+    if not lease.template_id:
+        flash('This lease does not have an associated template. Cannot generate contract.', 'warning')
+        return redirect(url_for('lease.show', uuid=uuid))
+
+    # Generate contract
+    contract_text = lease.generate_contract()
+
+    if not contract_text:
+        flash('Unable to generate contract. Please check the template configuration.', 'error')
+        return redirect(url_for('lease.show', uuid=uuid))
+
+    return render_template("lease_contract.html", user=current_user, lease=lease, contract_text=contract_text)
+
+
 @lease.route('/update/<uuid:uuid>', methods=['GET', 'POST'])
 @login_required
 def update(uuid):
@@ -65,6 +90,16 @@ def update(uuid):
         lease.end = end_datetime
         lease.company_id = company_id  # Ensure company_id is set
         db.session.commit()
+
+        # Update lease status based on new dates
+        lease.update_status()
+
+        # Sync unit and property occupancy statuses
+        lease.sync_unit_property_status()
+
+        # Commit status updates
+        db.session.commit()
+
         return redirect(url_for('property.show', uuid=lease.unit.property_ref.uuid))
     
     return render_template("update_lease.html", user=current_user, form=form, lease=lease, properties=get_properties())
@@ -93,6 +128,17 @@ def create_general():
     form.property.choices = [('', 'Select Property')] + [(p.uuid, p.name) for p in properties]
     form.tenant.choices = [('', 'Choose a tenant...')] + [(t.uuid, f"{t.first_name} {t.last_name}") for t in Tenant.query.filter_by(company_id=company_id)]
     form.unit.choices = [('', 'Choose a unit...')]  # Will be populated via JavaScript based on property selection
+
+    # Populate template choices
+    from website.models import LeaseTemplate
+    available_templates = LeaseTemplate.get_available_templates(company_id)
+    active_templates = [t for t in available_templates if t.is_active]
+    form.template.choices = [('', 'No Template')] + [(t.id, t.name) for t in active_templates]
+
+    # Pre-select default template if available
+    default_template = LeaseTemplate.get_default_for_company(company_id)
+    if default_template and not form.template.data:
+        form.template.data = default_template.id
 
     # Handle pre-selected values from query parameters (for context-specific links)
     preselected_property = request.args.get('property')
@@ -253,11 +299,15 @@ def create_general():
         violation_history = form.violation_history.data or ""
         maintenance_requests = form.maintenance_requests.data or ""
 
+        # Get template_id if selected
+        template_id = form.template.data if form.template.data else None
+
         new_lease = Lease(
             tenant_id=tenant.id,
             unit_id=unit.id,
             property_id=property.id,
             company_id=company_id,
+            template_id=template_id,
             start=start_datetime,
             end=end_datetime,
             rent=rent,
@@ -308,6 +358,22 @@ def create_general():
         db.session.add(new_lease)
         db.session.commit()
 
+        # Update lease status based on dates
+        new_lease.update_status()
+
+        # Sync unit and property occupancy statuses
+        new_lease.sync_unit_property_status()
+
+        # Increment template usage count if template was used
+        if template_id:
+            from website.models import LeaseTemplate
+            selected_template = LeaseTemplate.query.get(template_id)
+            if selected_template:
+                selected_template.increment_usage()
+
+        # Commit status updates and template usage
+        db.session.commit()
+
         # Get tenant and unit info for the success message (already have these objects)
         tenant_name = f"{tenant.first_name} {tenant.last_name}" if tenant else "Unknown"
         unit_name = unit.name if unit else "Unknown"
@@ -352,9 +418,23 @@ def delete(uuid):
     tenant_name = f"{lease.tenant_ref.first_name} {lease.tenant_ref.last_name}" if lease.tenant_ref else "Unknown"
     unit_name = lease.unit_ref.name if lease.unit_ref else "Unknown"
 
+    # Store references to unit and property before deletion
+    unit = lease.unit_ref
+    property_obj = lease.property_ref
+
     try:
         db.session.delete(lease)
         db.session.commit()
+
+        # After deleting lease, update unit and property statuses
+        if unit:
+            unit.update_occupancy_status()
+        if property_obj:
+            property_obj.update_occupancy_status()
+
+        # Commit status updates
+        db.session.commit()
+
         flash(f'Lease for {tenant_name} in {unit_name} deleted successfully!', 'success')
     except Exception as e:
         db.session.rollback()

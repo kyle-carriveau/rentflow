@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('profile.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('lease.leases') }}">Leases</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('lease.show', uuid=lease.uuid) }}">Lease Details</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Contract</li>
+  </ol>
+</nav>
+
+<!-- Page Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0"><span class="fas fa-file-contract me-2"></span>Lease Contract</h2>
+        <p class="mb-0 text-700">
+            {% if lease.tenant_ref %}
+                {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}
+            {% endif %}
+            {% if lease.unit_ref %}
+                • {{ lease.unit_ref.name }}
+            {% endif %}
+        </p>
+    </div>
+    <div class="col-auto">
+        <div class="btn-group">
+            <button onclick="printContract()" class="btn btn-falcon-primary btn-sm">
+                <span class="fas fa-print me-1"></span>Print
+            </button>
+            <button onclick="downloadContract()" class="btn btn-falcon-default btn-sm">
+                <span class="fas fa-download me-1"></span>Download
+            </button>
+            <a href="{{ url_for('lease.show', uuid=lease.uuid) }}" class="btn btn-falcon-default btn-sm">
+                <span class="fas fa-arrow-left me-1"></span>Back to Lease
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Contract Display -->
+<div class="card">
+    <div class="card-header bg-light">
+        <div class="row align-items-center">
+            <div class="col">
+                <h5 class="mb-0">
+                    <span class="fas fa-file-alt me-2"></span>
+                    {% if lease.template %}
+                        {{ lease.template.name }}
+                    {% else %}
+                        Lease Agreement
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="col-auto">
+                <span class="badge badge-soft-success">Generated Contract</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-5" id="contract-content" style="background: white;">
+        <pre style="white-space: pre-wrap; font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.6; color: #000;">{{ contract_text }}</pre>
+    </div>
+</div>
+
+<!-- Contract Information -->
+<div class="card mt-3">
+    <div class="card-header">
+        <h6 class="mb-0"><span class="fas fa-info-circle me-2"></span>Contract Information</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 mb-2">
+                <div class="d-flex justify-content-between">
+                    <span class="text-600">Template Used:</span>
+                    <span class="fw-semi-bold">
+                        {% if lease.template %}
+                            {{ lease.template.name }}
+                        {% else %}
+                            None
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-6 mb-2">
+                <div class="d-flex justify-content-between">
+                    <span class="text-600">Lease Status:</span>
+                    <span>
+                        {% if lease.lease_status == 'active' %}
+                            <span class="badge bg-success">Active</span>
+                        {% elif lease.lease_status == 'expiring' %}
+                            <span class="badge bg-warning">Expiring</span>
+                        {% elif lease.lease_status == 'expired' %}
+                            <span class="badge bg-danger">Expired</span>
+                        {% elif lease.lease_status == 'pending' %}
+                            <span class="badge bg-secondary">Pending</span>
+                        {% else %}
+                            <span class="badge bg-light text-dark">{{ lease.lease_status|title }}</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-6 mb-2">
+                <div class="d-flex justify-content-between">
+                    <span class="text-600">Lease Period:</span>
+                    <span class="fw-semi-bold">{{ lease.start.strftime('%m/%d/%Y') }} - {{ lease.end.strftime('%m/%d/%Y') }}</span>
+                </div>
+            </div>
+            <div class="col-md-6 mb-2">
+                <div class="d-flex justify-content-between">
+                    <span class="text-600">Monthly Rent:</span>
+                    <span class="fw-semi-bold text-success">{{ lease.rent|currency }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Print contract
+function printContract() {
+    const content = document.getElementById('contract-content').innerHTML;
+    const printWindow = window.open('', '', 'height=800,width=800');
+    printWindow.document.write('<html><head><title>Lease Contract</title>');
+    printWindow.document.write('<style>');
+    printWindow.document.write('body { font-family: "Times New Roman", serif; padding: 40px; line-height: 1.6; }');
+    printWindow.document.write('pre { white-space: pre-wrap; font-family: inherit; font-size: 11pt; }');
+    printWindow.document.write('@page { margin: 1in; }');
+    printWindow.document.write('</style>');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(content);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
+}
+
+// Download contract as text file
+function downloadContract() {
+    const content = document.getElementById('contract-content').innerText;
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const filename = 'Lease_Contract_{{ lease.tenant_ref.first_name if lease.tenant_ref else "Unknown" }}_{{ lease.tenant_ref.last_name if lease.tenant_ref else "" }}_{{ lease.start.strftime("%Y%m%d") if lease.start else "" }}.txt';
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+
+{% endblock %}

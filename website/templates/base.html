@@ -153,6 +153,13 @@
                       <span class="nav-link-text ps-1">Leases</span>
                     </div>
                   </a>
+
+                  <a class="nav-link {{ 'active' if request.endpoint and 'lease_template.' in request.endpoint else '' }}" href="{{ url_for('lease_template.index') }}" role="button">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-icon"><span class="fas fa-file-alt"></span></span>
+                      <span class="nav-link-text ps-1">Lease Templates</span>
+                    </div>
+                  </a>
                 </li>
 
                 <!-- Financial Management Section -->

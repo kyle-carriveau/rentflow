@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('profile.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('lease_template.index') }}">Lease Templates</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ template.name }}</li>
+  </ol>
+</nav>
+
+<!-- Template Header -->
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h4 class="mb-1">{{ template.name }}</h4>
+                <p class="mb-0 text-600">{{ template.description or 'No description provided' }}</p>
+            </div>
+            <div class="col-auto">
+                <div class="btn-group">
+                    <a href="{{ url_for('lease_template.preview', uuid=template.uuid) }}" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-eye me-1"></span>Preview
+                    </a>
+                    {% if not template.is_system_template %}
+                        <a href="{{ url_for('lease_template.edit', uuid=template.uuid) }}" class="btn btn-falcon-primary btn-sm">
+                            <span class="fas fa-edit me-1"></span>Edit
+                        </a>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('lease_template.copy_template', uuid=template.uuid) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-falcon-primary btn-sm">
+                                <span class="fas fa-copy me-1"></span>Copy to My Templates
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body border-top">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="d-flex">
+                    <span class="fas fa-tag text-primary me-2" data-fa-transform="down-2"></span>
+                    <div class="flex-1">
+                        <p class="fs--1 mb-0 text-600">Template Type</p>
+                        <p class="mb-0 fw-semi-bold">{{ template.template_type|replace('_', ' ')|title }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex">
+                    <span class="fas fa-{{ 'check-circle' if template.is_active else 'times-circle' }} text-{{ 'success' if template.is_active else 'danger' }} me-2" data-fa-transform="down-2"></span>
+                    <div class="flex-1">
+                        <p class="fs--1 mb-0 text-600">Status</p>
+                        <p class="mb-0 fw-semi-bold">{{ 'Active' if template.is_active else 'Inactive' }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex">
+                    <span class="fas fa-file-contract text-info me-2" data-fa-transform="down-2"></span>
+                    <div class="flex-1">
+                        <p class="fs--1 mb-0 text-600">Usage</p>
+                        <p class="mb-0 fw-semi-bold">{{ template.usage_count }} lease{{ 's' if template.usage_count != 1 else '' }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex">
+                    <span class="fas fa-{{ 'shield-alt' if template.is_system_template else 'building' }} text-{{ 'success' if template.is_system_template else 'primary' }} me-2" data-fa-transform="down-2"></span>
+                    <div class="flex-1">
+                        <p class="fs--1 mb-0 text-600">Scope</p>
+                        <p class="mb-0 fw-semi-bold">{{ 'System Template' if template.is_system_template else 'Company Template' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Contract Template -->
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0"><span class="fas fa-file-contract me-2"></span>Contract Template</h5>
+            </div>
+            <div class="card-body">
+                {% if template.header_text %}
+                <div class="mb-3 p-3 bg-light rounded">
+                    <h6 class="text-600 mb-2">Header Text</h6>
+                    <pre class="mb-0" style="white-space: pre-wrap;">{{ template.header_text }}</pre>
+                </div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <pre class="p-3 bg-light rounded font-monospace" style="white-space: pre-wrap; max-height: 500px; overflow-y: auto;">{{ template.contract_text }}</pre>
+                </div>
+
+                {% if template.footer_text %}
+                <div class="mb-3 p-3 bg-light rounded">
+                    <h6 class="text-600 mb-2">Footer Text</h6>
+                    <pre class="mb-0" style="white-space: pre-wrap;">{{ template.footer_text }}</pre>
+                </div>
+                {% endif %}
+
+                {% if template.default_terms %}
+                <div class="p-3 bg-light rounded">
+                    <h6 class="text-600 mb-2">Default Terms & Conditions</h6>
+                    <pre class="mb-0" style="white-space: pre-wrap;">{{ template.default_terms }}</pre>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Template Metadata -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><span class="fas fa-info-circle me-2"></span>Template Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-600">Version:</span>
+                            <span class="fw-semi-bold">{{ template.version }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-600">Default Template:</span>
+                            <span class="fw-semi-bold">{{ 'Yes' if template.is_default else 'No' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-600">Created:</span>
+                            <span class="fw-semi-bold">{{ template.created_at.strftime('%m/%d/%Y') if template.created_at else 'N/A' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-600">Last Updated:</span>
+                            <span class="fw-semi-bold">{{ template.updated_at.strftime('%m/%d/%Y') if template.updated_at else 'N/A' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0"><span class="fas fa-bolt me-2"></span>Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('lease_template.preview', uuid=template.uuid) }}" class="btn btn-outline-primary btn-sm">
+                        <span class="fas fa-eye me-2"></span>Preview with Sample Data
+                    </a>
+                    {% if not template.is_system_template %}
+                        <a href="{{ url_for('lease_template.edit', uuid=template.uuid) }}" class="btn btn-outline-primary btn-sm">
+                            <span class="fas fa-edit me-2"></span>Edit Template
+                        </a>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('lease_template.copy_template', uuid=template.uuid) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                <span class="fas fa-copy me-2"></span>Copy to My Templates
+                            </button>
+                        </form>
+                    {% endif %}
+                    <a href="{{ url_for('lease.create_general') }}" class="btn btn-outline-success btn-sm">
+                        <span class="fas fa-file-contract me-2"></span>Create Lease with Template
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Merge Fields -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><span class="fas fa-code me-2"></span>Available Merge Fields</h6>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                <p class="fs--2 text-600 mb-2">Fields that can be used in this template:</p>
+                <div class="d-flex flex-wrap gap-1">
+                    {% for field in available_fields %}
+                    <span class="badge badge-soft-secondary">{{'{{'}}{{ field }}{{'}}'}}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

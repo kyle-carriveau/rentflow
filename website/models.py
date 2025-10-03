@@ -288,19 +288,23 @@ class Property(db.Model):
     # Metadata (optional for existing properties)
     created_date = db.Column(db.DateTime, nullable=True)
     updated_date = db.Column(db.DateTime, nullable=True)
-    
+
+    # Occupancy Status (cached for performance)
+    occupancy_status = db.Column(db.String(20), default='Vacant')  # Vacant, Partially Occupied, Fully Occupied
+    status_updated_at = db.Column(db.DateTime)  # Timestamp of last status update
+
     # Relationships with cascade delete
     units = db.relationship('Unit', backref='property_ref', cascade='all, delete-orphan')
     tenants = db.relationship('Tenant', backref='tenant_property_ref', cascade='all, delete-orphan')
     leases = db.relationship('Lease', backref='lease_property_ref', cascade='all, delete-orphan')
     photos = db.relationship('PropertyPhoto', backref='property', cascade='all, delete-orphan')
     documents = db.relationship('PropertyDocument', backref='property', cascade='all, delete-orphan')
-    
+
     def get_lease_status(self):
         """Returns the lease status of this property"""
         from datetime import datetime
         current_date = datetime.now()
-        
+
         # Check if property has any active leases through its units
         active_leases = db.session.query(Lease).join(Unit).filter(
             and_(
@@ -309,11 +313,57 @@ class Property(db.Model):
                 Lease.end >= current_date
             )
         ).count()
-        
+
         if active_leases > 0:
             return "Leased"
         else:
             return "Vacant"
+
+    def update_occupancy_status(self):
+        """
+        Update the cached occupancy status based on unit occupancy.
+
+        Status Logic:
+        - Fully Occupied: All units are occupied
+        - Partially Occupied: Some units occupied, some available
+        - Vacant: No units are occupied
+
+        Returns:
+            str: The new occupancy status
+        """
+        from datetime import datetime
+
+        # If no units, property is vacant
+        if not self.units or len(self.units) == 0:
+            old_status = self.occupancy_status
+            new_status = 'Vacant'
+
+            if new_status != old_status:
+                self.occupancy_status = new_status
+                self.status_updated_at = datetime.now()
+
+            return new_status
+
+        # Count occupied units
+        total_units = len(self.units)
+        occupied_units = sum(1 for unit in self.units if unit.get_lease_status() == 'Occupied')
+
+        old_status = self.occupancy_status
+
+        # Determine new status
+        if occupied_units == 0:
+            new_status = 'Vacant'
+        elif occupied_units == total_units:
+            new_status = 'Fully Occupied'
+        else:
+            new_status = 'Partially Occupied'
+
+        # Update if status changed
+        if new_status != old_status:
+            self.occupancy_status = new_status
+            self.status_updated_at = datetime.now()
+
+        return new_status
 
     def __init__(self, name="", company_id=None, portfolio_id=None):
         self.uuid = str(uuid.uuid4())
@@ -439,6 +489,10 @@ class Unit(db.Model):
     internet_speed = db.Column(db.String(50))  # Speed capabilities
     smart_home_features = db.Column(db.Text)  # JSON array of smart features
 
+    # Occupancy Status (cached for performance)
+    occupancy_status = db.Column(db.String(20), default='Available')  # Available, Reserved, Occupied, Maintenance
+    status_updated_at = db.Column(db.DateTime)  # Timestamp of last status update
+
     # Relationships with cascade delete
     leases = db.relationship('Lease', backref='unit_ref', cascade='all, delete-orphan')
     
@@ -482,13 +536,42 @@ class Unit(db.Model):
         """Get the next upcoming lease for this unit."""
         from datetime import datetime
         today = datetime.now().date()
-        
-        future_leases = [lease for lease in self.leases 
+
+        future_leases = [lease for lease in self.leases
                         if lease.start.date() > today]
-        
+
         if future_leases:
             return min(future_leases, key=lambda x: x.start.date())
         return None
+
+    def update_occupancy_status(self):
+        """
+        Update the cached occupancy status based on current lease state.
+
+        Status Priority:
+        1. Maintenance - Unit is under maintenance (manual override)
+        2. Occupied - Has an active lease
+        3. Reserved - Has a future lease scheduled
+        4. Available - No active or future leases
+
+        Returns:
+            str: The new occupancy status
+        """
+        from datetime import datetime
+
+        # Don't override maintenance status automatically
+        if self.occupancy_status == 'Maintenance':
+            return self.occupancy_status
+
+        old_status = self.occupancy_status
+        new_status = self.get_lease_status()  # Calculate from leases
+
+        # Update if status changed
+        if new_status != old_status:
+            self.occupancy_status = new_status
+            self.status_updated_at = datetime.now()
+
+        return new_status
 
     def __init__(self, name="", company_id=None, property_id=None):
         self.uuid = str(uuid.uuid4())
@@ -593,6 +676,7 @@ class Lease(db.Model):
     unit_id = db.Column(db.Integer, db.ForeignKey('unit.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    template_id = db.Column(db.Integer, db.ForeignKey('lease_template.id'), nullable=True)  # Template used for this lease
     start = db.Column(db.DateTime, nullable=False)
     end = db.Column(db.DateTime, nullable=False)
     rent = db.Column(db.Numeric(10, 2), nullable=False)
@@ -631,7 +715,8 @@ class Lease(db.Model):
     key_deposit = db.Column(db.Numeric(10, 2), nullable=True, default=0)  # Deposit for keys/access cards
     move_in_inspection_notes = db.Column(db.Text, nullable=True)  # Notes from move-in inspection
     move_out_inspection_notes = db.Column(db.Text, nullable=True)  # Notes from move-out inspection
-    lease_status = db.Column(db.String(20), nullable=True, default='active')  # active, terminated, expired, pending
+    lease_status = db.Column(db.String(20), nullable=True, default='active')  # draft, pending, active, expiring, terminated, expired
+    status_updated_at = db.Column(db.DateTime, nullable=True)  # Timestamp of last status update
     property_manager_notes = db.Column(db.Text, nullable=True)  # Internal notes for property management
     emergency_contact_name = db.Column(db.String(100), nullable=True)  # Emergency contact information
     emergency_contact_phone = db.Column(db.String(20), nullable=True)  # Emergency contact phone
@@ -652,7 +737,8 @@ class Lease(db.Model):
 
     # Relationships
     payments = db.relationship('Payment', backref='lease_ref', lazy=True, cascade='all, delete-orphan')
-    
+    template = db.relationship('LeaseTemplate', backref='leases_using_template', foreign_keys=[template_id])
+
     def get_total_paid(self):
         """Calculate total amount paid for this lease."""
         return sum(payment.amount for payment in self.payments if payment.status == 'completed')
@@ -877,6 +963,160 @@ class Lease(db.Model):
 
         return query.first() is not None
 
+    def update_status(self, force_update=False):
+        """
+        Automatically update lease status based on dates.
+
+        Status Transitions:
+        - draft: Lease created but not finalized
+        - pending: Lease finalized, awaiting start date
+        - active: Current date is between start and end
+        - expiring: Within 30 days of end date
+        - expired: Past end date
+        - terminated: Manually terminated early
+
+        Args:
+            force_update: If True, update even if status is 'terminated'
+
+        Returns:
+            str: The new status
+        """
+        from datetime import datetime, timedelta
+
+        # Don't auto-update terminated leases unless forced
+        if self.lease_status == 'terminated' and not force_update:
+            return self.lease_status
+
+        today = datetime.now().date()
+        start_date = self.start.date() if isinstance(self.start, datetime) else self.start
+        end_date = self.end.date() if isinstance(self.end, datetime) else self.end
+
+        old_status = self.lease_status
+        new_status = old_status
+
+        # Determine appropriate status
+        if today < start_date:
+            # Lease hasn't started yet
+            new_status = 'pending'
+        elif today > end_date:
+            # Lease has ended
+            new_status = 'expired'
+        elif today >= start_date and today <= end_date:
+            # Lease is currently active
+            days_until_end = (end_date - today).days
+
+            if days_until_end <= 30:
+                # Within 30 days of expiration
+                new_status = 'expiring'
+            else:
+                # Active and not close to expiration
+                new_status = 'active'
+
+        # Update status if it changed
+        if new_status != old_status:
+            self.lease_status = new_status
+            self.status_updated_at = datetime.now()
+
+        return new_status
+
+    def sync_unit_property_status(self):
+        """
+        Synchronize the occupancy status of the associated unit and property
+        after this lease's status changes.
+        """
+        # Update unit status
+        if self.unit_ref:
+            self.unit_ref.update_occupancy_status()
+
+        # Update property status
+        if self.property_ref:
+            self.property_ref.update_occupancy_status()
+
+    @staticmethod
+    def update_all_statuses(company_id=None):
+        """
+        Batch update all lease statuses. Useful for scheduled tasks.
+
+        Args:
+            company_id: Optional company_id to limit updates to specific company
+
+        Returns:
+            dict: Summary of status updates
+        """
+        query = Lease.query
+        if company_id:
+            query = query.filter_by(company_id=company_id)
+
+        leases = query.all()
+
+        summary = {
+            'total_processed': 0,
+            'status_changed': 0,
+            'by_status': {}
+        }
+
+        for lease in leases:
+            summary['total_processed'] += 1
+            old_status = lease.lease_status
+            new_status = lease.update_status()
+
+            if old_status != new_status:
+                summary['status_changed'] += 1
+
+                # Track status changes
+                if new_status not in summary['by_status']:
+                    summary['by_status'][new_status] = 0
+                summary['by_status'][new_status] += 1
+
+                # Sync unit and property statuses
+                lease.sync_unit_property_status()
+
+        # Commit all changes
+        db.session.commit()
+
+        return summary
+
+    def generate_contract(self):
+        """
+        Generate a populated lease contract from the template.
+
+        Returns:
+            str: Populated contract text, or None if no template
+        """
+        if not self.template:
+            return None
+
+        # Calculate lease term in months
+        from dateutil.relativedelta import relativedelta
+        start_date = self.start.date() if hasattr(self.start, 'date') else self.start
+        end_date = self.end.date() if hasattr(self.end, 'date') else self.end
+        delta = relativedelta(end_date, start_date)
+        lease_term_months = delta.years * 12 + delta.months
+
+        # Prepare lease data for merge fields
+        lease_data = {
+            'tenant_name': f"{self.tenant_ref.first_name} {self.tenant_ref.last_name}" if self.tenant_ref else '',
+            'tenant_email': self.tenant_ref.email if self.tenant_ref else '',
+            'tenant_phone': self.tenant_ref.phone if self.tenant_ref else '',
+            'landlord_name': self.company_ref.name if self.company_ref else '',
+            'landlord_company': self.company_ref.name if self.company_ref else '',
+            'property_address': self.property_ref.address if self.property_ref else '',
+            'unit_number': self.unit_ref.name if self.unit_ref else '',
+            'rent_amount': f"${self.rent:,.2f}",
+            'security_deposit': f"${self.security_deposit:,.2f}" if self.security_deposit else '$0.00',
+            'start_date': start_date.strftime('%B %d, %Y'),
+            'end_date': end_date.strftime('%B %d, %Y'),
+            'lease_term_months': str(lease_term_months),
+            'payment_due_date': str(self.payment_due_date) if self.payment_due_date else '1',
+            'late_fee': f"${self.late_fee:,.2f}" if self.late_fee else '$0.00',
+            'pet_deposit': f"${self.pet_deposit:,.2f}" if self.pet_deposit else '$0.00',
+            'parking_spaces': str(getattr(self.unit_ref, 'parking_spaces', 0)),
+            'utilities_included': self.utilities_included if self.utilities_included else 'None',
+        }
+
+        # Generate populated contract
+        return self.template.populate_template(lease_data)
+
     def __init__(self, tenant_id=None, unit_id=None, property_id=None, company_id=None, start=None, end=None, rent=None):
         self.uuid = str(uuid.uuid4())
         self.tenant_id = tenant_id
@@ -894,6 +1134,161 @@ class Lease(db.Model):
         if company_id:
             query = query.filter_by(company_id=company_id)
         return query.first()
+
+
+class LeaseTemplate(db.Model):
+    """
+    Lease contract templates for generating standardized lease agreements.
+
+    Templates support merge fields like {{tenant_name}}, {{rent_amount}}, etc.
+    Companies can create custom templates or use system defaults.
+    """
+    __tablename__ = 'lease_template'
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, index=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)  # NULL = system template
+
+    # Template Identification
+    name = db.Column(db.String(200), nullable=False)  # "Standard Residential Lease", "Commercial Lease"
+    description = db.Column(db.Text)  # Description of when to use this template
+    template_type = db.Column(db.String(50), default='residential')  # residential, commercial, month_to_month, sublease
+
+    # Template Content
+    contract_text = db.Column(db.Text, nullable=False)  # Rich text with merge fields
+    header_text = db.Column(db.Text)  # Optional header/letterhead
+    footer_text = db.Column(db.Text)  # Optional footer/signature block
+
+    # Default Terms (JSON)
+    default_terms = db.Column(db.Text)  # JSON: {security_deposit_months: 1, late_fee: 50, notice_period_days: 30}
+
+    # Template Status
+    is_default = db.Column(db.Boolean, default=False)  # Is this the default template for this company?
+    is_active = db.Column(db.Boolean, default=True)  # Can this template be used?
+    is_system_template = db.Column(db.Boolean, default=False)  # System-provided template (read-only)
+
+    # Version Control
+    version = db.Column(db.Integer, default=1)  # Template version number
+    parent_template_id = db.Column(db.Integer, db.ForeignKey('lease_template.id'), nullable=True)  # For versioning
+
+    # Merge Fields Configuration
+    available_merge_fields = db.Column(db.Text)  # JSON array of available merge fields
+    required_fields = db.Column(db.Text)  # JSON array of required merge fields
+
+    # Metadata
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    usage_count = db.Column(db.Integer, default=0)  # How many times used
+
+    # Relationships
+    creator = db.relationship('User', backref='created_templates', foreign_keys=[created_by])
+    child_versions = db.relationship('LeaseTemplate', backref=db.backref('parent_template', remote_side=[id]))
+
+    def __init__(self, name="", company_id=None, template_type='residential'):
+        self.uuid = str(uuid.uuid4())
+        self.name = name
+        self.company_id = company_id
+        self.template_type = template_type
+
+    @classmethod
+    def find_by_uuid(cls, template_uuid, company_id=None):
+        """Find template by UUID with optional company_id filter for security."""
+        query = cls.query.filter_by(uuid=template_uuid)
+        if company_id:
+            # Can access own templates or system templates
+            query = query.filter(
+                db.or_(
+                    cls.company_id == company_id,
+                    cls.is_system_template == True
+                )
+            )
+        return query.first()
+
+    @classmethod
+    def get_default_for_company(cls, company_id, template_type='residential'):
+        """Get the default template for a company."""
+        # First try company-specific default
+        template = cls.query.filter_by(
+            company_id=company_id,
+            template_type=template_type,
+            is_default=True,
+            is_active=True
+        ).first()
+
+        if not template:
+            # Fall back to system default
+            template = cls.query.filter_by(
+                is_system_template=True,
+                template_type=template_type,
+                is_default=True,
+                is_active=True
+            ).first()
+
+        return template
+
+    @classmethod
+    def get_available_templates(cls, company_id, template_type=None):
+        """Get all available templates for a company (own + system)."""
+        query = cls.query.filter(
+            cls.is_active == True,
+            db.or_(
+                cls.company_id == company_id,
+                cls.is_system_template == True
+            )
+        )
+
+        if template_type:
+            query = query.filter_by(template_type=template_type)
+
+        return query.order_by(cls.is_default.desc(), cls.name).all()
+
+    def populate_template(self, lease_data):
+        """
+        Replace merge fields with actual lease data.
+
+        Args:
+            lease_data: Dictionary containing lease information
+
+        Returns:
+            str: Populated contract text
+        """
+        import re
+
+        populated_text = self.contract_text
+
+        # Define merge field mappings
+        merge_fields = {
+            'tenant_name': lease_data.get('tenant_name', ''),
+            'tenant_email': lease_data.get('tenant_email', ''),
+            'tenant_phone': lease_data.get('tenant_phone', ''),
+            'landlord_name': lease_data.get('landlord_name', ''),
+            'landlord_company': lease_data.get('landlord_company', ''),
+            'property_address': lease_data.get('property_address', ''),
+            'unit_number': lease_data.get('unit_number', ''),
+            'rent_amount': lease_data.get('rent_amount', ''),
+            'security_deposit': lease_data.get('security_deposit', ''),
+            'start_date': lease_data.get('start_date', ''),
+            'end_date': lease_data.get('end_date', ''),
+            'lease_term_months': lease_data.get('lease_term_months', ''),
+            'payment_due_date': lease_data.get('payment_due_date', ''),
+            'late_fee': lease_data.get('late_fee', ''),
+            'pet_deposit': lease_data.get('pet_deposit', ''),
+            'parking_spaces': lease_data.get('parking_spaces', ''),
+            'utilities_included': lease_data.get('utilities_included', ''),
+            'current_date': datetime.now().strftime('%B %d, %Y'),
+        }
+
+        # Replace merge fields
+        for field_name, field_value in merge_fields.items():
+            pattern = r'\{\{' + field_name + r'\}\}'
+            populated_text = re.sub(pattern, str(field_value), populated_text, flags=re.IGNORECASE)
+
+        return populated_text
+
+    def increment_usage(self):
+        """Increment the usage counter for this template."""
+        self.usage_count += 1
+        db.session.commit()
 
 
 class Payment(db.Model):

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('profile.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('lease_template.index') }}">Lease Templates</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('lease_template.view', uuid=template.uuid) }}">{{ template.name }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Preview</li>
+  </ol>
+</nav>
+
+<!-- Page Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0"><span class="fas fa-eye me-2"></span>Template Preview</h2>
+        <p class="mb-0 text-700">{{ template.name }}</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('lease_template.view', uuid=template.uuid) }}" class="btn btn-falcon-default">
+            <span class="fas fa-arrow-left me-1"></span>Back to Template
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Preview Form -->
+    <div class="col-lg-4">
+        <div class="card sticky-sidebar">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><span class="fas fa-sliders-h me-2"></span>Sample Data</h5>
+            </div>
+            <div class="card-body" style="max-height: 700px; overflow-y: auto;">
+                <form method="POST" action="">
+                    {{ form.csrf_token }}
+
+                    <h6 class="fs--1 text-primary mb-2">Tenant Information</h6>
+                    <div class="mb-2">
+                        {{ form.tenant_name.label(class="form-label fs--1") }}
+                        {{ form.tenant_name(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="mb-2">
+                        {{ form.tenant_email.label(class="form-label fs--1") }}
+                        {{ form.tenant_email(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.tenant_phone.label(class="form-label fs--1") }}
+                        {{ form.tenant_phone(class="form-control form-control-sm") }}
+                    </div>
+
+                    <h6 class="fs--1 text-primary mb-2">Landlord Information</h6>
+                    <div class="mb-2">
+                        {{ form.landlord_name.label(class="form-label fs--1") }}
+                        {{ form.landlord_name(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.landlord_company.label(class="form-label fs--1") }}
+                        {{ form.landlord_company(class="form-control form-control-sm") }}
+                    </div>
+
+                    <h6 class="fs--1 text-primary mb-2">Property Details</h6>
+                    <div class="mb-2">
+                        {{ form.property_address.label(class="form-label fs--1") }}
+                        {{ form.property_address(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.unit_number.label(class="form-label fs--1") }}
+                        {{ form.unit_number(class="form-control form-control-sm") }}
+                    </div>
+
+                    <h6 class="fs--1 text-primary mb-2">Financial Terms</h6>
+                    <div class="mb-2">
+                        {{ form.rent_amount.label(class="form-label fs--1") }}
+                        {{ form.rent_amount(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="mb-2">
+                        {{ form.security_deposit.label(class="form-label fs--1") }}
+                        {{ form.security_deposit(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="mb-2">
+                        {{ form.late_fee.label(class="form-label fs--1") }}
+                        {{ form.late_fee(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="mb-2">
+                        {{ form.pet_deposit.label(class="form-label fs--1") }}
+                        {{ form.pet_deposit(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.payment_due_date.label(class="form-label fs--1") }}
+                        {{ form.payment_due_date(class="form-control form-control-sm") }}
+                    </div>
+
+                    <h6 class="fs--1 text-primary mb-2">Lease Dates</h6>
+                    <div class="mb-2">
+                        {{ form.start_date.label(class="form-label fs--1") }}
+                        {{ form.start_date(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="mb-2">
+                        {{ form.end_date.label(class="form-label fs--1") }}
+                        {{ form.end_date(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.lease_term_months.label(class="form-label fs--1") }}
+                        {{ form.lease_term_months(class="form-control form-control-sm") }}
+                    </div>
+
+                    <h6 class="fs--1 text-primary mb-2">Additional Details</h6>
+                    <div class="mb-2">
+                        {{ form.parking_spaces.label(class="form-label fs--1") }}
+                        {{ form.parking_spaces(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.utilities_included.label(class="form-label fs--1") }}
+                        {{ form.utilities_included(class="form-control form-control-sm") }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <span class="fas fa-sync-alt me-1"></span>Update Preview
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Output -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-light">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0"><span class="fas fa-file-alt me-2"></span>Contract Preview</h5>
+                    </div>
+                    <div class="col-auto">
+                        {% if preview_html %}
+                        <button onclick="printContract()" class="btn btn-falcon-default btn-sm">
+                            <span class="fas fa-print me-1"></span>Print
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if preview_html %}
+                <div id="contract-preview" class="p-4 bg-white border" style="min-height: 600px;">
+                    <pre style="white-space: pre-wrap; font-family: inherit; line-height: 1.8;">{{ preview_html }}</pre>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <span class="fas fa-file-alt fa-3x text-300"></span>
+                    </div>
+                    <h5 class="mb-2">No Preview Generated</h5>
+                    <p class="text-600">Update the sample data and click "Update Preview" to see how the contract will look.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Make sidebar sticky
+const sidebar = document.querySelector('.sticky-sidebar');
+if (sidebar && window.innerWidth >= 992) {
+    sidebar.style.position = 'sticky';
+    sidebar.style.top = '20px';
+}
+
+// Print contract
+function printContract() {
+    const content = document.getElementById('contract-preview').innerHTML;
+    const printWindow = window.open('', '', 'height=800,width=800');
+    printWindow.document.write('<html><head><title>Lease Contract Preview</title>');
+    printWindow.document.write('<style>');
+    printWindow.document.write('body { font-family: Arial, sans-serif; padding: 40px; line-height: 1.8; }');
+    printWindow.document.write('pre { white-space: pre-wrap; font-family: inherit; }');
+    printWindow.document.write('</style>');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(content);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('profile.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Lease Templates</li>
+  </ol>
+</nav>
+
+<!-- Page Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0"><span class="fas fa-file-contract me-2"></span>Lease Templates</h2>
+        <p class="mb-0 text-700">Create and manage lease contract templates with customizable merge fields</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('lease_template.create') }}" class="btn btn-falcon-primary">
+            <span class="fas fa-plus me-1"></span>Create New Template
+        </a>
+    </div>
+</div>
+
+<!-- Company Templates -->
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h5 class="mb-0">
+                    <span class="fas fa-building me-2 text-primary"></span>My Company Templates
+                </h5>
+                <p class="mb-0 text-600 fs--1">Custom templates for {{ current_user.company_ref.name }}</p>
+            </div>
+            <div class="col-auto">
+                <span class="badge badge-soft-primary">{{ company_templates|length }} template{{ 's' if company_templates|length != 1 else '' }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if company_templates %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Template Name</th>
+                        <th>Type</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Usage</th>
+                        <th class="text-center">Default</th>
+                        <th class="text-center">Last Updated</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for template in company_templates %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('lease_template.view', uuid=template.uuid) }}" class="fw-semi-bold text-decoration-none">
+                                {{ template.name }}
+                            </a>
+                            {% if template.description %}
+                                <div class="fs--2 text-600">{{ template.description }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-soft-info">{{ template.template_type|replace('_', ' ')|title }}</span>
+                        </td>
+                        <td class="text-center">
+                            {% if template.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="text-600">{{ template.usage_count }} lease{{ 's' if template.usage_count != 1 else '' }}</span>
+                        </td>
+                        <td class="text-center">
+                            {% if template.is_default %}
+                                <span class="fas fa-check-circle text-success"></span>
+                            {% else %}
+                                <span class="fas fa-circle text-300"></span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <small class="text-600">{{ template.updated_at.strftime('%m/%d/%Y') if template.updated_at else '-' }}</small>
+                        </td>
+                        <td class="text-center">
+                            <div class="dropdown">
+                                <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal"
+                                        type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <span class="fas fa-ellipsis-h fs--1"></span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end border py-0">
+                                    <div class="py-2">
+                                        <a class="dropdown-item" href="{{ url_for('lease_template.view', uuid=template.uuid) }}">
+                                            <span class="fas fa-eye me-1"></span>View Details
+                                        </a>
+                                        <a class="dropdown-item" href="{{ url_for('lease_template.preview', uuid=template.uuid) }}">
+                                            <span class="fas fa-file-alt me-1"></span>Preview
+                                        </a>
+                                        <a class="dropdown-item" href="{{ url_for('lease_template.edit', uuid=template.uuid) }}">
+                                            <span class="fas fa-edit me-1"></span>Edit Template
+                                        </a>
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item text-danger" href="#"
+                                           onclick="deleteTemplate('{{ template.uuid }}', '{{ template.name }}'); return false;">
+                                            <span class="fas fa-trash me-1"></span>Delete Template
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <div class="mb-3">
+                <span class="fas fa-file-contract fa-2x text-300"></span>
+            </div>
+            <h6 class="mb-2">No Company Templates</h6>
+            <p class="text-600 mb-3">Create your first custom template or copy a system template to get started.</p>
+            <a href="{{ url_for('lease_template.create') }}" class="btn btn-falcon-primary btn-sm">
+                <span class="fas fa-plus fs--2 me-1"></span>Create Template
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- System Templates -->
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h5 class="mb-0">
+                    <span class="fas fa-shield-alt me-2 text-success"></span>System Templates
+                </h5>
+                <p class="mb-0 text-600 fs--1">Pre-built templates available to all companies</p>
+            </div>
+            <div class="col-auto">
+                <span class="badge badge-soft-success">{{ system_templates|length }} template{{ 's' if system_templates|length != 1 else '' }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if system_templates %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Template Name</th>
+                        <th>Type</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for template in system_templates %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('lease_template.view', uuid=template.uuid) }}" class="fw-semi-bold text-decoration-none">
+                                {{ template.name }}
+                            </a>
+                            {% if template.description %}
+                                <div class="fs--2 text-600">{{ template.description }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-soft-info">{{ template.template_type|replace('_', ' ')|title }}</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('lease_template.view', uuid=template.uuid) }}" class="btn btn-falcon-default btn-sm">
+                                    <span class="fas fa-eye fs--2"></span>
+                                </a>
+                                <a href="{{ url_for('lease_template.preview', uuid=template.uuid) }}" class="btn btn-falcon-default btn-sm">
+                                    <span class="fas fa-file-alt fs--2"></span>
+                                </a>
+                                <form method="POST" action="{{ url_for('lease_template.copy_template', uuid=template.uuid) }}" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <button type="submit" class="btn btn-falcon-primary btn-sm">
+                                        <span class="fas fa-copy fs--2"></span> Copy
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <p class="text-600 mb-0">No system templates available.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete form -->
+<form id="deleteForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+</form>
+
+<script>
+function deleteTemplate(templateUuid, templateName) {
+    if (confirm(`Are you sure you want to delete template "${templateName}"? This action cannot be undone.`)) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/lease-templates/${templateUuid}/delete`;
+        form.submit();
+    }
+}
+</script>
+
+{% endblock %}

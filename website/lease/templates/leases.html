@@ -157,7 +157,7 @@
                 <tbody class="list">
                     {% for lease in leases %}
                     {% set days_until_end = (lease.end - today_date).days %}
-                    <tr class="align-middle lease-row" data-status="{{ 'active' if days_until_end > 0 else 'expired' }}" data-expiring="{{ 'true' if days_until_end <= 60 and days_until_end > 0 else 'false' }}">
+                    <tr class="align-middle lease-row" data-status="{{ lease.lease_status }}" data-expiring="{{ 'true' if lease.lease_status == 'expiring' else 'false' }}">
                         <td class="text-nowrap">
                             <div class="dropdown text-sans-serif">
                                 <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal" 
@@ -244,12 +244,18 @@
                             {% endif %}
                         </td>
                         <td class="status">
-                            {% if days_until_end > 60 %}
+                            {% if lease.lease_status == 'active' %}
                                 <span class="badge bg-success">Active</span>
-                            {% elif days_until_end > 0 and days_until_end <= 60 %}
-                                <span class="badge bg-warning text-dark">Expiring Soon</span>
-                            {% else %}
+                            {% elif lease.lease_status == 'expiring' %}
+                                <span class="badge bg-warning text-dark">Expiring</span>
+                            {% elif lease.lease_status == 'expired' %}
                                 <span class="badge bg-danger">Expired</span>
+                            {% elif lease.lease_status == 'pending' %}
+                                <span class="badge bg-secondary">Pending</span>
+                            {% elif lease.lease_status == 'terminated' %}
+                                <span class="badge bg-dark">Terminated</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">{{ lease.lease_status|title }}</span>
                             {% endif %}
                         </td>
                     </tr>
@@ -314,25 +320,32 @@ function deleteLease(leaseUuid, tenantName, unitName) {
 
 function filterLeases(filterType) {
     const rows = document.querySelectorAll('.lease-row');
-    
+
     rows.forEach(row => {
         let show = false;
-        
+        const status = row.dataset.status;
+
         switch(filterType) {
             case 'all':
                 show = true;
                 break;
             case 'active':
-                show = row.dataset.status === 'active';
+                show = status === 'active';
                 break;
             case 'expiring':
-                show = row.dataset.expiring === 'true';
+                show = status === 'expiring';
                 break;
             case 'expired':
-                show = row.dataset.status === 'expired';
+                show = status === 'expired';
+                break;
+            case 'pending':
+                show = status === 'pending';
+                break;
+            case 'terminated':
+                show = status === 'terminated';
                 break;
         }
-        
+
         row.style.display = show ? '' : 'none';
     });
 }
