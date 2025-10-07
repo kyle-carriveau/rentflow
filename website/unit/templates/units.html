@@ -10,6 +10,287 @@
   </ol>
 </nav>
 
+<!-- Advanced Filter Panel -->
+<div class="card mb-3">
+    <div class="card-header bg-light">
+        <div class="row align-items-center">
+            <div class="col">
+                <h6 class="mb-0">
+                    <span class="fas fa-filter me-2"></span>Advanced Unit Search
+                </h6>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-sm btn-link text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterPanel" aria-expanded="true">
+                    <span class="fas fa-chevron-down"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="collapse show" id="filterPanel">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('unit.list_units') }}" id="unitFilterForm">
+                <div class="row g-3">
+                    <!-- Text Search -->
+                    <div class="col-md-4">
+                        <label class="form-label" for="query">Search by Name</label>
+                        <input type="text" class="form-control" id="query" name="query" placeholder="Unit name or description..." value="{{ filters.get('query', '') }}">
+                    </div>
+
+                    <!-- Bedrooms -->
+                    <div class="col-md-4 col-lg-2">
+                        <label class="form-label" for="bedrooms">Bedrooms</label>
+                        <select class="form-select" id="bedrooms" name="bedrooms">
+                            <option value="">Any</option>
+                            <option value="0" {% if filters.get('bedrooms') == '0' %}selected{% endif %}>Studio</option>
+                            <option value="1" {% if filters.get('bedrooms') == '1' %}selected{% endif %}>1 BR</option>
+                            <option value="2" {% if filters.get('bedrooms') == '2' %}selected{% endif %}>2 BR</option>
+                            <option value="3" {% if filters.get('bedrooms') == '3' %}selected{% endif %}>3 BR</option>
+                            <option value="4" {% if filters.get('bedrooms') == '4' %}selected{% endif %}>4+ BR</option>
+                        </select>
+                    </div>
+
+                    <!-- Bathrooms -->
+                    <div class="col-md-4 col-lg-2">
+                        <label class="form-label" for="bathrooms">Bathrooms</label>
+                        <select class="form-select" id="bathrooms" name="bathrooms">
+                            <option value="">Any</option>
+                            <option value="1" {% if filters.get('bathrooms') == '1' %}selected{% endif %}>1 Bath</option>
+                            <option value="1.5" {% if filters.get('bathrooms') == '1.5' %}selected{% endif %}>1.5 Bath</option>
+                            <option value="2" {% if filters.get('bathrooms') == '2' %}selected{% endif %}>2 Bath</option>
+                            <option value="2.5" {% if filters.get('bathrooms') == '2.5' %}selected{% endif %}>2.5 Bath</option>
+                            <option value="3" {% if filters.get('bathrooms') == '3' %}selected{% endif %}>3+ Bath</option>
+                        </select>
+                    </div>
+
+                    <!-- Occupancy Status -->
+                    <div class="col-md-6 col-lg-4">
+                        <label class="form-label" for="occupancy_status">Availability</label>
+                        <select class="form-select" id="occupancy_status" name="occupancy_status">
+                            <option value="">All Statuses</option>
+                            <option value="Available" {% if filters.get('occupancy_status') == 'Available' %}selected{% endif %}>Available</option>
+                            <option value="Occupied" {% if filters.get('occupancy_status') == 'Occupied' %}selected{% endif %}>Occupied</option>
+                            <option value="Reserved" {% if filters.get('occupancy_status') == 'Reserved' %}selected{% endif %}>Reserved</option>
+                            <option value="Maintenance" {% if filters.get('occupancy_status') == 'Maintenance' %}selected{% endif %}>Maintenance</option>
+                        </select>
+                    </div>
+
+                    <!-- Property Filter -->
+                    <div class="col-md-6">
+                        <label class="form-label" for="property_id">Property</label>
+                        <select class="form-select" id="property_id" name="property_id">
+                            <option value="">All Properties</option>
+                            {% for property in properties %}
+                                <option value="{{ property.uuid }}" {% if filters.get('property_id') == property.uuid %}selected{% endif %}>
+                                    {{ property.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Rent Range -->
+                    <div class="col-md-3">
+                        <label class="form-label" for="min_rent">Min Rent</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="min_rent" name="min_rent" placeholder="0" value="{{ filters.get('min_rent', '') }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label" for="max_rent">Max Rent</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="max_rent" name="max_rent" placeholder="10000" value="{{ filters.get('max_rent', '') }}">
+                        </div>
+                    </div>
+
+                    <!-- Square Footage -->
+                    <div class="col-md-3">
+                        <label class="form-label" for="min_sqft">Min Sq Ft</label>
+                        <input type="number" class="form-control" id="min_sqft" name="min_sqft" placeholder="0" value="{{ filters.get('min_sqft', '') }}">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label" for="max_sqft">Max Sq Ft</label>
+                        <input type="number" class="form-control" id="max_sqft" name="max_sqft" placeholder="5000" value="{{ filters.get('max_sqft', '') }}">
+                    </div>
+
+                    <!-- Amenities Checkboxes -->
+                    <div class="col-12">
+                        <label class="form-label d-block mb-2">Amenities</label>
+                        <div class="row g-2">
+                            <div class="col-auto">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="pets_allowed" name="pets_allowed" value="true" {% if filters.get('pets_allowed') %}checked{% endif %}>
+                                    <label class="form-check-label" for="pets_allowed">
+                                        <span class="fas fa-paw me-1"></span>Pet Friendly
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="parking_available" name="parking_available" value="true" {% if filters.get('parking_available') %}checked{% endif %}>
+                                    <label class="form-check-label" for="parking_available">
+                                        <span class="fas fa-car me-1"></span>Parking
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="washer_dryer" name="washer_dryer" value="true" {% if filters.get('washer_dryer') %}checked{% endif %}>
+                                    <label class="form-check-label" for="washer_dryer">
+                                        <span class="fas fa-tshirt me-1"></span>Washer/Dryer
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="dishwasher" name="dishwasher" value="true" {% if filters.get('dishwasher') %}checked{% endif %}>
+                                    <label class="form-check-label" for="dishwasher">
+                                        <span class="fas fa-utensils me-1"></span>Dishwasher
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="air_conditioning" name="air_conditioning" value="true" {% if filters.get('air_conditioning') %}checked{% endif %}>
+                                    <label class="form-check-label" for="air_conditioning">
+                                        <span class="fas fa-snowflake me-1"></span>A/C
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="col-12">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <span class="fas fa-search me-1"></span>Apply Filters
+                            </button>
+                            <a href="{{ url_for('unit.list_units') }}" class="btn btn-outline-secondary">
+                                <span class="fas fa-times me-1"></span>Clear All
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Results Summary -->
+                    {% if filters %}
+                    <div class="col-12">
+                        <div class="alert alert-info border-0 d-flex align-items-center mb-0" role="alert">
+                            <div class="bg-info me-3 icon-item">
+                                <span class="fas fa-info-circle text-white fs-3"></span>
+                            </div>
+                            <p class="mb-0 flex-1">
+                                Showing <strong>{{ filtered_count }}</strong> of <strong>{{ total_units_count }}</strong> units
+                                {% if filtered_count < total_units_count %}
+                                    <span class="text-600">- Filters active</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Filter Bar -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row align-items-center g-2">
+            <div class="col-auto">
+                <span class="text-700 fw-semi-bold">Quick Filters:</span>
+            </div>
+
+            <!-- Bedroom Quick Filter -->
+            <div class="col-auto">
+                <select class="form-select form-select-sm" id="quickBedroomFilter" onchange="applyQuickFilter('bedrooms', this.value)" style="width: 140px;">
+                    <option value="">Bedrooms</option>
+                    <option value="0">Studio</option>
+                    <option value="1">1 Bedroom</option>
+                    <option value="2">2 Bedrooms</option>
+                    <option value="3">3 Bedrooms</option>
+                    <option value="4">4+ Bedrooms</option>
+                </select>
+            </div>
+
+            <!-- Bathroom Quick Filter -->
+            <div class="col-auto">
+                <select class="form-select form-select-sm" id="quickBathroomFilter" onchange="applyQuickFilter('bathrooms', this.value)" style="width: 140px;">
+                    <option value="">Bathrooms</option>
+                    <option value="1">1 Bath</option>
+                    <option value="1.5">1.5 Baths</option>
+                    <option value="2">2 Baths</option>
+                    <option value="2.5">2.5 Baths</option>
+                    <option value="3">3+ Baths</option>
+                </select>
+            </div>
+
+            <div class="col-auto">
+                <div class="vr" style="height: 24px;"></div>
+            </div>
+
+            <!-- Quick Action Buttons -->
+            <div class="col-auto">
+                <a href="{{ url_for('unit.list_units', occupancy_status='Available') }}" class="btn btn-sm btn-falcon-warning">
+                    <span class="fas fa-door-open me-1"></span>Available
+                </a>
+            </div>
+            <div class="col-auto">
+                <a href="{{ url_for('unit.list_units', pets_allowed='true') }}" class="btn btn-sm btn-falcon-success">
+                    <span class="fas fa-paw me-1"></span>Pet Friendly
+                </a>
+            </div>
+            <div class="col-auto">
+                <a href="{{ url_for('unit.list_units', parking_available='true') }}" class="btn btn-sm btn-falcon-info">
+                    <span class="fas fa-car me-1"></span>Parking
+                </a>
+            </div>
+
+            <div class="col-auto ms-auto">
+                <a href="{{ url_for('unit.list_units') }}" class="btn btn-sm btn-link text-600">
+                    <span class="fas fa-redo me-1"></span>Reset All
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function applyQuickFilter(filterType, value) {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    if (value) {
+        urlParams.set(filterType, value);
+        // Also set to Available by default for quick filters
+        if (!urlParams.has('occupancy_status')) {
+            urlParams.set('occupancy_status', 'Available');
+        }
+    } else {
+        urlParams.delete(filterType);
+    }
+
+    window.location.href = '{{ url_for("unit.list_units") }}?' + urlParams.toString();
+}
+
+// Set dropdown values based on current URL parameters
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    const bedrooms = urlParams.get('bedrooms');
+    if (bedrooms) {
+        document.getElementById('quickBedroomFilter').value = bedrooms;
+    }
+
+    const bathrooms = urlParams.get('bathrooms');
+    if (bathrooms) {
+        document.getElementById('quickBathroomFilter').value = bathrooms;
+    }
+});
+</script>
+
 <!-- Unit Summary Cards -->
 <div class="row g-3 mb-4" style="align-items: stretch;">
     <div class="col-sm-6 col-lg-3">
@@ -290,6 +571,9 @@
                                         <a class="dropdown-item" href="{{ url_for('unit.edit', uuid=unit.uuid) }}">
                                             <span class="fas fa-edit me-1"></span>Edit Unit
                                         </a>
+                                        <a class="dropdown-item" href="{{ url_for('unit.copy_unit', uuid=unit.uuid) }}">
+                                            <span class="fas fa-copy me-1"></span>Copy Unit
+                                        </a>
                                         {% if unit.occupancy_status == 'Available' %}
                                             <div class="dropdown-divider"></div>
                                             <div class="dropdown-submenu">
@@ -306,7 +590,7 @@
                                             </div>
                                         {% endif %}
                                         <div class="dropdown-divider"></div>
-                                        <a class="dropdown-item text-danger" href="#" 
+                                        <a class="dropdown-item text-danger" href="#"
                                            onclick="deleteUnit('{{ unit.uuid }}', '{{ unit.name }}')">
                                             <span class="fas fa-trash me-1"></span>Delete Unit
                                         </a>

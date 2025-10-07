@@ -72,6 +72,9 @@ def create_app():
     from website.report.views import report
     app.register_blueprint(report, url_prefix='/reports')
 
+    from website.search.views import search
+    app.register_blueprint(search, url_prefix='/search')
+
     from website.errors import page_not_found, forbidden, internal_server_error
     app.register_error_handler(404, page_not_found)
     app.register_error_handler(403, forbidden)

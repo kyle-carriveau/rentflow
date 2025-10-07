@@ -21,6 +21,9 @@
                     <a class="btn btn-falcon-default btn-sm" href="{{ url_for('unit.edit', uuid=unit.uuid) }}">
                         <span class="fas fa-edit fs--2 me-1"></span>Edit Unit
                     </a>
+                    <a class="btn btn-falcon-default btn-sm" href="{{ url_for('unit.copy_unit', uuid=unit.uuid) }}">
+                        <span class="fas fa-copy fs--2 me-1"></span>Copy Unit
+                    </a>
                     {% if unit.property_id %}
                         <a class="btn btn-falcon-default btn-sm" href="{{ url_for('property.home', uuid=unit.property_ref.uuid) }}">
                             <span class="fas fa-arrow-left fs--2 me-1"></span>Back to Property

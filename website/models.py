@@ -495,6 +495,18 @@ class Unit(db.Model):
 
     # Relationships with cascade delete
     leases = db.relationship('Lease', backref='unit_ref', cascade='all, delete-orphan')
+
+    # Database indexes for search performance
+    __table_args__ = (
+        db.Index('idx_unit_bedrooms', 'bedrooms'),
+        db.Index('idx_unit_bathrooms', 'bathrooms'),
+        db.Index('idx_unit_occupancy_status', 'occupancy_status'),
+        db.Index('idx_unit_rent', 'rent'),
+        db.Index('idx_unit_property_id', 'property_id'),
+        db.Index('idx_unit_company_id', 'company_id'),
+        db.Index('idx_unit_sqft', 'sqft'),
+        db.Index('idx_unit_pets_allowed', 'pets_allowed'),
+    )
     
     def get_lease_status(self):
         """Get unit's current lease status based on active leases."""

@@ -5,16 +5,79 @@ from flask_login import login_required, current_user
 from website.errors import page_not_found
 from datetime import datetime
 from .forms import UnitForm
+from website.search.utils import build_unit_query
 
 unit = Blueprint('unit', __name__, template_folder='templates')
 
 @unit.route('/')
 @login_required
 def list_units():
-    """List all units for the current user's company."""
+    """List all units for the current user's company with optional filtering."""
     company_id = current_user.get_company_id()
-    units = Unit.query.filter_by(company_id=company_id).all()
-    return render_template("units.html", user=current_user, units=units)
+
+    # Build filters from query parameters
+    filters = {}
+    if request.args.get('query'):
+        filters['query'] = request.args.get('query')
+    if request.args.get('bedrooms'):
+        filters['bedrooms'] = request.args.get('bedrooms')
+    if request.args.get('bathrooms'):
+        filters['bathrooms'] = request.args.get('bathrooms')
+    if request.args.get('occupancy_status'):
+        filters['occupancy_status'] = request.args.get('occupancy_status')
+    if request.args.get('property_id'):
+        filters['property_id'] = request.args.get('property_id')
+    if request.args.get('min_rent'):
+        try:
+            filters['min_rent'] = float(request.args.get('min_rent'))
+        except ValueError:
+            pass
+    if request.args.get('max_rent'):
+        try:
+            filters['max_rent'] = float(request.args.get('max_rent'))
+        except ValueError:
+            pass
+    if request.args.get('min_sqft'):
+        try:
+            filters['min_sqft'] = int(request.args.get('min_sqft'))
+        except ValueError:
+            pass
+    if request.args.get('max_sqft'):
+        try:
+            filters['max_sqft'] = int(request.args.get('max_sqft'))
+        except ValueError:
+            pass
+    if request.args.get('pets_allowed') == 'true':
+        filters['pets_allowed'] = True
+    if request.args.get('parking_available') == 'true':
+        filters['parking_available'] = True
+    if request.args.get('washer_dryer') == 'true':
+        filters['washer_dryer'] = True
+    if request.args.get('dishwasher') == 'true':
+        filters['dishwasher'] = True
+    if request.args.get('air_conditioning') == 'true':
+        filters['air_conditioning'] = True
+
+    # Apply filters if any exist
+    if filters:
+        query = build_unit_query(company_id, filters)
+        units = query.order_by(Unit.name.asc()).all()
+        total_units_count = Unit.query.filter_by(company_id=company_id).count()
+    else:
+        # No filters - show all units
+        units = Unit.query.filter_by(company_id=company_id).order_by(Unit.name.asc()).all()
+        total_units_count = len(units)
+
+    # Get all properties for filter dropdown
+    properties = Property.query.filter_by(company_id=company_id).order_by(Property.name.asc()).all()
+
+    return render_template("units.html",
+                         user=current_user,
+                         units=units,
+                         properties=properties,
+                         filters=filters,
+                         total_units_count=total_units_count,
+                         filtered_count=len(units))
 
 @unit.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -354,6 +417,207 @@ def edit(uuid):
 
     return render_template("edit_unit.html", user=current_user, unit=unit, property=property, form=form)
 
+@unit.route('/<uuid:uuid>/copy', methods=['GET', 'POST'])
+@login_required
+def copy_unit(uuid):
+    """Copy an existing unit to create a new one with the same specifications."""
+    company_id = current_user.get_company_id()
+    source_unit = Unit.find_by_uuid(str(uuid), company_id)
+    if not source_unit:
+        return page_not_found(404)
+
+    # Get the property for validation
+    property = Property.query.filter_by(id=source_unit.property_id, company_id=company_id).first()
+    if not property:
+        return page_not_found(404)
+
+    # Get all properties for the property dropdown
+    properties = Property.query.filter_by(company_id=company_id).all()
+
+    form = UnitForm()
+
+    # Populate property choices
+    form.property_id.choices = [(p.id, f"{p.name} - {p.address or 'No address'}") for p in properties]
+
+    if form.validate_on_submit():
+        # Create new unit with form data
+        new_unit = Unit(
+            name=form.name.data,
+            company_id=company_id,
+            property_id=form.property_id.data
+        )
+
+        # Copy all attributes from form
+        # Basic Information
+        new_unit.bedrooms = form.bedrooms.data
+        new_unit.bathrooms = form.bathrooms.data
+        new_unit.sqft = form.sqft.data
+        new_unit.rent = form.rent.data
+        new_unit.description = form.description.data
+
+        # HVAC & Climate
+        new_unit.air_conditioning = form.air_conditioning.data
+        new_unit.heating_type = form.heating_type.data
+        new_unit.thermostat_type = form.thermostat_type.data
+
+        # Appliances & Kitchen
+        new_unit.appliances_included = form.appliances_included.data
+        new_unit.dishwasher = form.dishwasher.data
+        new_unit.garbage_disposal = form.garbage_disposal.data
+        new_unit.microwave = form.microwave.data
+        new_unit.refrigerator = form.refrigerator.data
+        new_unit.range_oven = form.range_oven.data
+        new_unit.washer_dryer = form.washer_dryer.data
+
+        # Flooring & Interior
+        new_unit.flooring_type = form.flooring_type.data
+        new_unit.ceiling_height = form.ceiling_height.data
+        new_unit.windows_type = form.windows_type.data
+        new_unit.natural_light = form.natural_light.data
+
+        # Storage & Space
+        new_unit.closet_space = form.closet_space.data
+        new_unit.storage_units = form.storage_units.data
+        new_unit.balcony_patio = form.balcony_patio.data
+        new_unit.balcony_sqft = form.balcony_sqft.data
+
+        # Parking & Access
+        new_unit.parking_type = form.parking_type.data
+        new_unit.parking_spaces = form.parking_spaces.data
+        new_unit.garage_type = form.garage_type.data
+
+        # Bathroom Features
+        new_unit.bathroom_features = form.bathroom_features.data
+        new_unit.master_bath = form.master_bath.data
+        new_unit.bathtub = form.bathtub.data
+        new_unit.shower_type = form.shower_type.data
+
+        # Condition & Maintenance
+        new_unit.last_renovated = form.last_renovated.data
+        new_unit.condition_rating = form.condition_rating.data
+        new_unit.recent_updates = form.recent_updates.data
+        new_unit.upcoming_maintenance = form.upcoming_maintenance.data
+
+        # Accessibility & Compliance
+        new_unit.ada_compliant = form.ada_compliant.data
+        new_unit.wheelchair_accessible = form.wheelchair_accessible.data
+        new_unit.accessibility_features = form.accessibility_features.data
+
+        # Utilities & Energy
+        new_unit.utilities_included = form.utilities_included.data
+        new_unit.utility_cost_estimate = form.utility_cost_estimate.data
+        new_unit.energy_efficiency_rating = form.energy_efficiency_rating.data
+
+        # Pet Policy
+        new_unit.pets_allowed = form.pets_allowed.data
+        new_unit.pet_restrictions = form.pet_restrictions.data
+        new_unit.pet_fee_monthly = form.pet_fee_monthly.data
+        new_unit.pet_deposit = form.pet_deposit.data
+
+        # Security Features
+        new_unit.security_features = form.security_features.data
+        new_unit.alarm_system = form.alarm_system.data
+        new_unit.secure_entry = form.secure_entry.data
+
+        # Technology & Internet
+        new_unit.internet_included = form.internet_included.data
+        new_unit.cable_ready = form.cable_ready.data
+        new_unit.internet_speed = form.internet_speed.data
+        new_unit.smart_home_features = form.smart_home_features.data
+
+        try:
+            db.session.add(new_unit)
+            db.session.commit()
+            flash(f'Unit "{new_unit.name}" has been created as a copy!', 'success')
+            return redirect(url_for('unit.show', uuid=new_unit.uuid))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error copying unit: {str(e)}', 'error')
+
+    # Pre-populate form with source unit data on GET request
+    if request.method == 'GET':
+        form.name.data = f"Copy of {source_unit.name}"
+        form.property_id.data = source_unit.property_id
+
+        # Basic Information
+        form.bedrooms.data = source_unit.bedrooms
+        form.bathrooms.data = source_unit.bathrooms
+        form.sqft.data = source_unit.sqft
+        form.rent.data = source_unit.rent
+        form.description.data = source_unit.description
+
+        # HVAC & Climate
+        form.air_conditioning.data = source_unit.air_conditioning
+        form.heating_type.data = source_unit.heating_type
+        form.thermostat_type.data = source_unit.thermostat_type
+
+        # Appliances & Kitchen
+        form.appliances_included.data = source_unit.appliances_included
+        form.dishwasher.data = source_unit.dishwasher
+        form.garbage_disposal.data = source_unit.garbage_disposal
+        form.microwave.data = source_unit.microwave
+        form.refrigerator.data = source_unit.refrigerator
+        form.range_oven.data = source_unit.range_oven
+        form.washer_dryer.data = source_unit.washer_dryer
+
+        # Flooring & Interior
+        form.flooring_type.data = source_unit.flooring_type
+        form.ceiling_height.data = source_unit.ceiling_height
+        form.windows_type.data = source_unit.windows_type
+        form.natural_light.data = source_unit.natural_light
+
+        # Storage & Space
+        form.closet_space.data = source_unit.closet_space
+        form.storage_units.data = source_unit.storage_units
+        form.balcony_patio.data = source_unit.balcony_patio
+        form.balcony_sqft.data = source_unit.balcony_sqft
+
+        # Parking & Access
+        form.parking_type.data = source_unit.parking_type
+        form.parking_spaces.data = source_unit.parking_spaces
+        form.garage_type.data = source_unit.garage_type
+
+        # Bathroom Features
+        form.bathroom_features.data = source_unit.bathroom_features
+        form.master_bath.data = source_unit.master_bath
+        form.bathtub.data = source_unit.bathtub
+        form.shower_type.data = source_unit.shower_type
+
+        # Condition & Maintenance
+        form.last_renovated.data = source_unit.last_renovated
+        form.condition_rating.data = source_unit.condition_rating
+        form.recent_updates.data = source_unit.recent_updates
+        form.upcoming_maintenance.data = source_unit.upcoming_maintenance
+
+        # Accessibility & Compliance
+        form.ada_compliant.data = source_unit.ada_compliant
+        form.wheelchair_accessible.data = source_unit.wheelchair_accessible
+        form.accessibility_features.data = source_unit.accessibility_features
+
+        # Utilities & Energy
+        form.utilities_included.data = source_unit.utilities_included
+        form.utility_cost_estimate.data = source_unit.utility_cost_estimate
+        form.energy_efficiency_rating.data = source_unit.energy_efficiency_rating
+
+        # Pet Policy
+        form.pets_allowed.data = source_unit.pets_allowed
+        form.pet_restrictions.data = source_unit.pet_restrictions
+        form.pet_fee_monthly.data = source_unit.pet_fee_monthly
+        form.pet_deposit.data = source_unit.pet_deposit
+
+        # Security Features
+        form.security_features.data = source_unit.security_features
+        form.alarm_system.data = source_unit.alarm_system
+        form.secure_entry.data = source_unit.secure_entry
+
+        # Technology & Internet
+        form.internet_included.data = source_unit.internet_included
+        form.cable_ready.data = source_unit.cable_ready
+        form.internet_speed.data = source_unit.internet_speed
+        form.smart_home_features.data = source_unit.smart_home_features
+
+    return render_template("create_unit.html", form=form, user=current_user, source_unit=source_unit, is_copy=True)
+
 @unit.route('/<uuid:uuid>/delete', methods=['POST'])
 @login_required
 def delete(uuid):
@@ -362,7 +626,7 @@ def delete(uuid):
     unit = Unit.find_by_uuid(str(uuid), company_id)
     if not unit:
         return page_not_found(404)
-    
+
     property = Property.query.filter_by(id=unit.property_id, company_id=company_id).first()
     if not property:
         return page_not_found(404)

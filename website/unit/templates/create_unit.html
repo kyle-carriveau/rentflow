@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<form method="POST" action="{% if property %}{{ url_for('unit.create_for_property', uuid=property.uuid) }}{% else %}{{ url_for('unit.create') }}{% endif %}" id="createUnitForm" class="needs-validation" novalidate>
+<form method="POST" action="{% if is_copy %}{{ url_for('unit.copy_unit', uuid=source_unit.uuid) }}{% elif property %}{{ url_for('unit.create_for_property', uuid=property.uuid) }}{% else %}{{ url_for('unit.create') }}{% endif %}" id="createUnitForm" class="needs-validation" novalidate>
     {{ form.csrf_token }}
 
     <!-- Basic Information Section -->
@@ -10,11 +10,18 @@
         <div class="card-header">
             <div class="row align-items-center">
                 <div class="col">
-                    <h5 class="mb-0">Create New Unit</h5>
-                    {% if property %}
-                        <p class="mb-0 text-700">Creating unit for {{ property.name }}</p>
+                    {% if is_copy %}
+                        <h5 class="mb-0">
+                            <span class="fas fa-copy me-2 text-primary"></span>Copy Unit
+                        </h5>
+                        <p class="mb-0 text-700">Copying from "{{ source_unit.name }}" - all specifications will be duplicated</p>
                     {% else %}
-                        <p class="mb-0 text-700">Select a property and create a new unit</p>
+                        <h5 class="mb-0">Create New Unit</h5>
+                        {% if property %}
+                            <p class="mb-0 text-700">Creating unit for {{ property.name }}</p>
+                        {% else %}
+                            <p class="mb-0 text-700">Select a property and create a new unit</p>
+                        {% endif %}
                     {% endif %}
                 </div>
                 <div class="col-auto">
