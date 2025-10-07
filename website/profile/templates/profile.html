@@ -1,82 +1,300 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
 
 {% block content %}
+
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('profile.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active" aria-current="page">My Profile</li>
+  </ol>
+</nav>
+
+<!-- Profile Header Card -->
 <div class="card mb-3">
     <div class="card-header position-relative min-vh-25 mb-7">
-        <div class="bg-holder rounded-3 rounded-bottom-0" style="background-image:url(../static/assets/img/generic/4.jpg);">
-        </div>
-        <!--/.bg-holder-->
+        <div class="bg-holder rounded-3 rounded-bottom-0" style="background-image:url({{ url_for('static', filename='assets/img/generic/4.jpg') }});"></div>
 
         <div class="avatar avatar-5xl avatar-profile position-relative">
             <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-sm img-thumbnail" style="width: 128px; height: 128px; font-size: 2rem; font-weight: 600;">
                 <span>{{ user.first_name[0] }}{{ user.last_name[0] }}</span>
             </div>
-            <button class="btn btn-sm btn-primary rounded-circle position-absolute" style="bottom: 8px; right: 8px; width: 32px; height: 32px; padding: 0;">
-                <i class="fas fa-plus"></i>
-            </button>
         </div>
     </div>
+
     <div class="card-body">
         <div class="row">
             <div class="col-lg-8">
-                <h4 class="mb-1">{{ user.first_name }} {{ user.last_name }}<span data-bs-toggle="tooltip" data-bs-placement="right" title="Verified"><small class="fa fa-check-circle text-primary" data-fa-transform="shrink-4 down-2"></small></span></h4>
-                {% if user.company %}
-                <h5 class="fs-0 fw-normal">{{ user.company }}</h5>
+                <h4 class="mb-1">
+                    {{ user.first_name }} {{ user.last_name }}
+                    {% if user.email_verified %}
+                    <span data-bs-toggle="tooltip" data-bs-placement="right" title="Verified Email">
+                        <small class="fa fa-check-circle text-primary" data-fa-transform="shrink-4 down-2"></small>
+                    </span>
+                    {% endif %}
+                </h4>
+
+                {% if user.job_title %}
+                <h5 class="fs-0 fw-normal text-800">{{ user.job_title }}</h5>
+                {% else %}
+                <h5 class="fs-0 fw-normal text-800">{{ role_display }}</h5>
                 {% endif %}
+
+                {% if company %}
+                <p class="text-600 mb-0">
+                    <span class="fas fa-building me-1"></span>
+                    <a href="{{ url_for('company.profile') }}" class="text-decoration-none">{{ company.name }}</a>
+                </p>
+                {% endif %}
+
                 {% if user.city %}
-                <p class="text-500">{{ user.city }}, {{ user.state }} USA</p>
+                <p class="text-500 mb-3">
+                    <span class="fas fa-map-marker-alt me-1"></span>
+                    {{ user.city }}{% if user.state %}, {{ user.state }}{% endif %}
+                </p>
                 {% endif %}
-                <a href="/settings"><button class="btn btn-falcon-primary btn-sm px-3" type="button">Edit Profile</button></a>
+
+                <div class="d-flex gap-2 mb-3">
+                    <a href="{{ url_for('profile.settings') }}" class="btn btn-falcon-primary btn-sm">
+                        <span class="fas fa-edit me-1"></span>Edit Profile
+                    </a>
+                    <a href="{{ url_for('profile.settings') }}" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-key me-1"></span>Change Password
+                    </a>
+                </div>
+
                 <div class="border-dashed-bottom my-4 d-lg-none"></div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="d-flex flex-column gap-3">
+                    <div>
+                        <h6 class="text-600 mb-1">Role</h6>
+                        <span class="badge badge-soft-primary fs-0">{{ role_display }}</span>
+                    </div>
+
+                    {% if user.department %}
+                    <div>
+                        <h6 class="text-600 mb-1">Department</h6>
+                        <p class="mb-0">{{ user.department }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if user.date_joined %}
+                    <div>
+                        <h6 class="text-600 mb-1">Member Since</h6>
+                        <p class="mb-0">{{ user.date_joined.strftime('%B %Y') }}</p>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
-<div class="row g-0">
-    <div class="col-lg-8 pe-lg-2">
+
+<div class="row g-3">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+
+        <!-- About / Bio Section -->
         <div class="card mb-3">
-            <div class="card-header bg-light d-flex justify-content-between">
-                <h5 class="mb-0">Properties</h5><a class="font-sans-serif" href="{{ url_for('property.properties') }}">All Properties</a>
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <span class="fas fa-user-circle me-2"></span>About
+                </h5>
             </div>
-        <div class="card-body fs--1 pb-0">
-            <div class="row">
-                {% for property in properties %}
-                <div class="col-sm-6 mb-3">
-                    <div class="d-flex position-relative align-items-center mb-2"><!--<img class="d-flex align-self-center me-2 rounded-3" src="../static/assets/img/logos/apple.png" alt="" width="50" />-->
-                        <div class="flex-1">
-                            <h6 class="fs-0 mb-0"><a class="stretched-link" href="#!">{{ property.name }}</a></h6>
-                            <p class="mb-1">{% if property.city %}{{ property.city }},{% endif %} {% if property.state %}{{ property.state }}{% endif %}</p>
+            <div class="card-body">
+                {% if user.bio %}
+                <p class="mb-0">{{ user.bio }}</p>
+                {% else %}
+                <p class="text-500 fst-italic mb-0">
+                    No bio added yet.
+                    <a href="{{ url_for('profile.settings') }}">Add a professional bio</a> to let your team know more about you.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Role & Permissions Card -->
+        <div class="card mb-3">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <span class="fas fa-shield-alt me-2"></span>Role & Permissions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <h6 class="text-600 mb-2">Access Level</h6>
+                        <span class="badge badge-soft-primary px-3 py-2 fs-0">{{ role_display }}</span>
+                    </div>
+
+                    <div class="col-md-8">
+                        <h6 class="text-600 mb-2">Permissions</h6>
+                        <ul class="list-unstyled mb-0">
+                            {% for permission in permissions %}
+                            <li class="mb-1">
+                                <span class="fas fa-check text-success me-2"></span>
+                                <span class="text-700">{{ permission }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Summary -->
+        <div class="card mb-3">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <span class="fas fa-chart-line me-2"></span>Activity Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 text-center">
+                    <div class="col-md-4">
+                        <div class="border rounded-3 p-3">
+                            <h3 class="text-primary mb-1">{{ properties_count }}</h3>
+                            <p class="text-600 mb-0 fs--1">Properties</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded-3 p-3">
+                            <h3 class="text-success mb-1">{{ active_leases_count }}</h3>
+                            <p class="text-600 mb-0 fs--1">Active Leases</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded-3 p-3">
+                            <h3 class="text-info mb-1">{{ total_units }}</h3>
+                            <p class="text-600 mb-0 fs--1">Total Units</p>
                         </div>
                     </div>
                 </div>
-                {% endfor %}
+
+                {% if last_activity %}
+                <div class="border-top mt-3 pt-3">
+                    <p class="text-600 mb-0 fs--1">
+                        <span class="fas fa-clock me-1"></span>
+                        Last activity: {{ last_activity.strftime('%B %d, %Y at %I:%M %p') }}
+                    </p>
+                </div>
+                {% endif %}
             </div>
         </div>
-        </div>
+
     </div>
 
-    <div class="col-lg-4 ps-lg-2">
-        <div class="sticky-sidebar">
+    <!-- Right Column -->
+    <div class="col-lg-4">
+
+        <!-- Contact Information Card -->
         <div class="card mb-3">
             <div class="card-header bg-light">
-            <h5 class="mb-0">Active Tenants</h5>
+                <h5 class="mb-0">
+                    <span class="fas fa-address-card me-2"></span>Contact Information
+                </h5>
             </div>
-            {% for tenant in tenants %} 
-            <div class="card-body fs--1">
-            <div class="d-flex"><a href="#!"><div class="avatar avatar-xl">
-                <div class="avatar-name rounded-circle"><span>{{ tenant.first_name[0] }}{{ tenant.last_name[0] }}</span></div>
-            </div></a>
-                <div class="flex-1 position-relative ps-3">
-                <h6 class="fs-0 mb-0"><a href="#!">{{ tenant.first_name }} {{ tenant.last_name }}</a></h6>
-                <p class="mb-1"> <a href="#!">Malcolm House</a></p>
-                <div class="border-dashed-bottom my-3"></div>
+            <div class="card-body">
+                <div class="d-flex align-items-start mb-3">
+                    <span class="fas fa-envelope text-primary me-3 mt-1"></span>
+                    <div class="flex-1">
+                        <h6 class="mb-0 text-600 fs--1">Email</h6>
+                        <a href="mailto:{{ user.email }}" class="text-decoration-none">{{ user.email }}</a>
+                        {% if user.email_verified %}
+                        <span class="badge badge-soft-success ms-2 fs--2">Verified</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if user.phone %}
+                <div class="d-flex align-items-start mb-3">
+                    <span class="fas fa-phone text-primary me-3 mt-1"></span>
+                    <div class="flex-1">
+                        <h6 class="mb-0 text-600 fs--1">Phone</h6>
+                        <a href="tel:{{ user.phone }}" class="text-decoration-none">{{ user.phone }}</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if user.address %}
+                <div class="d-flex align-items-start">
+                    <span class="fas fa-map-marker-alt text-primary me-3 mt-1"></span>
+                    <div class="flex-1">
+                        <h6 class="mb-0 text-600 fs--1">Address</h6>
+                        <p class="mb-0">
+                            {{ user.address }}<br>
+                            {% if user.city %}{{ user.city }}, {% endif %}{% if user.state %}{{ user.state }}{% endif %} {% if user.zip_code %}{{ user.zip_code }}{% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Actions Card -->
+        <div class="card mb-3">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <span class="fas fa-bolt me-2"></span>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('profile.settings') }}" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-user-edit me-2"></span>Edit Profile
+                    </a>
+                    <a href="{{ url_for('profile.settings') }}" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-lock me-2"></span>Security Settings
+                    </a>
+                    <a href="{{ url_for('profile.dashboard') }}" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-chart-pie me-2"></span>View Dashboard
+                    </a>
+                    {% if user.is_owner() %}
+                    <a href="{{ url_for('company.profile') }}" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-building me-2"></span>Company Profile
+                    </a>
+                    <a href="{{ url_for('user_management.users') }}" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-users me-2"></span>Manage Team
+                    </a>
+                    {% endif %}
                 </div>
             </div>
+        </div>
+
+        <!-- Security Status -->
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <span class="fas fa-shield-alt me-2"></span>Security Status
+                </h5>
             </div>
-            {% endfor %} 
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    {% if user.email_verified %}
+                    <span class="fas fa-check-circle text-success me-2"></span>
+                    <span class="text-700">Email Verified</span>
+                    {% else %}
+                    <span class="fas fa-exclamation-circle text-warning me-2"></span>
+                    <span class="text-700">Email Not Verified</span>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex align-items-center">
+                    {% if user.totp_enabled %}
+                    <span class="fas fa-check-circle text-success me-2"></span>
+                    <span class="text-700">2FA Enabled</span>
+                    {% else %}
+                    <span class="fas fa-times-circle text-danger me-2"></span>
+                    <span class="text-700">2FA Disabled</span>
+                    <a href="{{ url_for('profile.settings') }}" class="ms-2 fs--1">Enable</a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
-        </div>
+
     </div>
 </div>
-{% endblock %} 
 
+{% endblock %}

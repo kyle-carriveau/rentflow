@@ -94,6 +94,12 @@ class User(db.Model, UserMixin):
     totp_backup_codes = db.Column(db.Text, nullable=True)  # Comma-separated backup codes
     totp_enabled_at = db.Column(db.DateTime, nullable=True)
 
+    # Profile fields
+    bio = db.Column(db.Text, nullable=True)  # Professional bio/description
+    job_title = db.Column(db.String(100), nullable=True)  # Job title (e.g., "Senior Property Manager")
+    department = db.Column(db.String(100), nullable=True)  # Department name
+    date_joined = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+
     # Relationships (tenants now managed at company level)
 
     def __init__(self, first_name="", last_name="", email="", password="", company_id=None, role=None):

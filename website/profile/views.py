@@ -277,7 +277,79 @@ def dashboard():
 @profile.route('/')
 @login_required
 def home():
-    return render_template("profile.html", user=current_user, properties=get_properties(), tenants=get_tenants()) 
+    from website.models import Property, Lease, Payment, Expense, Unit, Company
+
+    company_id = current_user.get_company_id()
+    today = datetime.now()
+
+    # Get user's company information
+    company = Company.query.filter_by(id=company_id).first()
+
+    # Calculate activity statistics
+    # Properties count
+    properties_count = Property.query.filter_by(company_id=company_id).count()
+
+    # Active leases count
+    active_leases_count = db.session.query(Lease).join(Unit).join(Property).filter(
+        Property.company_id == company_id,
+        Lease.start <= today.date(),
+        Lease.end >= today.date()
+    ).count()
+
+    # Total units managed
+    total_units = db.session.query(Unit).join(Property).filter(
+        Property.company_id == company_id
+    ).count()
+
+    # Recent activity - last payment or expense
+    last_payment = db.session.query(Payment).join(Lease).join(Unit).join(Property).filter(
+        Property.company_id == company_id
+    ).order_by(Payment.payment_date.desc()).first()
+
+    last_expense = db.session.query(Expense).filter(
+        Expense.company_id == company_id
+    ).order_by(Expense.expense_date.desc()).first()
+
+    # Determine most recent activity
+    last_activity = None
+    if last_payment and last_expense:
+        if last_payment.payment_date > last_expense.expense_date:
+            last_activity = last_payment.payment_date
+        else:
+            last_activity = last_expense.expense_date
+    elif last_payment:
+        last_activity = last_payment.payment_date
+    elif last_expense:
+        last_activity = last_expense.expense_date
+
+    # Get role display name
+    role_display = {
+        'owner': 'Owner',
+        'manager': 'Manager',
+        'staff': 'Staff Member',
+        'viewer': 'Viewer'
+    }.get(current_user.role, current_user.role.title())
+
+    # Calculate permissions based on role
+    permissions = []
+    if current_user.is_owner():
+        permissions = ['Full System Access', 'User Management', 'Company Settings', 'Financial Management', 'Property Management']
+    elif current_user.is_manager():
+        permissions = ['Property Management', 'Tenant Management', 'Financial Operations', 'Reporting']
+    elif current_user.role == 'staff':
+        permissions = ['Property Management', 'Tenant Management', 'Limited Financial Access']
+    else:  # viewer
+        permissions = ['Read-Only Access', 'View Reports']
+
+    return render_template("profile.html",
+                         user=current_user,
+                         company=company,
+                         role_display=role_display,
+                         permissions=permissions,
+                         properties_count=properties_count,
+                         active_leases_count=active_leases_count,
+                         total_units=total_units,
+                         last_activity=last_activity) 
 
 @profile.route('/settings')
 @login_required
