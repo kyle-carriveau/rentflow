@@ -499,9 +499,9 @@
                     <span class="fas fa-door-open me-1" data-fa-transform="shrink-2"></span>Available
                   </span>
                   <div class="ms-2">
-                    <button class="btn btn-sm btn-outline-success" type="button" data-bs-toggle="modal" data-bs-target="#createLeaseModal" data-unit-id="{{ unit.uuid }}" data-unit-name="{{ unit.name }}">
+                    <a href="{{ url_for('lease.create_general', property=property.uuid, unit=unit.uuid) }}" class="btn btn-sm btn-outline-success">
                       <span class="fas fa-plus fs--2 me-1"></span>Lease
-                    </button>
+                    </a>
                   </div>
                 </div>
               {% endif %}
@@ -520,7 +520,7 @@
                       <span class="fas fa-edit me-1"></span>Edit Unit
                     </a>
                     {% if unit_status == 'Available' %}
-                      <a class="dropdown-item" href="{{ url_for('lease.create_general', unit=unit.uuid) }}">
+                      <a class="dropdown-item" href="{{ url_for('lease.create_general', property=property.uuid, unit=unit.uuid) }}">
                         <span class="fas fa-file-contract me-1"></span>Create Lease
                       </a>
                     {% endif %}
@@ -872,7 +872,7 @@
                     <a class="dropdown-item" href="{{ url_for('lease.show', uuid=lease.Lease.uuid) }}">
                       <span class="fas fa-eye me-1"></span>View Details
                     </a>
-                    <a class="dropdown-item" href="{{ url_for('lease.edit', uuid=lease.Lease.uuid) }}">
+                    <a class="dropdown-item" href="{{ url_for('lease.update', uuid=lease.Lease.uuid) }}">
                       <span class="fas fa-edit me-1"></span>Edit Lease
                     </a>
                     {% if lease_status == 'active' %}

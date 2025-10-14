@@ -154,22 +154,13 @@
                             {% for item in overdue_leases[:5] %}
                             <tr>
                                 <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-xs me-2">
-                                            <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
-                                                <span>{{ item.tenant.first_name[0] }}{{ item.tenant.last_name[0] }}</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <a href="{{ url_for('tenant.home', uuid=item.tenant.uuid) }}" class="fw-semi-bold text-decoration-none">
-                                                {{ item.tenant.first_name }} {{ item.tenant.last_name }}
-                                            </a>
-                                        </div>
-                                    </div>
+                                    <a href="{{ url_for('tenant.home', uuid=item.tenant.uuid) }}" class="fw-semi-bold text-decoration-none">
+                                        {{ item.tenant.first_name }} {{ item.tenant.last_name }}
+                                    </a>
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('property.home', uuid=item.lease_property_ref.uuid) }}" class="text-decoration-none">
-                                        {{ item.lease_property_ref.name }}
+                                    <a href="{{ url_for('property.home', uuid=item.property.uuid) }}" class="text-decoration-none">
+                                        {{ item.property.name }}
                                     </a>
                                 </td>
                                 <td>

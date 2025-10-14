@@ -100,7 +100,7 @@ def update(uuid):
         # Commit status updates
         db.session.commit()
 
-        return redirect(url_for('property.show', uuid=lease.unit.property_ref.uuid))
+        return redirect(url_for('property.home', uuid=lease.unit.property_ref.uuid))
     
     return render_template("update_lease.html", user=current_user, form=form, lease=lease, properties=get_properties())
 
@@ -161,6 +161,47 @@ def create_general():
                 unit_obj = Unit.find_by_uuid(preselected_unit, company_id)
                 if unit_obj and unit_obj.property_id == property_obj.id:
                     form.unit.data = preselected_unit
+
+                    # ========================================
+                    # Pre-populate lease form with unit details
+                    # This saves landlords time by auto-filling common fields
+                    # ========================================
+                    if not form.rent.data and unit_obj.rent:
+                        form.rent.data = unit_obj.rent
+
+                    # Set security deposit to 1 month's rent if rent is available
+                    if not form.security_deposit.data and unit_obj.rent:
+                        form.security_deposit.data = unit_obj.rent
+
+                    # Pre-populate utilities included from unit
+                    if not form.utilities_included.data and hasattr(unit_obj, 'utilities_included') and unit_obj.utilities_included:
+                        form.utilities_included.data = unit_obj.utilities_included
+
+                    # Pre-populate parking information - use parking_spaces to suggest presence of parking
+                    # Since lease doesn't have parking_spaces field, we could set a note in utilities or parking fee
+                    if hasattr(unit_obj, 'parking_spaces') and unit_obj.parking_spaces and unit_obj.parking_spaces > 0:
+                        # We have parking, could default parking fee to 0 (included) or leave it
+                        if not form.parking_fee.data:
+                            form.parking_fee.data = 0  # Default to free parking
+
+                    # Pre-populate pet-related fields from unit
+                    if hasattr(unit_obj, 'pet_deposit') and unit_obj.pet_deposit and not form.pet_deposit.data:
+                        form.pet_deposit.data = unit_obj.pet_deposit
+
+                    if hasattr(unit_obj, 'pet_fee_monthly') and unit_obj.pet_fee_monthly and not form.pet_fee.data:
+                        form.pet_fee.data = unit_obj.pet_fee_monthly
+
+                    # Set max occupants based on bedrooms (rule of thumb: 2 per bedroom + 1)
+                    if not form.max_occupants.data and unit_obj.bedrooms:
+                        form.max_occupants.data = (unit_obj.bedrooms * 2) + 1
+
+                    # Add property manager information to notes if available
+                    if not form.property_manager_notes.data and property_obj.property_manager:
+                        form.property_manager_notes.data = f"Property Manager: {property_obj.property_manager}"
+
+                    # Notify user once that fields were pre-populated (only on GET requests)
+                    if request.method == 'GET':
+                        flash(f'Form pre-filled from {unit_obj.name} details. Review and adjust as needed.', 'info')
 
     if preselected_tenant and not form.tenant.data:
         # Validate tenant belongs to company
@@ -440,7 +481,7 @@ def delete(uuid):
         db.session.rollback()
         flash('Error deleting lease.', 'error')
 
-    return redirect(url_for('property.show', uuid=property_uuid))
+    return redirect(url_for('property.home', uuid=property_uuid))
 
 def get_all_leases_for_user():
     """Get all leases for properties owned by current user, ordered by most recent first."""

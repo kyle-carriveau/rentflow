@@ -7,7 +7,7 @@ from website.models import User
 # Form for login
 class LoginForm(FlaskForm):
     email           = StringField("Email", validators=[InputRequired("Email is required."), DataRequired("Email is required."), Email("Please enter a valid email address.")])
-    password_hash   = PasswordField("Password",
+    password        = PasswordField("Password",
                             validators=[
                                 InputRequired("Please enter your password"),
                                 DataRequired("Password is required"),

@@ -91,18 +91,9 @@
                         <td>{{ payment.payment_date.strftime('%m/%d/%Y') }}</td>
                         <td>
                             {% if payment.lease_ref and payment.lease_ref.tenant_ref %}
-                            <div class="d-flex align-items-center">
-                                <div class="avatar avatar-xs me-2">
-                                    <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
-                                        <span>{{ payment.lease_ref.tenant_ref.first_name[0] }}{{ payment.lease_ref.tenant_ref.last_name[0] }}</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <a href="{{ url_for('tenant.home', uuid=payment.lease_ref.tenant_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
-                                        {{ payment.lease_ref.tenant_ref.first_name }} {{ payment.lease_ref.tenant_ref.last_name }}
-                                    </a>
-                                </div>
-                            </div>
+                            <a href="{{ url_for('tenant.home', uuid=payment.lease_ref.tenant_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
+                                {{ payment.lease_ref.tenant_ref.first_name }} {{ payment.lease_ref.tenant_ref.last_name }}
+                            </a>
                             {% else %}
                             <span class="text-muted">N/A</span>
                             {% endif %}

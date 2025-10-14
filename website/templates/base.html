@@ -298,29 +298,29 @@
               </li>
             </ul>
           </nav>
-          {% with messages = get_flashed_messages(with_categories=true) %} {% if 
+          {% with messages = get_flashed_messages(with_categories=true) %} {% if
           messages %} {% for category, message in messages %} {% if category == 'success' %}
-          <div class="alert alert-success border-1 d-flex align-items-center" role="alert">
-            <div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-3"></span></div>
-            <p class="mb-0 flex-1">{{ message }}</p>
+          <div class="alert alert-success border-1 d-flex align-items-center py-2" role="alert">
+            <span class="fas fa-check-circle me-2"></span>
+            <p class="mb-0 flex-1 fs--1">{{ message }}</p>
             <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
           {% elif category == 'info' %}
-          <div class="alert alert-info border-1 d-flex align-items-center" role="alert">
-            <div class="bg-info me-3 icon-item"><span class="fas fa-info-circle text-white fs-3"></span></div>
-            <p class="mb-0 flex-1">{{ message }}</p>
+          <div class="alert alert-info border-1 d-flex align-items-center py-2" role="alert">
+            <span class="fas fa-info-circle me-2"></span>
+            <p class="mb-0 flex-1 fs--1">{{ message }}</p>
             <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
           {% elif category == 'warning' %}
-          <div class="alert alert-warning border-1 d-flex align-items-center" role="alert">
-            <div class="bg-warning me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-3"></span></div>
-            <p class="mb-0 flex-1">{{ message }}</p>
+          <div class="alert alert-warning border-1 d-flex align-items-center py-2" role="alert">
+            <span class="fas fa-exclamation-circle me-2"></span>
+            <p class="mb-0 flex-1 fs--1">{{ message }}</p>
             <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
           {% elif category == 'danger' %}
-          <div class="alert alert-danger border-1 d-flex align-items-center" role="alert">
-            <div class="bg-danger me-3 icon-item"><span class="fas fa-times-circle text-white fs-3"></span></div>
-            <p class="mb-0 flex-1">{{ message }}</p>
+          <div class="alert alert-danger border-1 d-flex align-items-center py-2" role="alert">
+            <span class="fas fa-times-circle me-2"></span>
+            <p class="mb-0 flex-1 fs--1">{{ message }}</p>
             <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
           {% endif %} {% endfor %} {% endif %} {% endwith %} 

@@ -184,7 +184,7 @@
                         <td class="property">
                             {% if lease.unit_ref and lease.unit_ref.property_ref %}
                                 <div>
-                                    <a href="{{ url_for('property.show', uuid=lease.unit_ref.property_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
+                                    <a href="{{ url_for('property.home', uuid=lease.unit_ref.property_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
                                         {{ lease.unit_ref.property_ref.name }}
                                     </a>
                                     {% if lease.unit_ref.property_ref.address %}

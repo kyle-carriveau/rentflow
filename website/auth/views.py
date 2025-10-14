@@ -16,7 +16,7 @@ def login():
     if login_form.validate_on_submit():
         print('form is validated')
         user = User.query.filter_by(email=login_form.email.data).first()
-        if user is None or not user.check_password(login_form.password_hash.data):
+        if user is None or not user.check_password(login_form.password.data):
             # Log failed login attempt
             from website.session_security import SessionSecurity
             SessionSecurity.log_security_event('login_failed', {'email': login_form.email.data})

@@ -754,6 +754,9 @@ class Lease(db.Model):
     maintenance_requests = db.Column(db.Text, nullable=True)  # JSON array of maintenance request references
 
     # Relationships
+    tenant = db.relationship('Tenant', foreign_keys=[tenant_id])
+    unit = db.relationship('Unit', foreign_keys=[unit_id])
+    property_obj = db.relationship('Property', foreign_keys=[property_id])
     payments = db.relationship('Payment', backref='lease_ref', lazy=True, cascade='all, delete-orphan')
     template = db.relationship('LeaseTemplate', backref='leases_using_template', foreign_keys=[template_id])
 

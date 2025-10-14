@@ -118,13 +118,13 @@
                         </div>
                         <div class="mb-3">
                           <div class="d-flex justify-content-between">
-                            {{ form.password_hash.label }}
+                            {{ form.password.label }}
                           </div>
-                            {{ form.password_hash(class="form-control") }}
-                            {% if form.password_hash.errors %} 
+                            {{ form.password(class="form-control") }}
+                            {% if form.password.errors %}
                             <br />
                             <ul>
-                              {% for error in form.password_hash.errors %}
+                              {% for error in form.password.errors %}
                               <li style="color:red">{{ error }}</li>
                               {% endfor %}
                             </ul>
