@@ -1,0 +1,335 @@
+Test ID,Module,Category,Test Case Description,Priority,Status,Date Tested,Tester Name,Notes/Issues,Related Feature
+AUTH-001,Authentication,User Registration,Register new user with valid data,Critical,Not Tested,,,,"Multi-tenant company creation"
+AUTH-002,Authentication,User Registration,Verify company auto-creation on first registration,Critical,Not Tested,,,,"Multi-tenant company creation"
+AUTH-003,Authentication,User Registration,Test duplicate email registration (should fail),High,Not Tested,,,,Validation
+AUTH-004,Authentication,User Registration,Test password mismatch validation,High,Not Tested,,,,Validation
+AUTH-005,Authentication,User Registration,Test weak password rejection,High,Not Tested,,,,Password policy
+AUTH-006,Authentication,User Registration,Test email format validation,Medium,Not Tested,,,,Validation
+AUTH-007,Authentication,User Registration,Verify user redirected to dashboard after registration,Medium,Not Tested,,,,User flow
+AUTH-008,Authentication,User Registration,Test registration with missing required fields,Medium,Not Tested,,,,Validation
+AUTH-009,Authentication,User Login,Login with valid credentials,Critical,Not Tested,,,,Core functionality
+AUTH-010,Authentication,User Login,Login with invalid email,High,Not Tested,,,,Error handling
+AUTH-011,Authentication,User Login,Login with wrong password,High,Not Tested,,,,Error handling
+AUTH-012,Authentication,User Login,Test Remember Me functionality,Medium,Not Tested,,,,Session management
+AUTH-013,Authentication,User Login,Test login redirect to intended page,Medium,Not Tested,,,,User flow
+AUTH-014,Authentication,User Login,Test session persistence,High,Not Tested,,,,Session management
+AUTH-015,Authentication,User Login,Test logout functionality,High,Not Tested,,,,Session management
+AUTH-016,Authentication,User Login,Test locked out after multiple failed attempts,Low,Not Tested,,,,Security
+AUTH-017,Authentication,Password Management,Test Forgot Password flow,High,Not Tested,,,,User flow
+AUTH-018,Authentication,Password Management,Test password reset email delivery,High,Not Tested,,,,Email functionality
+AUTH-019,Authentication,Password Management,Test password reset link expiration,Medium,Not Tested,,,,Security
+AUTH-020,Authentication,Password Management,Test password reset with valid token,High,Not Tested,,,,Password reset
+AUTH-021,Authentication,Password Management,Test password reset with invalid token,Medium,Not Tested,,,,Security
+AUTH-022,Authentication,Password Management,Test password change in profile settings,High,Not Tested,,,,User profile
+TENANT-001,Multi-Tenant,Company Separation,Create two test companies with different users,Critical,Not Tested,,,,"Data isolation testing"
+TENANT-002,Multi-Tenant,Company Separation,Verify Company A cannot see Company B's properties,Critical,Not Tested,,,,"Data isolation testing"
+TENANT-003,Multi-Tenant,Company Separation,Verify Company A cannot see Company B's units,Critical,Not Tested,,,,"Data isolation testing"
+TENANT-004,Multi-Tenant,Company Separation,Verify Company A cannot see Company B's tenants,Critical,Not Tested,,,,"Data isolation testing"
+TENANT-005,Multi-Tenant,Company Separation,Verify Company A cannot see Company B's leases,Critical,Not Tested,,,,"Data isolation testing"
+TENANT-006,Multi-Tenant,Company Separation,Verify Company A cannot see Company B's payments,Critical,Not Tested,,,,"Data isolation testing"
+TENANT-007,Multi-Tenant,Company Separation,Verify Company A cannot see Company B's expenses,Critical,Not Tested,,,,"Data isolation testing"
+TENANT-008,Multi-Tenant,Company Separation,Test direct URL access to other company's resources (should fail),Critical,Not Tested,,,,"Security testing"
+RBAC-001,Multi-Tenant,Role-Based Access,Owner can access company profile settings,Critical,Not Tested,,,,"Owner role permissions"
+RBAC-002,Multi-Tenant,Role-Based Access,Owner can edit company information,Critical,Not Tested,,,,"Owner role permissions"
+RBAC-003,Multi-Tenant,Role-Based Access,Owner can invite users,Critical,Not Tested,,,,"Owner role permissions"
+RBAC-004,Multi-Tenant,Role-Based Access,Owner can manage user roles,Critical,Not Tested,,,,"Owner role permissions"
+RBAC-005,Multi-Tenant,Role-Based Access,Owner can delete/deactivate users,Critical,Not Tested,,,,"Owner role permissions"
+RBAC-006,Multi-Tenant,Role-Based Access,Owner has full access to all modules,Critical,Not Tested,,,,"Owner role permissions"
+RBAC-007,Multi-Tenant,Role-Based Access,Manager cannot access company settings,High,Not Tested,,,,"Manager role permissions"
+RBAC-008,Multi-Tenant,Role-Based Access,Manager can create/edit properties,High,Not Tested,,,,"Manager role permissions"
+RBAC-009,Multi-Tenant,Role-Based Access,Manager can create/edit units,High,Not Tested,,,,"Manager role permissions"
+RBAC-010,Multi-Tenant,Role-Based Access,Manager can manage tenants,High,Not Tested,,,,"Manager role permissions"
+RBAC-011,Multi-Tenant,Role-Based Access,Manager can manage leases,High,Not Tested,,,,"Manager role permissions"
+RBAC-012,Multi-Tenant,Role-Based Access,Manager can record payments,High,Not Tested,,,,"Manager role permissions"
+RBAC-013,Multi-Tenant,Role-Based Access,Manager can add expenses,High,Not Tested,,,,"Manager role permissions"
+RBAC-014,Multi-Tenant,Role-Based Access,Manager can view financial reports,High,Not Tested,,,,"Manager role permissions"
+RBAC-015,Multi-Tenant,Role-Based Access,Staff cannot access company settings,High,Not Tested,,,,"Staff role permissions"
+RBAC-016,Multi-Tenant,Role-Based Access,Staff can create/edit properties,High,Not Tested,,,,"Staff role permissions"
+RBAC-017,Multi-Tenant,Role-Based Access,Staff can create/edit units,High,Not Tested,,,,"Staff role permissions"
+RBAC-018,Multi-Tenant,Role-Based Access,Staff can manage tenants,High,Not Tested,,,,"Staff role permissions"
+RBAC-019,Multi-Tenant,Role-Based Access,Staff has limited financial access,High,Not Tested,,,,"Staff role permissions"
+RBAC-020,Multi-Tenant,Role-Based Access,Staff cannot delete major records,High,Not Tested,,,,"Staff role permissions"
+RBAC-021,Multi-Tenant,Role-Based Access,Viewer can only view assigned data,High,Not Tested,,,,"Viewer role permissions"
+RBAC-022,Multi-Tenant,Role-Based Access,Viewer cannot create/edit/delete anything,High,Not Tested,,,,"Viewer role permissions"
+RBAC-023,Multi-Tenant,Role-Based Access,Viewer navigation shows read-only options,Medium,Not Tested,,,,"Viewer role permissions"
+DASH-001,Dashboard,Metrics Display,Verify Portfolio Overview card shows correct property count,High,Not Tested,,,,RECENT: New dashboard cards
+DASH-002,Dashboard,Metrics Display,Verify portfolios count is accurate,High,Not Tested,,,,RECENT: New dashboard cards
+DASH-003,Dashboard,Metrics Display,Verify total units count is correct,High,Not Tested,,,,RECENT: New dashboard cards
+DASH-004,Dashboard,Metrics Display,Verify Occupancy & Performance card shows correct occupancy rate,High,Not Tested,,,,RECENT: New dashboard cards
+DASH-005,Dashboard,Metrics Display,Verify occupied units count is accurate,High,Not Tested,,,,RECENT: New dashboard cards
+DASH-006,Dashboard,Metrics Display,Verify revenue per unit calculation,High,Not Tested,,,,RECENT: New dashboard cards
+DASH-007,Dashboard,Metrics Display,Verify Financial Overview card shows correct monthly revenue,High,Not Tested,,,,RECENT: New dashboard cards
+DASH-008,Dashboard,Metrics Display,Verify collection rate percentage,High,Not Tested,,,,RECENT: New dashboard cards
+DASH-009,Dashboard,Metrics Display,Verify net effective rent calculation,High,Not Tested,,,,RECENT: New dashboard cards
+DASH-010,Dashboard,Metrics Display,Verify Outstanding & Collections card shows correct outstanding balance,High,Not Tested,,,,RECENT: New dashboard cards
+DASH-011,Dashboard,Metrics Display,Verify deposits held amount,High,Not Tested,,,,RECENT: New dashboard cards
+DASH-012,Dashboard,Dashboard Alerts,Test lease expiration alerts (30 days),High,Not Tested,,,,Alert system
+DASH-013,Dashboard,Dashboard Alerts,Test lease expiration alerts (60 days),High,Not Tested,,,,Alert system
+DASH-014,Dashboard,Dashboard Alerts,Test lease expiration alerts (90 days),High,Not Tested,,,,Alert system
+DASH-015,Dashboard,Dashboard Alerts,Verify notification bell badge count,Medium,Not Tested,,,,Alert system
+DASH-016,Dashboard,Dashboard Alerts,Test clicking on alerts navigates to correct lease,Medium,Not Tested,,,,Navigation
+DASH-017,Dashboard,Dashboard Alerts,Verify View All link works,Medium,Not Tested,,,,Navigation
+DASH-018,Dashboard,Quick Add Menu,Test New Property quick add,Medium,Not Tested,,,,Quick actions
+DASH-019,Dashboard,Quick Add Menu,Test New Tenant quick add,Medium,Not Tested,,,,Quick actions
+DASH-020,Dashboard,Quick Add Menu,Test New Lease quick add,Medium,Not Tested,,,,Quick actions
+DASH-021,Dashboard,Quick Add Menu,Test Record Payment quick add,Medium,Not Tested,,,,Quick actions
+DASH-022,Dashboard,Quick Add Menu,Test New Portfolio quick add,Medium,Not Tested,,,,Quick actions
+PROP-001,Property Management,Create Property,Create property with all required fields,High,Not Tested,,,,Core functionality
+PROP-002,Property Management,Create Property,Create property with enhanced details,Medium,Not Tested,,,,Enhanced features
+PROP-003,Property Management,Create Property,Assign property to portfolio,High,Not Tested,,,,Portfolio integration
+PROP-004,Property Management,Create Property,Test property creation without portfolio,High,Not Tested,,,,Optional fields
+PROP-005,Property Management,Create Property,Upload property images,Low,Not Tested,,,,Media upload
+PROP-006,Property Management,Create Property,Test form validation for required fields,High,Not Tested,,,,Validation
+PROP-007,Property Management,Create Property,Test form autosave functionality,Medium,Not Tested,,,,User experience
+PROP-008,Property Management,Create Property,Verify property appears in property list,High,Not Tested,,,,Data persistence
+PROP-009,Property Management,View Properties,View all properties list,High,Not Tested,,,,List view
+PROP-010,Property Management,View Properties,Filter properties by portfolio,High,Not Tested,,,,Filtering
+PROP-011,Property Management,View Properties,Search properties by name/address,High,Not Tested,,,,Search functionality
+PROP-012,Property Management,View Properties,Sort properties by various fields,Medium,Not Tested,,,,Sorting
+PROP-013,Property Management,View Properties,View property detail page,High,Not Tested,,,,Detail view
+PROP-014,Property Management,View Properties,Verify property metrics are accurate,High,Not Tested,,,,Metrics calculation
+PROP-015,Property Management,Edit Property,Edit basic property information,High,Not Tested,,,,Edit functionality
+PROP-016,Property Management,Edit Property,Change property portfolio assignment,High,Not Tested,,,,Portfolio reassignment
+PROP-017,Property Management,Edit Property,Update property address,High,Not Tested,,,,Edit functionality
+PROP-018,Property Management,Edit Property,Modify property type,Medium,Not Tested,,,,Edit functionality
+PROP-019,Property Management,Edit Property,Test validation on edit,High,Not Tested,,,,Validation
+PROP-020,Property Management,Edit Property,Verify changes save correctly,High,Not Tested,,,,Data persistence
+PROP-021,Property Management,Delete Property,Attempt to delete property with units (should warn/prevent),High,Not Tested,,,,Referential integrity
+PROP-022,Property Management,Delete Property,Delete property without dependencies,Medium,Not Tested,,,,Delete functionality
+PROP-023,Property Management,Delete Property,Verify property removed from list,Medium,Not Tested,,,,Data persistence
+UNIT-001,Unit Management,Create Unit,Create unit from property page,Critical,Not Tested,,,,CRITICAL: Recent bug fix
+UNIT-002,Unit Management,Create Unit,Create unit from general unit creation page,High,Not Tested,,,,RECENT: Bug fix
+UNIT-003,Unit Management,Create Unit,Fill all basic information (name bedrooms bathrooms rent),High,Not Tested,,,,Core fields
+UNIT-004,Unit Management,Create Unit,Test HVAC & Climate fields,Medium,Not Tested,,,,Enhanced fields
+UNIT-005,Unit Management,Create Unit,Test Appliances & Kitchen section,Medium,Not Tested,,,,Enhanced fields
+UNIT-006,Unit Management,Create Unit,Test Flooring & Interior fields,Medium,Not Tested,,,,Enhanced fields
+UNIT-007,Unit Management,Create Unit,Test Storage & Space options,Medium,Not Tested,,,,Enhanced fields
+UNIT-008,Unit Management,Create Unit,Test Parking & Access settings,Medium,Not Tested,,,,Enhanced fields
+UNIT-009,Unit Management,Create Unit,Test Bathroom Features,Medium,Not Tested,,,,Enhanced fields
+UNIT-010,Unit Management,Create Unit,Test Condition & Maintenance fields,Medium,Not Tested,,,,Enhanced fields
+UNIT-011,Unit Management,Create Unit,Test Accessibility & Compliance options,Medium,Not Tested,,,,Enhanced fields
+UNIT-012,Unit Management,Create Unit,Test Utilities & Energy fields,Medium,Not Tested,,,,Enhanced fields
+UNIT-013,Unit Management,Create Unit,Test Pet Policy section,Medium,Not Tested,,,,Enhanced fields
+UNIT-014,Unit Management,Create Unit,Test Security Features,Medium,Not Tested,,,,Enhanced fields
+UNIT-015,Unit Management,Create Unit,Test Technology & Internet fields,Medium,Not Tested,,,,Enhanced fields
+UNIT-016,Unit Management,Create Unit,Verify all dropdown choices work correctly,High,Not Tested,,,,RECENT: Choices bug fix
+UNIT-017,Unit Management,Create Unit,Test form validation,High,Not Tested,,,,Validation
+UNIT-018,Unit Management,Create Unit,Test form autosave,Medium,Not Tested,,,,User experience
+UNIT-019,Unit Management,View Units,View all units list,High,Not Tested,,,,List view
+UNIT-020,Unit Management,View Units,Filter units by property,High,Not Tested,,,,Filtering
+UNIT-021,Unit Management,View Units,Filter units by occupancy status,High,Not Tested,,,,Filtering
+UNIT-022,Unit Management,View Units,View unit detail page,High,Not Tested,,,,Detail view
+UNIT-023,Unit Management,View Units,Verify lease status display,High,Not Tested,,,,Status display
+UNIT-024,Unit Management,Edit Unit,Edit unit basic information,High,Not Tested,,,,Edit functionality
+UNIT-025,Unit Management,Edit Unit,Update rent amount,High,Not Tested,,,,Edit functionality
+UNIT-026,Unit Management,Edit Unit,Modify unit features,Medium,Not Tested,,,,Edit functionality
+UNIT-027,Unit Management,Edit Unit,Test all sections work correctly,High,Not Tested,,,,RECENT: Bug fix
+UNIT-028,Unit Management,Edit Unit,Verify changes save,High,Not Tested,,,,Data persistence
+UNIT-029,Unit Management,Unit-Lease Relationship,Verify available units show as Available,High,Not Tested,,,,Status display
+UNIT-030,Unit Management,Unit-Lease Relationship,Verify leased units show as Occupied,High,Not Tested,,,,Status display
+UNIT-031,Unit Management,Unit-Lease Relationship,View current lease from unit detail,High,Not Tested,,,,Relationship display
+TEN-001,Tenant Management,Create Tenant,Create tenant with all required information,High,Not Tested,,,,Core functionality
+TEN-002,Tenant Management,Create Tenant,Add tenant contact details,High,Not Tested,,,,Contact info
+TEN-003,Tenant Management,Create Tenant,Add emergency contact information,Medium,Not Tested,,,,Emergency contacts
+TEN-004,Tenant Management,Create Tenant,Upload tenant documents,Low,Not Tested,,,,Document management
+TEN-005,Tenant Management,Create Tenant,Test form validation,High,Not Tested,,,,Validation
+TEN-006,Tenant Management,Create Tenant,Test email format validation,High,Not Tested,,,,Validation
+TEN-007,Tenant Management,Create Tenant,Test phone number validation,Medium,Not Tested,,,,Validation
+TEN-008,Tenant Management,View Tenants,View all tenants list,High,Not Tested,,,,List view
+TEN-009,Tenant Management,View Tenants,Search tenants by name,High,Not Tested,,,,Search functionality
+TEN-010,Tenant Management,View Tenants,Filter tenants by status (active/inactive),High,Not Tested,,,,Filtering
+TEN-011,Tenant Management,View Tenants,View tenant detail page,High,Not Tested,,,,Detail view
+TEN-012,Tenant Management,View Tenants,Verify tenant lease history,High,Not Tested,,,,History display
+TEN-013,Tenant Management,Edit Tenant,Update tenant contact information,High,Not Tested,,,,Edit functionality
+TEN-014,Tenant Management,Edit Tenant,Modify tenant details,High,Not Tested,,,,Edit functionality
+TEN-015,Tenant Management,Edit Tenant,Test validation on edit,High,Not Tested,,,,Validation
+TEN-016,Tenant Management,Tenant Profile,View current lease information,High,Not Tested,,,,Profile view
+TEN-017,Tenant Management,Tenant Profile,View payment history,High,Not Tested,,,,Payment history
+TEN-018,Tenant Management,Tenant Profile,View outstanding balance,High,Not Tested,,,,Balance display
+TEN-019,Tenant Management,Tenant Profile,Access tenant documents,Medium,Not Tested,,,,Document access
+LEASE-001,Lease Management,Create Lease,Create lease with general creation (new template),Critical,Not Tested,,,,Core functionality
+LEASE-002,Lease Management,Create Lease,Select unit for lease,High,Not Tested,,,,Unit selection
+LEASE-003,Lease Management,Create Lease,Select tenant for lease,High,Not Tested,,,,Tenant selection
+LEASE-004,Lease Management,Create Lease,Set lease start and end dates,High,Not Tested,,,,Date selection
+LEASE-005,Lease Management,Create Lease,Set monthly rent amount,High,Not Tested,,,,Rent amount
+LEASE-006,Lease Management,Create Lease,Set security deposit,High,Not Tested,,,,Deposit amount
+LEASE-007,Lease Management,Create Lease,Add move-in fees,Medium,Not Tested,,,,Additional fees
+LEASE-008,Lease Management,Create Lease,Add concessions/discounts,Medium,Not Tested,,,,Concessions
+LEASE-009,Lease Management,Create Lease,Calculate net effective rent,High,Not Tested,,,,Rent calculation
+LEASE-010,Lease Management,Create Lease,Calculate total upfront costs,High,Not Tested,,,,Cost calculation
+LEASE-011,Lease Management,Create Lease,Test date validation (end date after start date),High,Not Tested,,,,Validation
+LEASE-012,Lease Management,Create Lease,Test overlapping lease detection,High,Not Tested,,,,Validation
+LEASE-013,Lease Management,Create Lease,Verify unit marked as occupied after lease creation,High,Not Tested,,,,Status update
+LEASE-014,Lease Management,View Leases,View all leases list,High,Not Tested,,,,List view
+LEASE-015,Lease Management,View Leases,Filter by lease status (active/expired/upcoming),High,Not Tested,,,,Filtering
+LEASE-016,Lease Management,View Leases,Filter by property,High,Not Tested,,,,Filtering
+LEASE-017,Lease Management,View Leases,Filter by expiration date,High,Not Tested,,,,Filtering
+LEASE-018,Lease Management,View Leases,View lease detail page,High,Not Tested,,,,Detail view
+LEASE-019,Lease Management,Edit Lease,Update lease dates,High,Not Tested,,,,Edit functionality
+LEASE-020,Lease Management,Edit Lease,Modify rent amount,High,Not Tested,,,,Edit functionality
+LEASE-021,Lease Management,Edit Lease,Update deposit amount,High,Not Tested,,,,Edit functionality
+LEASE-022,Lease Management,Edit Lease,Edit lease terms,Medium,Not Tested,,,,Edit functionality
+LEASE-023,Lease Management,Edit Lease,Test validation,High,Not Tested,,,,Validation
+LEASE-024,Lease Management,Lease Status & Expiration,Verify active leases show correctly,High,Not Tested,,,,Status display
+LEASE-025,Lease Management,Lease Status & Expiration,Verify expiring leases appear in alerts,High,Not Tested,,,,Alert system
+LEASE-026,Lease Management,Lease Status & Expiration,Test lease renewal workflow,Medium,Not Tested,,,,Renewal process
+LEASE-027,Lease Management,Lease Status & Expiration,Verify expired lease unit becomes available,High,Not Tested,,,,Status update
+FIN-001,Financial Management,Record Payment,Record rent payment for active lease,Critical,Not Tested,,,,Core functionality
+FIN-002,Financial Management,Record Payment,Select payment method (check cash ACH etc),High,Not Tested,,,,Payment methods
+FIN-003,Financial Management,Record Payment,Set payment date,High,Not Tested,,,,Date selection
+FIN-004,Financial Management,Record Payment,Add payment notes,Medium,Not Tested,,,,Notes field
+FIN-005,Financial Management,Record Payment,Verify payment appears in tenant history,High,Not Tested,,,,History display
+FIN-006,Financial Management,Record Payment,Verify outstanding balance updates,Critical,Not Tested,,,,Balance calculation
+FIN-007,Financial Management,Record Payment,Test partial payment,High,Not Tested,,,,Payment calculation
+FIN-008,Financial Management,Record Payment,Test overpayment,Medium,Not Tested,,,,Payment calculation
+FIN-009,Financial Management,Record Payment,Record late payment with fee,Medium,Not Tested,,,,Late fees
+FIN-010,Financial Management,View Payments,View all payments list,High,Not Tested,,,,List view
+FIN-011,Financial Management,View Payments,Filter by date range,High,Not Tested,,,,Filtering
+FIN-012,Financial Management,View Payments,Filter by tenant,High,Not Tested,,,,Filtering
+FIN-013,Financial Management,View Payments,Filter by property,High,Not Tested,,,,Filtering
+FIN-014,Financial Management,View Payments,Filter by payment method,Medium,Not Tested,,,,Filtering
+FIN-015,Financial Management,View Payments,View payment details,High,Not Tested,,,,Detail view
+FIN-016,Financial Management,View Payments,Export payments report,Medium,Not Tested,,,,Export functionality
+FIN-017,Financial Management,Add Expense,Add property expense,High,Not Tested,,,,Expense tracking
+FIN-018,Financial Management,Add Expense,Add company expense,High,Not Tested,,,,Expense tracking
+FIN-019,Financial Management,Add Expense,Categorize expense (maintenance utilities etc),High,Not Tested,,,,Categorization
+FIN-020,Financial Management,Add Expense,Mark expense as tax-deductible,High,Not Tested,,,,Tax features
+FIN-021,Financial Management,Add Expense,Upload receipt,Low,Not Tested,,,,Document upload
+FIN-022,Financial Management,Add Expense,Set expense date,High,Not Tested,,,,Date selection
+FIN-023,Financial Management,Add Expense,Associate expense with property,High,Not Tested,,,,Property association
+FIN-024,Financial Management,View Expenses,View all expenses list,High,Not Tested,,,,List view
+FIN-025,Financial Management,View Expenses,Filter by date range,High,Not Tested,,,,Filtering
+FIN-026,Financial Management,View Expenses,Filter by category,High,Not Tested,,,,Filtering
+FIN-027,Financial Management,View Expenses,Filter by property,High,Not Tested,,,,Filtering
+FIN-028,Financial Management,View Expenses,View tax-deductible expenses only,Medium,Not Tested,,,,Tax filtering
+FIN-029,Financial Management,View Expenses,Export expenses report,Medium,Not Tested,,,,Export functionality
+FIN-030,Financial Management,Financial Dashboard,Verify income summary is accurate,High,Not Tested,,,,Metrics accuracy
+FIN-031,Financial Management,Financial Dashboard,Verify expense summary is accurate,High,Not Tested,,,,Metrics accuracy
+FIN-032,Financial Management,Financial Dashboard,Verify profit/loss calculation,High,Not Tested,,,,Calculation accuracy
+FIN-033,Financial Management,Financial Dashboard,View income by property,High,Not Tested,,,,Property breakdown
+FIN-034,Financial Management,Financial Dashboard,View expenses by category,High,Not Tested,,,,Category breakdown
+FIN-035,Financial Management,Financial Dashboard,Test date range filters,High,Not Tested,,,,Filtering
+PORT-001,Portfolio Management,Create Portfolio,Create portfolio with name and description,High,Not Tested,,,,Core functionality
+PORT-002,Portfolio Management,Create Portfolio,Add initial properties to portfolio,High,Not Tested,,,,Property assignment
+PORT-003,Portfolio Management,Create Portfolio,Set portfolio goals/targets,Medium,Not Tested,,,,Goal setting
+PORT-004,Portfolio Management,View Portfolios,View all portfolios list,High,Not Tested,,,,List view
+PORT-005,Portfolio Management,View Portfolios,View portfolio detail page,High,Not Tested,,,,Detail view
+PORT-006,Portfolio Management,View Portfolios,Verify property count is correct,High,Not Tested,,,,Count accuracy
+PORT-007,Portfolio Management,View Portfolios,Verify portfolio metrics (occupancy revenue),High,Not Tested,,,,Metrics accuracy
+PORT-008,Portfolio Management,Edit Portfolio,Update portfolio name,High,Not Tested,,,,Edit functionality
+PORT-009,Portfolio Management,Edit Portfolio,Modify description,Medium,Not Tested,,,,Edit functionality
+PORT-010,Portfolio Management,Edit Portfolio,Add/remove properties,High,Not Tested,,,,Property management
+PORT-011,Portfolio Management,Edit Portfolio,Reassign properties between portfolios,High,Not Tested,,,,Property reassignment
+PORT-012,Portfolio Management,Portfolio Performance,View portfolio performance comparison,High,Not Tested,,,,Performance metrics
+PORT-013,Portfolio Management,Portfolio Performance,Verify occupancy rate per portfolio,High,Not Tested,,,,Occupancy metrics
+PORT-014,Portfolio Management,Portfolio Performance,Verify revenue per portfolio,High,Not Tested,,,,Revenue metrics
+PORT-015,Portfolio Management,Portfolio Performance,Compare multiple portfolios,High,Not Tested,,,,Comparison view
+REPORT-001,Reporting,Reports Dashboard,Access reports section,High,Not Tested,,,,Navigation
+REPORT-002,Reporting,Reports Dashboard,View available report types,High,Not Tested,,,,Report listing
+REPORT-003,Reporting,Financial Trends Report,View 6-month financial trends,High,Not Tested,,,,Trend analysis
+REPORT-004,Reporting,Financial Trends Report,View revenue chart,High,Not Tested,,,,Chart display
+REPORT-005,Reporting,Financial Trends Report,View expense chart,High,Not Tested,,,,Chart display
+REPORT-006,Reporting,Financial Trends Report,View profit chart,High,Not Tested,,,,Chart display
+REPORT-007,Reporting,Financial Trends Report,Export report data,Medium,Not Tested,,,,Export functionality
+REPORT-008,Reporting,Occupancy Tracking Report,View occupancy rate over time,High,Not Tested,,,,Occupancy trends
+REPORT-009,Reporting,Occupancy Tracking Report,View vacancy trends,High,Not Tested,,,,Vacancy analysis
+REPORT-010,Reporting,Occupancy Tracking Report,Filter by property/portfolio,High,Not Tested,,,,Filtering
+REPORT-011,Reporting,Occupancy Tracking Report,Export occupancy data,Medium,Not Tested,,,,Export functionality
+REPORT-012,Reporting,Portfolio Performance Report,View portfolio comparison,High,Not Tested,,,,Portfolio analysis
+REPORT-013,Reporting,Portfolio Performance Report,View ROI metrics,Medium,Not Tested,,,,ROI calculation
+REPORT-014,Reporting,Portfolio Performance Report,View revenue per unit,High,Not Tested,,,,Unit metrics
+REPORT-015,Reporting,Portfolio Performance Report,Export portfolio data,Medium,Not Tested,,,,Export functionality
+REPORT-016,Reporting,Tenant Payment Report,View tenant payment history,High,Not Tested,,,,Payment history
+REPORT-017,Reporting,Tenant Payment Report,View outstanding balances,High,Not Tested,,,,Balance report
+REPORT-018,Reporting,Tenant Payment Report,View late payment trends,Medium,Not Tested,,,,Payment analysis
+REPORT-019,Reporting,Tenant Payment Report,Export payment data,Medium,Not Tested,,,,Export functionality
+USER-001,User Management,Invite User,Invite user with Owner role (as Owner),High,Not Tested,,,,User invitation
+USER-002,User Management,Invite User,Invite user with Manager role,High,Not Tested,,,,User invitation
+USER-003,User Management,Invite User,Invite user with Staff role,High,Not Tested,,,,User invitation
+USER-004,User Management,Invite User,Invite user with Viewer role,High,Not Tested,,,,User invitation
+USER-005,User Management,Invite User,Verify invitation email sent,Medium,Not Tested,,,,Email functionality
+USER-006,User Management,Invite User,Test duplicate email invitation (should fail),High,Not Tested,,,,Validation
+USER-007,User Management,View Users,View all company users,High,Not Tested,,,,List view
+USER-008,User Management,View Users,See user roles,High,Not Tested,,,,Role display
+USER-009,User Management,View Users,See user status (active/inactive),High,Not Tested,,,,Status display
+USER-010,User Management,View Users,View user details,High,Not Tested,,,,Detail view
+USER-011,User Management,Edit User,Change user role,High,Not Tested,,,,Role management
+USER-012,User Management,Edit User,Update user information,High,Not Tested,,,,Edit functionality
+USER-013,User Management,Edit User,Deactivate user,High,Not Tested,,,,User deactivation
+USER-014,User Management,Edit User,Reactivate user,Medium,Not Tested,,,,User reactivation
+USER-015,User Management,Edit User,Test permission validation (non-Owner cannot edit Owner),High,Not Tested,,,,Permission validation
+USER-016,User Management,Delete User,Delete user with no dependencies,Medium,Not Tested,,,,Delete functionality
+USER-017,User Management,Delete User,Attempt to delete user with data (test handling),Medium,Not Tested,,,,Referential integrity
+COMPANY-001,Company Management,Company Profile,View company profile (Owner only),High,Not Tested,,,,Owner access
+COMPANY-002,Company Management,Company Profile,Verify non-Owner users cannot access,High,Not Tested,,,,Permission validation
+COMPANY-003,Company Management,Edit Company,Update company name,High,Not Tested,,,,Edit functionality
+COMPANY-004,Company Management,Edit Company,Update address and contact information,High,Not Tested,,,,Edit functionality
+COMPANY-005,Company Management,Edit Company,Update business details (tax ID license),Medium,Not Tested,,,,Business info
+COMPANY-006,Company Management,Edit Company,Set timezone and currency,Medium,Not Tested,,,,Settings
+COMPANY-007,Company Management,Edit Company,Upload company logo,Low,Not Tested,,,,Logo upload
+COMPANY-008,Company Management,Edit Company,Verify changes save correctly,High,Not Tested,,,,Data persistence
+PROFILE-001,Profile & Settings,User Profile,View personal profile,High,Not Tested,,,,Profile view
+PROFILE-002,Profile & Settings,User Profile,Edit first name and last name,High,Not Tested,,,,Edit functionality
+PROFILE-003,Profile & Settings,User Profile,Update email address,High,Not Tested,,,,Email update
+PROFILE-004,Profile & Settings,User Profile,Update phone number,Medium,Not Tested,,,,Phone update
+PROFILE-005,Profile & Settings,User Profile,Change password,High,Not Tested,,,,Password change
+PROFILE-006,Profile & Settings,User Profile,Verify password change requires old password,High,Not Tested,,,,Security validation
+PROFILE-007,Profile & Settings,User Settings,Update notification preferences,Medium,Not Tested,,,,Settings
+PROFILE-008,Profile & Settings,User Settings,Set display preferences,Low,Not Tested,,,,Settings
+PROFILE-009,Profile & Settings,User Settings,Configure email alerts,Medium,Not Tested,,,,Settings
+UI-001,UI/UX,Navigation,Test main navigation menu,High,Not Tested,,,,Navigation
+UI-002,UI/UX,Navigation,Verify role-based menu items,High,Not Tested,,,,Role-based UI
+UI-003,UI/UX,Navigation,Test breadcrumbs,Medium,Not Tested,,,,Navigation
+UI-004,UI/UX,Navigation,Test back buttons,Medium,Not Tested,,,,Navigation
+UI-005,UI/UX,Navigation,Test pagination on lists,High,Not Tested,,,,Pagination
+UI-006,UI/UX,Forms,Test form autosave (property unit forms),Medium,Not Tested,,,,Form autosave
+UI-007,UI/UX,Forms,Test loading states on submit,Medium,Not Tested,,,,Loading states
+UI-008,UI/UX,Forms,Test form validation messages,High,Not Tested,,,,Validation messages
+UI-009,UI/UX,Forms,Test required field indicators,High,Not Tested,,,,Field indicators
+UI-010,UI/UX,Forms,Test date pickers,High,Not Tested,,,,Date inputs
+UI-011,UI/UX,Forms,Test dropdown selects,High,Not Tested,,,,Select inputs
+UI-012,UI/UX,Forms,Test checkbox/radio inputs,Medium,Not Tested,,,,Input types
+UI-013,UI/UX,Responsive Design,Test on desktop (1920x1080),High,Not Tested,,,,Desktop view
+UI-014,UI/UX,Responsive Design,Test on laptop (1366x768),High,Not Tested,,,,Laptop view
+UI-015,UI/UX,Responsive Design,Test on tablet (768x1024),High,Not Tested,,,,Tablet view
+UI-016,UI/UX,Responsive Design,Test on mobile (375x667),High,Not Tested,,,,Mobile view
+UI-017,UI/UX,Responsive Design,Verify all cards stack properly,High,Not Tested,,,,Responsive cards
+UI-018,UI/UX,Responsive Design,Verify navigation menu responsiveness,High,Not Tested,,,,Mobile navigation
+UI-019,UI/UX,Visual Feedback,Test success flash messages,High,Not Tested,,,,Flash messages
+UI-020,UI/UX,Visual Feedback,Test error flash messages,High,Not Tested,,,,Flash messages
+UI-021,UI/UX,Visual Feedback,Test warning messages,Medium,Not Tested,,,,Flash messages
+UI-022,UI/UX,Visual Feedback,Test loading spinners,Medium,Not Tested,,,,Loading indicators
+UI-023,UI/UX,Visual Feedback,Test confirmation modals,High,Not Tested,,,,Modals
+EDGE-001,Edge Cases,Data Validation,Submit forms with missing required fields,High,Not Tested,,,,Validation
+EDGE-002,Edge Cases,Data Validation,Submit forms with invalid data types,High,Not Tested,,,,Validation
+EDGE-003,Edge Cases,Data Validation,Test negative numbers where inappropriate,High,Not Tested,,,,Validation
+EDGE-004,Edge Cases,Data Validation,Test extremely large numbers,Medium,Not Tested,,,,Validation
+EDGE-005,Edge Cases,Data Validation,Test special characters in text fields,Medium,Not Tested,,,,Input sanitization
+EDGE-006,Edge Cases,Data Validation,Test SQL injection attempts (should be prevented),Critical,Not Tested,,,,Security
+EDGE-007,Edge Cases,Data Validation,Test XSS attempts (should be prevented),Critical,Not Tested,,,,Security
+EDGE-008,Edge Cases,Date Handling,Create lease with end date before start date (should fail),High,Not Tested,,,,Date validation
+EDGE-009,Edge Cases,Date Handling,Set payment date in future,Medium,Not Tested,,,,Date validation
+EDGE-010,Edge Cases,Date Handling,Test date ranges that span years,Medium,Not Tested,,,,Date handling
+EDGE-011,Edge Cases,Relationships,Delete property with units (should warn/prevent),High,Not Tested,,,,Referential integrity
+EDGE-012,Edge Cases,Relationships,Delete unit with active lease (should warn/prevent),High,Not Tested,,,,Referential integrity
+EDGE-013,Edge Cases,Relationships,Delete tenant with active lease (should warn/prevent),High,Not Tested,,,,Referential integrity
+EDGE-014,Edge Cases,Relationships,Delete portfolio with properties (test handling),Medium,Not Tested,,,,Referential integrity
+EDGE-015,Edge Cases,Financial Calculations,Test with zero rent,High,Not Tested,,,,Calculation edge cases
+EDGE-016,Edge Cases,Financial Calculations,Test with very large rent amounts,Medium,Not Tested,,,,Calculation edge cases
+EDGE-017,Edge Cases,Financial Calculations,Test decimal precision in calculations,High,Not Tested,,,,Precision testing
+EDGE-018,Edge Cases,Financial Calculations,Test negative values (should be prevented),High,Not Tested,,,,Validation
+PERF-001,Performance,Large Datasets,Create 50+ properties and test list loading,Medium,Not Tested,,,,Performance testing
+PERF-002,Performance,Large Datasets,Create 100+ units and test filtering,Medium,Not Tested,,,,Performance testing
+PERF-003,Performance,Large Datasets,Create 200+ payments and test reporting,Medium,Not Tested,,,,Performance testing
+PERF-004,Performance,Large Datasets,Test search with large datasets,Medium,Not Tested,,,,Performance testing
+PERF-005,Performance,Concurrent Users,Login with multiple users from same company,Medium,Not Tested,,,,Concurrency testing
+PERF-006,Performance,Concurrent Users,Test concurrent edits,Low,Not Tested,,,,Concurrency testing
+PERF-007,Performance,Concurrent Users,Test session management,Medium,Not Tested,,,,Session handling
+SEC-001,Security,Authentication,Test accessing protected pages without login (should redirect),Critical,Not Tested,,,,Authentication
+SEC-002,Security,Authentication,Test accessing /auth routes when already logged in,Medium,Not Tested,,,,Route protection
+SEC-003,Security,Authentication,Test session timeout,Medium,Not Tested,,,,Session management
+SEC-004,Security,Authorization,Test Staff accessing Owner-only pages (should fail),Critical,Not Tested,,,,Authorization
+SEC-005,Security,Authorization,Test Viewer creating records (should fail),Critical,Not Tested,,,,Authorization
+SEC-006,Security,Authorization,Test accessing other company's data via URL manipulation,Critical,Not Tested,,,,Data isolation
+SEC-007,Security,CSRF Protection,Verify all forms have CSRF tokens,High,Not Tested,,,,CSRF protection
+SEC-008,Security,CSRF Protection,Test form submission without CSRF token (should fail),High,Not Tested,,,,CSRF protection

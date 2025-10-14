@@ -65,3 +65,5 @@ reenv*/
 # Test files
 *test*.py
 test_*.py
+ssl/
+*.pem
