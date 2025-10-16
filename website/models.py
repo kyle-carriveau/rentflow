@@ -1,5 +1,5 @@
 from . import db
-from flask_login import UserMixin
+from flask_login import UserMixin, AnonymousUserMixin
 from sqlalchemy.sql import func
 from sqlalchemy import and_
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -227,6 +227,10 @@ class User(db.Model, UserMixin):
         if company_id:
             query = query.filter_by(company_id=company_id)
         return query.first()
+
+class AnonymousUser(AnonymousUserMixin):
+    def is_owner(self):
+        return False
 
 class Portfolio(db.Model):
     __tablename__ = 'portfolio'
