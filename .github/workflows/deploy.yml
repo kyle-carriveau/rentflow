@@ -62,23 +62,23 @@ jobs:
 
             echo "=== Backing up PostgreSQL database ==="
             mkdir -p backups
-            docker-compose exec -T db pg_dump -U rentflow_user rentflow > backups/backup-$(date +%Y%m%d-%H%M%S).sql || echo "Warning: Database backup failed (might not exist yet)"
+            docker compose exec -T db pg_dump -U rentflow_user rentflow > backups/backup-$(date +%Y%m%d-%H%M%S).sql || echo "Warning: Database backup failed (might not exist yet)"
 
             echo "=== Building Docker images ==="
-            docker-compose build
+            docker compose build
 
             echo "=== Stopping application ==="
-            docker-compose stop web
+            docker compose stop web
 
             echo "=== Running database migrations ==="
-            docker-compose run --rm web flask db upgrade
+            docker compose run --rm web flask db upgrade
 
             echo "=== Starting services ==="
-            docker-compose up -d
+            docker compose up -d
 
             echo "=== Checking service health ==="
             sleep 10
-            docker-compose ps
+            docker compose ps
 
             echo "=== Cleaning up old images ==="
             docker image prune -f
@@ -96,10 +96,10 @@ jobs:
             cd /home/ubuntu/rentflow
 
             echo "=== Service Status ==="
-            docker-compose ps
+            docker compose ps
 
             echo "=== Recent Logs ==="
-            docker-compose logs --tail=50 web
+            docker compose logs --tail=50 web
 
             echo "=== Health Check ==="
             curl -f http://localhost:8000/health || exit 1
