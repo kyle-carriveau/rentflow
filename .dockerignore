@@ -1,0 +1,86 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+
+# Documentation
+*.md
+!README.md
+
+# Python cache
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+reenv*/
+
+# Testing
+tests/
+*.test.py
+test_*.py
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+
+# Environment
+.env
+.env.*
+
+# Local instance data
+instance/*.db
+instance/*.db-*
+instance/*.backup
+
+# Logs
+logs/
+*.log
+
+# Uploads
+uploads/
+media/
+
+# Docker
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# Deployment scripts
+deploy.sh
+
+# Backups
+backups/
+*.backup
+*.bak
+
+# SSL certificates
+ssl/
+*.pem
+*.key
+*.crt
+
+# NGINX config (managed separately)
+nginx/
+
+# Migration scripts (old manual ones, not flask-migrate)
+migrate_*.py
+uuid_migration.py
+
+# Seed/test data
+seed_database.py

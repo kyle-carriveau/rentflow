@@ -67,3 +67,22 @@ reenv*/
 test_*.py
 ssl/
 *.pem
+
+# Docker
+docker-compose.override.yml
+
+# Uploads and media
+uploads/
+media/
+
+# Backup files
+*.backup
+*.bak
+backups/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover

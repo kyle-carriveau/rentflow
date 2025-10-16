@@ -2,12 +2,14 @@ from flask import Flask
 from os import path
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_mail import Mail
 from decouple import config
 
 db = SQLAlchemy(session_options={"autoflush": False})
+migrate = Migrate()
 limiter = Limiter(key_func=get_remote_address)
 mail = Mail()
 
@@ -21,6 +23,7 @@ def create_app():
 
     # Initialize extensions
     db.init_app(app)
+    migrate.init_app(app, db)
     limiter.init_app(app)
     mail.init_app(app)
 
@@ -75,6 +78,9 @@ def create_app():
     from website.search.views import search
     app.register_blueprint(search, url_prefix='/search')
 
+    from website.health import health_bp
+    app.register_blueprint(health_bp)
+
     from website.errors import page_not_found, forbidden, internal_server_error
     app.register_error_handler(404, page_not_found)
     app.register_error_handler(403, forbidden)
@@ -86,8 +92,8 @@ def create_app():
         Tenant, Lease, LeaseTemplate, Payment, Expense, PasswordHistoryModel, AuditLogModel, EmailVerificationAttempt
     )
     
-    with app.app_context():
-        create_database(app)
+    # with app.app_context():
+    #     create_database(app)
     
     # Register template filters for consistent number formatting
     @app.template_filter('currency')
@@ -129,8 +135,12 @@ def create_app():
         except (ValueError, TypeError):
             return '0.0%'
 
+    # Import models here to avoid circular import
+    from website.models import AnonymousUser, User
+
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
+    login_manager.anonymous_user = AnonymousUser
     login_manager.init_app(app)
 
     @login_manager.user_loader
@@ -151,8 +161,8 @@ def create_app():
     
     return app
 
-def create_database(app):
-    # Always create tables (db.create_all() is safe to call multiple times)
-    db.create_all()
-    print('Created database and tables')
+# def create_database(app):
+#     # Always create tables (db.create_all() is safe to call multiple times)
+#     db.create_all()
+#     print('Created database and tables')
 
