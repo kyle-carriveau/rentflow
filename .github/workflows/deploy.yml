@@ -60,6 +60,12 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
+            echo "=== Creating directories with correct permissions ==="
+            mkdir -p logs uploads instance backups
+            chmod 777 logs uploads instance
+            touch logs/access.log logs/error.log
+            chmod 666 logs/access.log logs/error.log
+
             echo "=== Backing up PostgreSQL database ==="
             mkdir -p backups
             docker compose exec -T db pg_dump -U rentflow_user rentflow > backups/backup-$(date +%Y%m%d-%H%M%S).sql || echo "Warning: Database backup failed (might not exist yet)"
