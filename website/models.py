@@ -803,6 +803,52 @@ class Lease(db.Model):
         """Check if rent payment is overdue."""
         return self.get_outstanding_balance() > 0
 
+    def days_until_next_payment(self):
+        """Calculate days until next rent payment is due."""
+        from datetime import datetime
+        from dateutil.relativedelta import relativedelta
+
+        today = datetime.now().date()
+        lease_start = self.start.date() if isinstance(self.start, datetime) else self.start
+        lease_end = self.end.date() if isinstance(self.end, datetime) else self.end
+
+        # If lease hasn't started or has ended, return None
+        if today < lease_start or today > lease_end:
+            return None
+
+        # Get payment due date (default to 1st of month)
+        due_day = self.payment_due_date or 1
+
+        # Calculate next payment date
+        current_month_due = today.replace(day=min(due_day, 28))  # Avoid day overflow
+
+        try:
+            current_month_due = today.replace(day=due_day)
+        except ValueError:
+            # Handle months with fewer days (e.g., Feb 30 -> Feb 28)
+            import calendar
+            last_day = calendar.monthrange(today.year, today.month)[1]
+            current_month_due = today.replace(day=min(due_day, last_day))
+
+        if today <= current_month_due:
+            # Next payment is this month
+            next_payment_date = current_month_due
+        else:
+            # Next payment is next month
+            next_month = today + relativedelta(months=1)
+            try:
+                next_payment_date = next_month.replace(day=due_day)
+            except ValueError:
+                import calendar
+                last_day = calendar.monthrange(next_month.year, next_month.month)[1]
+                next_payment_date = next_month.replace(day=min(due_day, last_day))
+
+        # Don't report payments beyond lease end
+        if next_payment_date > lease_end:
+            return None
+
+        return (next_payment_date - today).days
+
     def get_total_upfront_costs(self):
         """Calculate total upfront costs tenant pays at move-in."""
         upfront_costs = (
