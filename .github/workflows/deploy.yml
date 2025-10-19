@@ -72,15 +72,31 @@ jobs:
             echo "=== Starting deployment ==="
             cd /home/ubuntu/rentflow
 
-            # Verify compose file exists
-            if [ ! -f "$COMPOSE_FILE" ]; then
-                echo "ERROR: Docker Compose file not found at: $COMPOSE_FILE"
-                exit 1
-            fi
-
             echo "=== Pulling latest code ==="
+            # Clean any uncommitted changes
+            git clean -fd
+            git reset --hard HEAD
+            # Fetch and reset to latest
             git fetch origin main
             git reset --hard origin/main
+            echo "✓ Code updated to latest commit: $(git rev-parse --short HEAD)"
+
+            echo "=== Verifying new directory structure ==="
+            if [ -f "$COMPOSE_FILE" ]; then
+                echo "✓ New compose file found: $COMPOSE_FILE"
+            else
+                echo "ERROR: Docker Compose file not found at: $COMPOSE_FILE"
+                echo "Available files:"
+                ls -la
+                echo "Checking if old structure exists..."
+                if [ -f "docker-compose.yml" ]; then
+                    echo "⚠ WARNING: Using old docker-compose.yml as fallback"
+                    COMPOSE_FILE="docker-compose.yml"
+                else
+                    echo "ERROR: No compose file found!"
+                    exit 1
+                fi
+            fi
 
             echo "=== Creating directories with correct permissions ==="
             mkdir -p logs uploads instance backups
