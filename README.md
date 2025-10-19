@@ -39,11 +39,20 @@ A comprehensive Flask-based web application for real estate management and prope
 
 ## Technology Stack
 
+### Development
 - **Backend**: Flask (Python 3.12+)
-- **Database**: SQLite with SQLAlchemy ORM
+- **Database**: SQLite (development) / PostgreSQL (production)
 - **Authentication**: Flask-Login with Werkzeug password hashing
 - **Frontend**: HTML/Jinja2 templates with Bootstrap UI framework
 - **Architecture**: Modular Blueprint-based structure
+
+### Production
+- **Containerization**: Docker & Docker Compose
+- **Web Server**: NGINX (reverse proxy & SSL termination)
+- **App Server**: Gunicorn (WSGI HTTP server)
+- **Database**: PostgreSQL 16
+- **Caching**: Redis (rate limiting)
+- **Deployment**: Automated CI/CD with GitHub Actions
 
 ## Installation
 
@@ -75,7 +84,11 @@ A comprehensive Flask-based web application for real estate management and prope
 
 4. **Install dependencies**
    ```bash
-   pip install -r requirements.txt
+   # Development (includes testing tools)
+   pip install -r requirements/dev.txt
+
+   # Or production only
+   pip install -r requirements/prod.txt
    ```
 
 5. **Run the application**
@@ -92,29 +105,51 @@ A comprehensive Flask-based web application for real estate management and prope
 ```
 re2/
 ├── main.py                          # Application entry point
-├── website/
-│   ├── __init__.py                  # App factory and configuration
+├── config/                          # Configuration module
+│   ├── __init__.py                  # Environment-based configs
+│   └── README.md
+├── deployment/                      # Production deployment
+│   ├── docker/                      # Docker configuration
+│   │   ├── docker-compose.yml       # Multi-service orchestration
+│   │   ├── Dockerfile               # Container image definition
+│   │   └── README.md                # Deployment documentation
+│   ├── nginx/                       # NGINX configuration
+│   │   ├── nginx.conf               # Main config
+│   │   └── conf.d/                  # Site configs
+│   ├── scripts/                     # Deployment scripts
+│   │   └── validate.sh              # Validation script
+│   └── ssl/                         # SSL certificates
+├── requirements/                    # Modular dependencies
+│   ├── base.txt                     # Core requirements
+│   ├── dev.txt                      # Development & testing
+│   └── prod.txt                     # Production only
+├── website/                         # Application code
+│   ├── __init__.py                  # App factory
 │   ├── models.py                    # Database models
 │   ├── errors.py                    # Error handlers
-│   ├── auth/                        # Authentication module
+│   ├── auth/                        # Authentication
 │   ├── company/                     # Company management
-│   ├── user_management/             # Team member management
+│   ├── user_management/             # Team management
 │   ├── property/                    # Property management
 │   ├── unit/                        # Unit management
 │   ├── tenant/                      # Tenant management
 │   ├── lease/                       # Lease management
-│   ├── lease_template/              # Lease template system
+│   ├── lease_template/              # Templates
 │   ├── portfolio/                   # Portfolio management
 │   ├── financial/                   # Financial operations
-│   ├── report/                      # Reporting and analytics
+│   ├── report/                      # Reporting
 │   ├── profile/                     # User profiles
 │   ├── tasks/                       # Scheduled tasks
 │   ├── templates/                   # HTML templates
-│   │   ├── base.html               # Base template
-│   │   └── errors/                 # Error pages
-│   └── database.db                 # SQLite database (auto-created)
+│   └── static/                      # Static assets
 ├── tests/                           # Test suite
-└── requirements.txt                 # Python dependencies
+│   ├── unit/                        # Unit tests
+│   ├── integration/                 # Integration tests
+│   └── views/                       # View tests
+├── migrations/                      # Database migrations
+├── instance/                        # Instance data
+├── logs/                            # Application logs
+└── deploy.sh                        # Deployment script
 ```
 
 ## Core Models
@@ -175,6 +210,94 @@ Run tests with:
 ```bash
 pytest --cov=website --cov-report=term-missing
 ```
+
+## Deployment
+
+### Production Deployment with Docker
+
+The application includes a production-ready Docker setup with automated deployment.
+
+#### Quick Start
+
+```bash
+# 1. Clone repository on your server
+git clone https://github.com/kyle-carriveau/rentflow.git
+cd re2
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with production values
+
+# 3. Deploy
+./deploy.sh
+```
+
+#### Docker Compose Deployment
+
+```bash
+# Start all services (PostgreSQL, Redis, Flask, NGINX)
+docker compose -f deployment/docker/docker-compose.yml up -d
+
+# View logs
+docker compose -f deployment/docker/docker-compose.yml logs -f
+
+# Stop services
+docker compose -f deployment/docker/docker-compose.yml down
+```
+
+#### Services
+
+The deployment includes:
+- **PostgreSQL 16**: Production database
+- **Redis 7**: Rate limiting and caching
+- **Flask/Gunicorn**: Application server
+- **NGINX**: Reverse proxy with SSL termination
+
+#### Environment Variables
+
+Required in `.env` file:
+```bash
+SECRET_KEY=your-secure-random-key
+POSTGRES_PASSWORD=your-database-password
+POSTGRES_DB=rentflow
+POSTGRES_USER=rentflow_user
+```
+
+Optional configuration:
+```bash
+GUNICORN_WORKERS=4
+GUNICORN_THREADS=2
+GUNICORN_TIMEOUT=120
+```
+
+#### Validation
+
+Validate your deployment configuration:
+```bash
+./deployment/scripts/validate.sh
+```
+
+#### CI/CD with GitHub Actions
+
+The repository includes automated deployment on push to `main` branch:
+- Runs full test suite
+- Deploys to production VPS
+- Performs health checks
+- Auto-rollback on failure
+
+See `.github/workflows/deploy.yml` for configuration.
+
+### Manual Deployment
+
+For manual deployment without Docker:
+
+1. Set up PostgreSQL database
+2. Configure environment variables
+3. Install production dependencies: `pip install -r requirements/prod.txt`
+4. Run migrations: `flask db upgrade`
+5. Start with Gunicorn: `gunicorn main:app`
+
+For detailed deployment documentation, see `deployment/docker/README.md`.
 
 ## Development
 

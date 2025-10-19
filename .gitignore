@@ -13,8 +13,9 @@ __pycache__/
 *.sqlite
 *.sqlite3
 
-# Instance folder
-instance/
+# Instance folder (ignore contents but track directory)
+instance/*
+!instance/.gitkeep
 
 # Flask session files
 flask_session/
@@ -34,9 +35,10 @@ flask_session/
 ehthumbs.db
 Thumbs.db
 
-# Logs
+# Logs (ignore contents but track directory)
 *.log
-logs/
+logs/*
+!logs/.gitkeep
 
 # Virtual environment
 venv/
@@ -62,15 +64,18 @@ wheels/
 *.eggreenv312/
 reenv*/
 
-# SSL certificates
-ssl/
-*.pem
+# SSL certificates (root location - old structure)
+/ssl/
+
+# NOTE: deployment/ssl/ contains self-signed dev certs (tracked)
+# Production SSL certs should be managed externally (Let's Encrypt, etc.)
 
 # Docker
 docker-compose.override.yml
 
-# Uploads and media
-uploads/
+# Uploads and media (ignore contents but track directory)
+uploads/*
+!uploads/.gitkeep
 media/
 
 # Backup files

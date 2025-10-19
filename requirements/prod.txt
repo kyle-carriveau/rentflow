@@ -1,0 +1,8 @@
+# Production-only dependencies
+-r base.txt
+
+# WSGI HTTP Server
+gunicorn==21.2.0
+
+# PostgreSQL adapter
+psycopg2-binary==2.9.9

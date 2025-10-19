@@ -56,25 +56,27 @@ logs/
 uploads/
 media/
 
-# Docker (exclude old root files, but allow deployment/ directory)
-/docker-compose.yml
-/Dockerfile
-/deploy.sh
+# Docker
+docker-compose*.yml
+Dockerfile
+.dockerignore
 
-# NOTE: deployment/ directory is included in build for new structure
+# Deployment scripts
+deploy.sh
 
 # Backups
 backups/
 *.backup
 *.bak
 
-# SSL certificates (exclude old root location)
-/ssl/
+# SSL certificates
+ssl/
+*.pem
+*.key
+*.crt
 
-# NGINX config (exclude old root location)
-/nginx/
-
-# NOTE: deployment/nginx/ and deployment/ssl/ are included in build
+# NGINX config (managed separately)
+nginx/
 
 # Migration scripts (old manual ones, not flask-migrate)
 migrate_*.py

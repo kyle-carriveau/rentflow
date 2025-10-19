@@ -4,6 +4,9 @@
 
 set -e  # Exit on error
 
+# Docker Compose file location
+COMPOSE_FILE="deployment/docker/docker-compose.yml"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -43,9 +46,15 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null; then
-    print_error "Docker Compose is not installed. Please install Docker Compose first."
+# Check if Docker Compose is available
+if ! docker compose version &> /dev/null; then
+    print_error "Docker Compose is not available. Please install Docker Compose plugin."
+    exit 1
+fi
+
+# Verify compose file exists
+if [ ! -f "$COMPOSE_FILE" ]; then
+    print_error "Docker Compose file not found at: $COMPOSE_FILE"
     exit 1
 fi
 
@@ -61,29 +70,29 @@ fi
 mkdir -p backups
 
 # Backup PostgreSQL database if running
-if docker-compose ps db | grep -q "Up"; then
+if docker compose -f "$COMPOSE_FILE" ps db | grep -q "Up"; then
     BACKUP_FILE="backups/backup-$(date +%Y%m%d-%H%M%S).sql"
     print_status "Backing up PostgreSQL database to $BACKUP_FILE..."
-    docker-compose exec -T db pg_dump -U rentflow_user rentflow > "$BACKUP_FILE" || print_warning "Database backup failed (might not exist yet)"
+    docker compose -f "$COMPOSE_FILE" exec -T db pg_dump -U rentflow_user rentflow > "$BACKUP_FILE" || print_warning "Database backup failed (might not exist yet)"
 else
     print_warning "Database not running, skipping backup"
 fi
 
 # Build Docker images (with cache for faster builds)
 print_status "Building Docker images..."
-docker-compose build
+docker compose -f "$COMPOSE_FILE" build
 
 # Stop web application (but keep DB/Redis running for migrations)
 print_status "Stopping web application..."
-docker-compose stop web
+docker compose -f "$COMPOSE_FILE" stop web
 
 # Run database migrations
 print_status "Running database migrations..."
-docker-compose run --rm web flask db upgrade
+docker compose -f "$COMPOSE_FILE" run --rm web flask db upgrade
 
 # Start all services
 print_status "Starting all services..."
-docker-compose up -d
+docker compose -f "$COMPOSE_FILE" up -d
 
 # Wait for services to start
 print_status "Waiting for services to start..."
@@ -91,7 +100,7 @@ sleep 10
 
 # Check service status
 print_status "Checking service status..."
-docker-compose ps
+docker compose -f "$COMPOSE_FILE" ps
 
 # Check application health
 print_status "Checking application health..."
@@ -100,7 +109,7 @@ if curl -f http://localhost:8000/health &> /dev/null; then
 else
     print_error "Application health check failed!"
     print_status "Showing recent logs..."
-    docker-compose logs --tail=50 web
+    docker compose -f "$COMPOSE_FILE" logs --tail=50 web
     exit 1
 fi
 
@@ -110,5 +119,5 @@ docker image prune -f
 
 print_status "${GREEN}✓${NC} Deployment completed successfully!"
 print_status "Application is running at http://localhost"
-print_status "To view logs: docker-compose logs -f"
-print_status "To stop: docker-compose down"
+print_status "To view logs: docker compose -f $COMPOSE_FILE logs -f"
+print_status "To stop: docker compose -f $COMPOSE_FILE down"
