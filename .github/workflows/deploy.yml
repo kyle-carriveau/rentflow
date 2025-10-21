@@ -180,13 +180,21 @@ jobs:
             docker compose -f "$COMPOSE_FILE" --env-file .env ps
 
             echo "=== Initializing SSL certificates (if needed) ==="
-            # Check if SSL certificates already exist
-            echo "Checking for existing certificates..."
-            if docker compose -f "$COMPOSE_FILE" --env-file .env run --rm certbot certificates 2>&1 | grep -q "rentflow.cloud"; then
-                echo "✓ SSL certificates already exist, skipping initialization"
+            # Check if REAL Let's Encrypt certificates exist (not dummy self-signed)
+            echo "Checking for existing Let's Encrypt certificates..."
+
+            CERT_CHECK=$(docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "sh -c \"if [ -f /etc/letsencrypt/live/rentflow.cloud/fullchain.pem ]; then openssl x509 -in /etc/letsencrypt/live/rentflow.cloud/fullchain.pem -noout -issuer 2>/dev/null; fi\"" certbot 2>/dev/null || echo "")
+
+            if echo "$CERT_CHECK" | grep -q "Let's Encrypt"; then
+                echo "✓ Real Let's Encrypt SSL certificates found, skipping initialization"
                 docker compose -f "$COMPOSE_FILE" --env-file .env run --rm certbot certificates 2>&1 | head -20
             else
-                echo "⚠ No SSL certificates found, running SSL initialization..."
+                if [ -n "$CERT_CHECK" ]; then
+                    echo "⚠ Found self-signed dummy certificates (not from Let's Encrypt)"
+                else
+                    echo "⚠ No SSL certificates found"
+                fi
+                echo "Running SSL initialization to obtain real Let's Encrypt certificates..."
                 echo "This may take 3-5 minutes (DH parameter generation + Let's Encrypt request)..."
                 timeout 600 ./deployment/scripts/init-ssl.sh --yes || {
                     echo "⚠ SSL initialization failed or timed out after 10 minutes"
