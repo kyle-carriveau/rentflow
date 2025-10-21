@@ -18,9 +18,26 @@ The SSL setup is **fully automated** after initial configuration. Here's how it 
 4. HTTPS enabled automatically
 
 ### Ongoing Operation
-- Certificates auto-renew every 90 days (handled by certbot container)
+- Certificates auto-renew every 90 days (handled by certbot-renewal container)
 - Zero manual intervention required
 - Deployments work seamlessly with existing certificates
+
+### Architecture: Two Certbot Services
+
+The application uses **two specialized certbot services** following the Single Responsibility Principle:
+
+1. **`certbot`** - Clean service for certificate management commands
+   - Used for: Obtaining, renewing, deleting, and listing certificates
+   - No custom entrypoint - standard certbot behavior
+   - Only runs when explicitly invoked via `docker compose run certbot <command>`
+
+2. **`certbot-renewal`** - Background service for automatic renewal
+   - Runs continuously in the background
+   - Checks for certificate renewal every 12 hours
+   - Automatically renews certificates 30 days before expiration
+   - Has custom entrypoint with renewal loop
+
+**Why two services?** This separation ensures that one-off certificate management commands work correctly without being blocked by the automatic renewal loop.
 
 ---
 
@@ -123,7 +140,7 @@ Staging certificates won't be trusted by browsers but let you test the process.
 
 ## Automatic Renewal
 
-Certificates are **automatically renewed** by the certbot container.
+Certificates are **automatically renewed** by the **certbot-renewal** container running in the background.
 
 - **Renewal Frequency:** Checked every 12 hours
 - **Certificate Lifetime:** 90 days
@@ -133,10 +150,10 @@ Certificates are **automatically renewed** by the certbot container.
 ### Check Renewal Status
 
 ```bash
-# View certbot container logs
-docker compose -f deployment/docker/docker-compose.yml --env-file .env logs certbot
+# View certbot-renewal container logs (automatic renewal checks)
+docker compose -f deployment/docker/docker-compose.yml --env-file .env logs certbot-renewal
 
-# Test renewal process (dry run)
+# Test renewal process manually (dry run)
 docker compose -f deployment/docker/docker-compose.yml --env-file .env \
   run --rm certbot renew --dry-run
 ```
@@ -195,19 +212,23 @@ docker compose -f deployment/docker/docker-compose.yml --env-file .env restart
 
 ### Issue: Certificate expired
 
-**Cause:** Certbot renewal container not running
+**Cause:** Certbot-renewal container not running or failed to renew
 
 **Fix:**
 ```bash
-# Check certbot container status
+# Check certbot-renewal container status
 docker ps | grep certbot
 
-# Restart services to start certbot
+# Restart services to start certbot-renewal
 docker compose -f deployment/docker/docker-compose.yml --env-file .env up -d
 
-# Force renewal
+# Force renewal using certbot service
 docker compose -f deployment/docker/docker-compose.yml --env-file .env \
   run --rm certbot renew --force-renewal
+
+# Reload NGINX after renewal
+docker compose -f deployment/docker/docker-compose.yml --env-file .env \
+  exec nginx nginx -s reload
 ```
 
 ---
@@ -220,8 +241,8 @@ After SSL setup:
 - [ ] Visit https://www.rentflow.cloud - verify works
 - [ ] Check certificate details in browser - verify Let's Encrypt issued
 - [ ] Verify HTTP redirects to HTTPS
-- [ ] Check certbot container is running: `docker ps | grep certbot`
-- [ ] Test renewal: `certbot renew --dry-run`
+- [ ] Check certbot-renewal container is running: `docker ps | grep certbot_renewal`
+- [ ] Test renewal: `docker compose run --rm certbot renew --dry-run`
 
 ---
 
@@ -291,17 +312,18 @@ docker compose -f deployment/docker/docker-compose.yml --env-file .env \
 
 **Configuration:**
 - `deployment/nginx/conf.d/rentflow.conf` - NGINX SSL config
-- `deployment/docker/docker-compose.yml` - Certbot service definition
+- `deployment/docker/docker-compose.yml` - Certbot services definition (certbot + certbot-renewal)
 
 ---
 
 ## Support
 
 **Certificate not working after setup?**
-1. Check logs: `docker compose logs nginx certbot`
+1. Check logs: `docker compose logs nginx certbot-renewal`
 2. Verify DNS: `dig +short rentflow.cloud`
 3. Test HTTPS: `curl -I https://rentflow.cloud`
 4. Check firewall: `sudo ufw status`
+5. Verify both certbot services: `docker ps | grep certbot`
 
 **Need help?**
 - Let's Encrypt docs: https://letsencrypt.org/docs/

@@ -158,9 +158,9 @@ fi
 # Step 4: Ensure services are running
 print_header "Starting required services..."
 
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d db redis web nginx
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d db redis web nginx certbot-renewal
 
-print_success "Services started"
+print_success "Services started (including automatic certificate renewal)"
 
 # Step 5: Wait for services to be healthy
 print_header "Waiting for services to be healthy..."
@@ -238,10 +238,10 @@ print_success "Your site is now secured with HTTPS"
 echo "  • https://$DOMAIN"
 echo "  • https://www.$DOMAIN"
 echo ""
-print_success "Certificates will auto-renew via certbot container"
+print_success "Certificates will auto-renew via certbot-renewal container"
 echo ""
 print_warning "Next steps:"
 echo "  1. Visit https://$DOMAIN in your browser"
 echo "  2. Verify green padlock appears"
-echo "  3. Check renewal: docker compose -f $COMPOSE_FILE logs certbot"
+echo "  3. Check renewal logs: docker compose -f $COMPOSE_FILE logs certbot-renewal"
 echo ""

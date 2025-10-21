@@ -122,10 +122,24 @@ services:
     networks:
       - rentflow_network
 
-  # Certbot for Let's Encrypt SSL Certificates
+  # Certbot for Let's Encrypt SSL Certificate Management
+  # Clean service for one-off commands (obtain, renew, delete, list certificates)
   certbot:
     image: certbot/certbot:latest
     container_name: rentflow_certbot
+    volumes:
+      - certbot_webroot:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+      - certbot_logs:/var/log/letsencrypt
+    networks:
+      - rentflow_network
+
+  # Certbot Automatic Renewal Service
+  # Background service that checks for certificate renewal every 12 hours
+  certbot-renewal:
+    image: certbot/certbot:latest
+    container_name: rentflow_certbot_renewal
+    restart: unless-stopped
     volumes:
       - certbot_webroot:/var/www/certbot
       - certbot_certs:/etc/letsencrypt
