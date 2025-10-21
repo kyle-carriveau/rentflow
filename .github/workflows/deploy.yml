@@ -75,10 +75,7 @@ jobs:
             cd /home/ubuntu/rentflow
 
             echo "=== Pulling latest code ==="
-            # Clean any uncommitted changes
-            git clean -fd
-            git reset --hard HEAD
-            # Fetch and reset to latest
+            # Fetch and reset to latest (safe - preserves untracked data)
             git fetch origin main
             git reset --hard origin/main
             echo "✓ Code updated to latest commit: $(git rev-parse --short HEAD)"
