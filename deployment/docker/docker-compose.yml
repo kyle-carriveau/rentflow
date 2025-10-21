@@ -110,8 +110,6 @@ services:
       - ../../logs/nginx:/var/log/nginx
       - ../../website/static:/app/website/static:ro
       - ../../uploads:/app/uploads:ro
-      - certbot_webroot:/var/www/certbot:ro
-      - certbot_certs:/etc/letsencrypt:ro
     depends_on:
       - web
     logging:
@@ -122,42 +120,10 @@ services:
     networks:
       - rentflow_network
 
-  # Certbot for Let's Encrypt SSL Certificate Management
-  # Clean service for one-off commands (obtain, renew, delete, list certificates)
-  certbot:
-    image: certbot/certbot:latest
-    container_name: rentflow_certbot
-    volumes:
-      - certbot_webroot:/var/www/certbot
-      - certbot_certs:/etc/letsencrypt
-      - certbot_logs:/var/log/letsencrypt
-    networks:
-      - rentflow_network
-
-  # Certbot Automatic Renewal Service
-  # Background service that checks for certificate renewal every 12 hours
-  certbot-renewal:
-    image: certbot/certbot:latest
-    container_name: rentflow_certbot_renewal
-    restart: unless-stopped
-    volumes:
-      - certbot_webroot:/var/www/certbot
-      - certbot_certs:/etc/letsencrypt
-      - certbot_logs:/var/log/letsencrypt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done;'"
-    networks:
-      - rentflow_network
-
 volumes:
   postgres_data:
     driver: local
   redis_data:
-    driver: local
-  certbot_webroot:
-    driver: local
-  certbot_certs:
-    driver: local
-  certbot_logs:
     driver: local
 
 networks:

@@ -1,9 +1,38 @@
-# Production SSL/HTTPS Setup Guide
+# ⚠️ DEPRECATED - Let's Encrypt/Certbot SSL Setup
+
+**This documentation is deprecated and kept for reference only.**
+
+**For current SSL setup, see:** [CLOUDFLARE_SSL_SETUP.md](CLOUDFLARE_SSL_SETUP.md)
+
+---
+
+## Migration Notice
+
+RentFlow has migrated from manual Let's Encrypt/certbot SSL management to **Cloudflare automatic SSL**.
+
+**Benefits of new approach:**
+- ✅ Zero maintenance (vs. manual scripts)
+- ✅ 15-year certificates (vs. 90-day renewals)
+- ✅ Global CDN included
+- ✅ DDoS protection
+- ✅ Automatic HTTPS redirect
+
+**Old approach (deprecated):**
+- ❌ Manual certificate management
+- ❌ Complex certbot scripts
+- ❌ 90-day renewal cycle
+- ❌ No CDN benefits
+
+**To set up SSL on a new deployment, follow:** [CLOUDFLARE_SSL_SETUP.md](CLOUDFLARE_SSL_SETUP.md)
+
+---
+
+# Historical Documentation (Let's Encrypt/Certbot)
 
 **Domain:** `rentflow.cloud`
 **SSL Provider:** Let's Encrypt (Free, Automated, Trusted)
 
-This guide explains the production-ready SSL setup for RentFlow.
+This guide explains the old production-ready SSL setup for RentFlow using Let's Encrypt.
 
 ---
 

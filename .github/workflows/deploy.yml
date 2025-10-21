@@ -121,26 +121,6 @@ jobs:
             docker compose -f "$COMPOSE_FILE" --env-file .env down 2>/dev/null || true
             echo "✓ Services stopped"
 
-            echo "=== Ensuring SSL certificates exist for NGINX startup ==="
-            # Create dummy certificates if real ones don't exist (prevents NGINX crash)
-            DOMAIN="rentflow.cloud"
-            if ! docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "test -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem" certbot 2>/dev/null; then
-                echo "Creating temporary dummy certificates..."
-
-                # Generate DH params if missing
-                if ! docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "test -f /etc/letsencrypt/ssl-dhparams.pem" certbot 2>/dev/null; then
-                    docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 2048" certbot
-                fi
-
-                # Create directory and dummy certificates
-                docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "mkdir -p /etc/letsencrypt/live/$DOMAIN" certbot
-                docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "sh -c \"openssl req -x509 -nodes -newkey rsa:2048 -days 1 -keyout /etc/letsencrypt/live/$DOMAIN/privkey.pem -out /etc/letsencrypt/live/$DOMAIN/fullchain.pem -subj '/CN=$DOMAIN' 2>/dev/null && cp /etc/letsencrypt/live/$DOMAIN/fullchain.pem /etc/letsencrypt/live/$DOMAIN/chain.pem\"" certbot
-
-                echo "✓ Dummy certificates created (will be replaced with real ones later)"
-            else
-                echo "✓ SSL certificates already exist"
-            fi
-
             echo "=== Running database migrations ==="
             if ! docker compose -f "$COMPOSE_FILE" --env-file .env run --rm web flask db upgrade; then
                 echo "ERROR: Database migration failed!"
@@ -178,30 +158,6 @@ jobs:
 
             echo "=== Final service status ==="
             docker compose -f "$COMPOSE_FILE" --env-file .env ps
-
-            echo "=== Initializing SSL certificates (if needed) ==="
-            # Check if REAL Let's Encrypt certificates exist (not dummy self-signed)
-            echo "Checking for existing Let's Encrypt certificates..."
-
-            CERT_CHECK=$(docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "sh -c \"if [ -f /etc/letsencrypt/live/rentflow.cloud/fullchain.pem ]; then openssl x509 -in /etc/letsencrypt/live/rentflow.cloud/fullchain.pem -noout -issuer 2>/dev/null; fi\"" certbot 2>/dev/null || echo "")
-
-            if echo "$CERT_CHECK" | grep -q "Let's Encrypt"; then
-                echo "✓ Real Let's Encrypt SSL certificates found, skipping initialization"
-                docker compose -f "$COMPOSE_FILE" --env-file .env run --rm certbot certificates 2>&1 | head -20
-            else
-                if [ -n "$CERT_CHECK" ]; then
-                    echo "⚠ Found self-signed dummy certificates (not from Let's Encrypt)"
-                else
-                    echo "⚠ No SSL certificates found"
-                fi
-                echo "Running SSL initialization to obtain real Let's Encrypt certificates..."
-                echo "This may take 3-5 minutes (DH parameter generation + Let's Encrypt request)..."
-                timeout 600 ./deployment/scripts/init-ssl.sh --yes || {
-                    echo "⚠ SSL initialization failed or timed out after 10 minutes"
-                    echo "This is non-fatal - HTTPS will work with dummy certificates for now"
-                    echo "You can manually run: ./deployment/scripts/init-ssl.sh on the VPS"
-                }
-            fi
 
             echo "=== Cleaning up old images ==="
             docker image prune -f
