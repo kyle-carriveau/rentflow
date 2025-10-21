@@ -1,13 +1,22 @@
 #!/bin/bash
 # Initialize Let's Encrypt SSL Certificates for RentFlow
-# This script obtains initial SSL certificates from Let's Encrypt
+# This script must be run from the project root: /home/ubuntu/rentflow
 
 set -e
+
+# Ensure we're in the project root directory
+if [ ! -f ".env" ] || [ ! -f "deployment/docker/docker-compose.yml" ]; then
+    echo "ERROR: This script must be run from the project root directory (/home/ubuntu/rentflow)"
+    echo "Current directory: $(pwd)"
+    echo "Usage: cd /home/ubuntu/rentflow && ./deployment/scripts/init-letsencrypt.sh"
+    exit 1
+fi
 
 # Configuration
 DOMAIN="rentflow.cloud"
 EMAIL="admin@rentflow.cloud"  # Change this to your email
 COMPOSE_FILE="deployment/docker/docker-compose.yml"
+ENV_FILE=".env"
 STAGING=0  # Set to 1 for testing, 0 for production certificates
 
 # Colors
@@ -71,13 +80,13 @@ cp certbot/conf/live/$DOMAIN/fullchain.pem certbot/conf/live/$DOMAIN/chain.pem
 print_status "✓ Dummy certificates created"
 
 print_status "Starting NGINX to handle ACME challenge..."
-docker compose -f "$COMPOSE_FILE" --env-file .env up -d nginx
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d nginx
 
 print_status "Waiting for NGINX to be ready..."
 sleep 5
 
 print_status "Removing dummy certificates..."
-docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "\
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm --entrypoint "\
     rm -rf /etc/letsencrypt/live/$DOMAIN && \
     rm -rf /etc/letsencrypt/archive/$DOMAIN && \
     rm -rf /etc/letsencrypt/renewal/$DOMAIN.conf" certbot
@@ -92,7 +101,7 @@ if [ $STAGING -eq 1 ]; then
 fi
 
 # Request certificate
-docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "\
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm --entrypoint "\
     certbot certonly --webroot -w /var/www/certbot \
     $STAGING_ARG \
     --email $EMAIL \
@@ -113,7 +122,7 @@ else
 fi
 
 print_status "Reloading NGINX with new certificates..."
-docker compose -f "$COMPOSE_FILE" --env-file .env exec nginx nginx -s reload
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec nginx nginx -s reload
 
 print_status "${GREEN}✓${NC} SSL setup complete!"
 print_status ""
