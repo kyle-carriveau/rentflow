@@ -147,6 +147,7 @@ if [ -f "$COMPOSE_FILE" ]; then
     services=$(docker compose -f "$COMPOSE_FILE" config --services 2>/dev/null | wc -l)
     if [ "$services" -eq 4 ]; then
         print_pass "All 4 services defined (db, redis, web, nginx)"
+        print_info "Using Cloudflare for SSL (no certbot service needed)"
     else
         print_warn "Expected 4 services, found $services"
     fi
@@ -222,14 +223,15 @@ fi
 
 echo ""
 
-# 8. SSL Certificates
+# 8. SSL Certificates (Cloudflare Origin)
 print_header "8. SSL Certificates"
 
-if [ -f "deployment/ssl/cert.pem" ] && [ -f "deployment/ssl/key.pem" ]; then
-    print_pass "SSL certificates exist (development)"
-    print_info "Production should use Let's Encrypt or commercial certs"
+if [ -f "deployment/ssl/cloudflare-origin.crt" ] && [ -f "deployment/ssl/cloudflare-origin.key" ]; then
+    print_pass "Cloudflare origin certificates exist"
+    print_info "Using Cloudflare automatic SSL with origin certificates"
 else
-    print_warn "SSL certificates missing (required for HTTPS)"
+    print_warn "Cloudflare origin certificates missing"
+    print_info "Generate in Cloudflare Dashboard → SSL/TLS → Origin Server"
 fi
 
 echo ""

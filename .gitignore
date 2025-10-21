@@ -64,11 +64,18 @@ wheels/
 *.eggreenv312/
 reenv*/
 
-# SSL certificates (root location - old structure)
-/ssl/
+# SSL Certificates - NEVER commit real certificates!
+# Cloudflare origin certificates (production)
+deployment/ssl/cloudflare-origin.crt
+deployment/ssl/cloudflare-origin.key
 
-# NOTE: deployment/ssl/ contains self-signed dev certs (tracked)
-# Production SSL certs should be managed externally (Let's Encrypt, etc.)
+# Any other certificate files
+deployment/ssl/*.crt
+deployment/ssl/*.key
+deployment/ssl/*.pem
+
+# NOTE: deployment/ssl/ directory itself is tracked (with .gitkeep)
+# Certificates must be generated in Cloudflare Dashboard and installed manually
 
 # Docker
 docker-compose.override.yml
