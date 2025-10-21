@@ -158,6 +158,15 @@ jobs:
             echo "=== Final service status ==="
             docker compose -f "$COMPOSE_FILE" --env-file .env ps
 
+            echo "=== Initializing SSL certificates (if needed) ==="
+            # Check if SSL certificates already exist
+            if docker compose -f "$COMPOSE_FILE" --env-file .env run --rm certbot certificates 2>/dev/null | grep -q "rentflow.cloud"; then
+                echo "✓ SSL certificates already exist, skipping initialization"
+            else
+                echo "⚠ No SSL certificates found, running SSL initialization..."
+                ./deployment/scripts/init-ssl.sh || echo "⚠ SSL initialization failed, will retry on next deployment"
+            fi
+
             echo "=== Cleaning up old images ==="
             docker image prune -f
 
