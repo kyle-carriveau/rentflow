@@ -190,6 +190,7 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm certbot certon
     --email "$EMAIL" \
     --agree-tos \
     --no-eff-email \
+    --force-renewal \
     -d "$DOMAIN" \
     -d "www.$DOMAIN" \
     --non-interactive
