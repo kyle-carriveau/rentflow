@@ -2,6 +2,10 @@
 # Production-Ready Let's Encrypt SSL Initialization
 # This script safely obtains SSL certificates for first-time deployment
 # Safe to run multiple times (idempotent)
+#
+# Usage:
+#   ./init-ssl.sh          # Interactive mode (prompts for confirmation)
+#   ./init-ssl.sh --yes    # Non-interactive mode (auto-confirm for CI/CD)
 
 set -e
 
@@ -18,6 +22,21 @@ EMAIL="admin@rentflow.cloud"  # TODO: Update this to your actual email
 COMPOSE_FILE="deployment/docker/docker-compose.yml"
 ENV_FILE=".env"
 STAGING=0  # Set to 1 for testing with staging server
+AUTO_CONFIRM=0  # Set to 1 to skip confirmation prompt
+
+# Parse arguments
+for arg in "$@"; do
+    case $arg in
+        --yes|-y)
+            AUTO_CONFIRM=1
+            shift
+            ;;
+        --staging)
+            STAGING=1
+            shift
+            ;;
+    esac
+done
 
 # Colors
 RED='\033[0;31m'
@@ -89,12 +108,17 @@ if ! command -v docker &> /dev/null; then
 fi
 print_success "Docker found"
 
-# Confirm
-echo ""
-read -p "Continue with SSL certificate setup? (yes/no): " CONFIRM
-if [ "$CONFIRM" != "yes" ]; then
-    echo "Setup cancelled"
-    exit 0
+# Confirm (skip if auto-confirm enabled)
+if [ $AUTO_CONFIRM -eq 0 ]; then
+    echo ""
+    read -p "Continue with SSL certificate setup? (yes/no): " CONFIRM
+    if [ "$CONFIRM" != "yes" ]; then
+        echo "Setup cancelled"
+        exit 0
+    fi
+else
+    echo ""
+    print_success "Auto-confirm enabled (non-interactive mode)"
 fi
 
 # Step 3: Generate DH parameters if missing

@@ -184,7 +184,7 @@ jobs:
                 echo "✓ SSL certificates already exist, skipping initialization"
             else
                 echo "⚠ No SSL certificates found, running SSL initialization..."
-                ./deployment/scripts/init-ssl.sh || echo "⚠ SSL initialization failed, will retry on next deployment"
+                ./deployment/scripts/init-ssl.sh --yes || echo "⚠ SSL initialization failed, will retry on next deployment"
             fi
 
             echo "=== Cleaning up old images ==="
