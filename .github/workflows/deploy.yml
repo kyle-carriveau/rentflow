@@ -81,22 +81,18 @@ jobs:
             git reset --hard origin/main
             echo "✓ Code updated to latest commit: $(git rev-parse --short HEAD)"
 
-            echo "=== Verifying new directory structure ==="
-            if [ -f "$COMPOSE_FILE" ]; then
-                echo "✓ New compose file found: $COMPOSE_FILE"
-            else
+            echo "=== Verifying deployment structure ==="
+            if [ ! -f "$COMPOSE_FILE" ]; then
                 echo "ERROR: Docker Compose file not found at: $COMPOSE_FILE"
-                echo "Available files:"
-                ls -la
-                echo "Checking if old structure exists..."
-                if [ -f "docker-compose.yml" ]; then
-                    echo "⚠ WARNING: Using old docker-compose.yml as fallback"
-                    COMPOSE_FILE="docker-compose.yml"
-                else
-                    echo "ERROR: No compose file found!"
-                    exit 1
-                fi
+                exit 1
             fi
+            if [ ! -f ".env" ]; then
+                echo "ERROR: .env file not found at root directory"
+                echo "Please create .env file with required environment variables"
+                exit 1
+            fi
+            echo "✓ Compose file found: $COMPOSE_FILE"
+            echo "✓ Environment file found: .env"
 
             echo "=== Creating directories with correct permissions ==="
             mkdir -p logs uploads instance backups
@@ -106,7 +102,7 @@ jobs:
 
             echo "=== Backing up PostgreSQL database ==="
             BACKUP_FILE="backups/backup-$(date +%Y%m%d-%H%M%S).sql"
-            if docker compose -f "$COMPOSE_FILE" exec -T db pg_dump -U rentflow_user rentflow > "$BACKUP_FILE" 2>/dev/null; then
+            if docker compose -f "$COMPOSE_FILE" --env-file .env exec -T db pg_dump -U rentflow_user rentflow > "$BACKUP_FILE" 2>/dev/null; then
                 echo "✓ Database backed up: $BACKUP_FILE"
             else
                 echo "⚠ Warning: Database backup failed (might not exist yet)"
@@ -118,31 +114,31 @@ jobs:
             echo "✓ Current backups: $BACKUP_COUNT files"
 
             echo "=== Building Docker images ==="
-            docker compose -f "$COMPOSE_FILE" build --no-cache web
+            docker compose -f "$COMPOSE_FILE" --env-file .env build --no-cache web
 
             echo "=== Stopping all services ==="
-            docker compose -f "$COMPOSE_FILE" down
-            echo "✓ Old containers removed"
+            docker compose -f "$COMPOSE_FILE" --env-file .env down 2>/dev/null || true
+            echo "✓ Services stopped"
 
             echo "=== Running database migrations ==="
-            if ! docker compose -f "$COMPOSE_FILE" run --rm web flask db upgrade; then
+            if ! docker compose -f "$COMPOSE_FILE" --env-file .env run --rm web flask db upgrade; then
                 echo "ERROR: Database migration failed!"
                 echo "Attempting to restart services..."
-                docker compose -f "$COMPOSE_FILE" up -d
+                docker compose -f "$COMPOSE_FILE" --env-file .env up -d
                 exit 1
             fi
             echo "✓ Database migrations completed"
 
             echo "=== Starting services ==="
-            docker compose -f "$COMPOSE_FILE" up -d
+            docker compose -f "$COMPOSE_FILE" --env-file .env up -d
 
             echo "=== Waiting for services to be healthy ==="
             MAX_WAIT=60
             ELAPSED=0
 
             while [ $ELAPSED -lt $MAX_WAIT ]; do
-                WEB_HEALTHY=$(docker compose -f "$COMPOSE_FILE" ps web --format "table {{.Status}}" | grep -c "healthy" || echo 0)
-                DB_HEALTHY=$(docker compose -f "$COMPOSE_FILE" ps db --format "table {{.Status}}" | grep -c "healthy" || echo 0)
+                WEB_HEALTHY=$(docker compose -f "$COMPOSE_FILE" --env-file .env ps web --format "table {{.Status}}" | grep -c "healthy" || echo 0)
+                DB_HEALTHY=$(docker compose -f "$COMPOSE_FILE" --env-file .env ps db --format "table {{.Status}}" | grep -c "healthy" || echo 0)
 
                 if [ "$WEB_HEALTHY" -ge 1 ] && [ "$DB_HEALTHY" -ge 1 ]; then
                     echo "✓ All critical services are healthy"
@@ -160,7 +156,7 @@ jobs:
             fi
 
             echo "=== Final service status ==="
-            docker compose -f "$COMPOSE_FILE" ps
+            docker compose -f "$COMPOSE_FILE" --env-file .env ps
 
             echo "=== Cleaning up old images ==="
             docker image prune -f
@@ -179,10 +175,10 @@ jobs:
             COMPOSE_FILE="deployment/docker/docker-compose.yml"
 
             echo "=== Service Status ==="
-            docker compose -f "$COMPOSE_FILE" ps
+            docker compose -f "$COMPOSE_FILE" --env-file .env ps
 
             echo "=== Recent Logs ==="
-            docker compose -f "$COMPOSE_FILE" logs --tail=50 web
+            docker compose -f "$COMPOSE_FILE" --env-file .env logs --tail=50 web
 
             echo "=== Health Check ==="
             curl -f http://localhost:8000/health || exit 1

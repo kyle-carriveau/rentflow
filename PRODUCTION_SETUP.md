@@ -1,8 +1,24 @@
 # Production Setup Guide
 
-## Critical: Environment Variables Configuration
+## Environment Variables Configuration
 
-Your deployment is failing because the `.env` file is missing on the VPS. This file contains sensitive production secrets required by Docker Compose.
+The `.env` file must exist at the **root level** of your application directory (`/home/ubuntu/rentflow/.env`). This file contains sensitive production secrets required by Docker Compose.
+
+## Location: Industry Best Practice
+
+```
+/home/ubuntu/rentflow/
+├── .env                          ← Environment file HERE (root level)
+├── deployment/
+│   └── docker/
+│       └── docker-compose.yml    ← Reads .env from root
+```
+
+**Why at root level?**
+- ✅ Standard Docker Compose convention
+- ✅ Easy to find for operators
+- ✅ Works with `--env-file .env` flag
+- ✅ Consistent with 99% of Docker Compose projects
 
 ## Quick Setup on VPS
 
@@ -37,17 +53,28 @@ GUNICORN_THREADS=2
 GUNICORN_TIMEOUT=120
 EOF
 
-# Secure the .env file (only owner can read)
+# Secure the .env file (only owner can read/write)
 chmod 600 .env
 
-# Verify the file was created
+# Verify the file was created with correct permissions
 echo "✓ .env file created successfully"
 ls -lah .env
+# Should show: -rw------- (600 permissions - owner only)
 
 # Show the file (SAVE THESE VALUES SOMEWHERE SAFE!)
 echo ""
 echo "IMPORTANT: Save these credentials in a secure password manager:"
 cat .env
+```
+
+**Security Note:** The `.env` file should have **600 permissions** (owner read/write only):
+```bash
+# Check current permissions
+ls -l .env
+# Should show: -rw------- 1 user user
+
+# If permissions are too open (like 644), fix them:
+chmod 600 .env
 ```
 
 ## Alternative: Manual Setup
@@ -98,11 +125,15 @@ cd /home/ubuntu/rentflow
 Check that environment variables are loaded:
 
 ```bash
-# This should show your variables (be careful, this reveals secrets!)
+# View .env file (WARNING: Shows secrets!)
 cat .env
 
-# Verify Docker Compose can read them
-docker compose -f deployment/docker/docker-compose.yml config | grep POSTGRES_PASSWORD
+# Verify Docker Compose can read the .env file
+cd /home/ubuntu/rentflow
+docker compose -f deployment/docker/docker-compose.yml --env-file .env config | grep POSTGRES_PASSWORD
+
+# Should output something like:
+#   POSTGRES_PASSWORD: your_password_here
 ```
 
 ## Security Notes
@@ -117,41 +148,35 @@ docker compose -f deployment/docker/docker-compose.yml config | grep POSTGRES_PA
 If deployment still fails after creating .env:
 
 ```bash
-# Check if .env exists
+# Check if .env exists and has correct permissions
 ls -la /home/ubuntu/rentflow/.env
+# Should show: -rw------- (600 permissions)
 
 # Verify file contents (WARNING: Shows secrets!)
 cat /home/ubuntu/rentflow/.env
 
-# Check Docker Compose can read it
+# Check Docker Compose can read the .env file
 cd /home/ubuntu/rentflow
-docker compose -f deployment/docker/docker-compose.yml config
+docker compose -f deployment/docker/docker-compose.yml --env-file .env config
+# Should not show any "variable is not set" warnings
 
 # View container logs
-docker compose -f deployment/docker/docker-compose.yml logs db
+docker compose -f deployment/docker/docker-compose.yml --env-file .env logs db
+
+# Check if database container is healthy
+docker compose -f deployment/docker/docker-compose.yml --env-file .env ps db
 ```
 
-## GitHub Secrets Alternative
+## Common Issues
 
-Instead of storing .env on VPS, you can use GitHub Secrets:
+**Issue: "variable is not set" warnings**
+- **Cause:** .env file doesn't exist or isn't being read
+- **Fix:** Ensure .env is at `/home/ubuntu/rentflow/.env` (root level, not in deployment/ directory)
 
-1. Go to GitHub Repository → Settings → Secrets → Actions
-2. Add these secrets:
-   - `POSTGRES_PASSWORD`
-   - `SECRET_KEY`
-   - `POSTGRES_USER`
-   - `POSTGRES_DB`
+**Issue: "container is unhealthy"**
+- **Cause:** Database started without password, health check fails
+- **Fix:** Ensure `POSTGRES_PASSWORD` is set in .env, then restart: `docker compose -f deployment/docker/docker-compose.yml --env-file .env down && ./deploy.sh`
 
-3. Update `.github/workflows/deploy.yml` to create .env during deployment:
-
-```yaml
-- name: Create .env file
-  run: |
-    echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" > .env
-    echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
-    echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
-    echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
-    chmod 600 .env
-```
-
-This approach keeps secrets in GitHub and creates .env during each deployment.
+**Issue: "permission denied" reading .env**
+- **Cause:** File permissions too restrictive or wrong owner
+- **Fix:** `chmod 600 .env` and ensure file owned by user running docker compose

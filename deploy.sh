@@ -70,29 +70,29 @@ fi
 mkdir -p backups
 
 # Backup PostgreSQL database if running
-if docker compose -f "$COMPOSE_FILE" ps db | grep -q "Up"; then
+if docker compose -f "$COMPOSE_FILE" --env-file .env ps db | grep -q "Up"; then
     BACKUP_FILE="backups/backup-$(date +%Y%m%d-%H%M%S).sql"
     print_status "Backing up PostgreSQL database to $BACKUP_FILE..."
-    docker compose -f "$COMPOSE_FILE" exec -T db pg_dump -U rentflow_user rentflow > "$BACKUP_FILE" || print_warning "Database backup failed (might not exist yet)"
+    docker compose -f "$COMPOSE_FILE" --env-file .env exec -T db pg_dump -U rentflow_user rentflow > "$BACKUP_FILE" || print_warning "Database backup failed (might not exist yet)"
 else
     print_warning "Database not running, skipping backup"
 fi
 
 # Build Docker images (with cache for faster builds)
 print_status "Building Docker images..."
-docker compose -f "$COMPOSE_FILE" build
+docker compose -f "$COMPOSE_FILE" --env-file .env build
 
 # Stop web application (but keep DB/Redis running for migrations)
 print_status "Stopping web application..."
-docker compose -f "$COMPOSE_FILE" stop web
+docker compose -f "$COMPOSE_FILE" --env-file .env stop web
 
 # Run database migrations
 print_status "Running database migrations..."
-docker compose -f "$COMPOSE_FILE" run --rm web flask db upgrade
+docker compose -f "$COMPOSE_FILE" --env-file .env run --rm web flask db upgrade
 
 # Start all services
 print_status "Starting all services..."
-docker compose -f "$COMPOSE_FILE" up -d
+docker compose -f "$COMPOSE_FILE" --env-file .env up -d
 
 # Wait for services to start
 print_status "Waiting for services to start..."
@@ -100,7 +100,7 @@ sleep 10
 
 # Check service status
 print_status "Checking service status..."
-docker compose -f "$COMPOSE_FILE" ps
+docker compose -f "$COMPOSE_FILE" --env-file .env ps
 
 # Check application health
 print_status "Checking application health..."
@@ -109,7 +109,7 @@ if curl -f http://localhost:8000/health &> /dev/null; then
 else
     print_error "Application health check failed!"
     print_status "Showing recent logs..."
-    docker compose -f "$COMPOSE_FILE" logs --tail=50 web
+    docker compose -f "$COMPOSE_FILE" --env-file .env logs --tail=50 web
     exit 1
 fi
 
@@ -119,5 +119,5 @@ docker image prune -f
 
 print_status "${GREEN}✓${NC} Deployment completed successfully!"
 print_status "Application is running at http://localhost"
-print_status "To view logs: docker compose -f $COMPOSE_FILE logs -f"
-print_status "To stop: docker compose -f $COMPOSE_FILE down"
+print_status "To view logs: docker compose -f $COMPOSE_FILE --env-file .env logs -f"
+print_status "To stop: docker compose -f $COMPOSE_FILE --env-file .env down"
