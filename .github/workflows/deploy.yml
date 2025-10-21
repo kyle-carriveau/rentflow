@@ -120,6 +120,26 @@ jobs:
             docker compose -f "$COMPOSE_FILE" --env-file .env down 2>/dev/null || true
             echo "✓ Services stopped"
 
+            echo "=== Ensuring SSL certificates exist for NGINX startup ==="
+            # Create dummy certificates if real ones don't exist (prevents NGINX crash)
+            DOMAIN="rentflow.cloud"
+            if ! docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "test -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem" certbot 2>/dev/null; then
+                echo "Creating temporary dummy certificates..."
+
+                # Generate DH params if missing
+                if ! docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "test -f /etc/letsencrypt/ssl-dhparams.pem" certbot 2>/dev/null; then
+                    docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 2048" certbot
+                fi
+
+                # Create directory and dummy certificates
+                docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "mkdir -p /etc/letsencrypt/live/$DOMAIN" certbot
+                docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --entrypoint "sh -c \"openssl req -x509 -nodes -newkey rsa:2048 -days 1 -keyout /etc/letsencrypt/live/$DOMAIN/privkey.pem -out /etc/letsencrypt/live/$DOMAIN/fullchain.pem -subj '/CN=$DOMAIN' 2>/dev/null && cp /etc/letsencrypt/live/$DOMAIN/fullchain.pem /etc/letsencrypt/live/$DOMAIN/chain.pem\"" certbot
+
+                echo "✓ Dummy certificates created (will be replaced with real ones later)"
+            else
+                echo "✓ SSL certificates already exist"
+            fi
+
             echo "=== Running database migrations ==="
             if ! docker compose -f "$COMPOSE_FILE" --env-file .env run --rm web flask db upgrade; then
                 echo "ERROR: Database migration failed!"
@@ -137,10 +157,10 @@ jobs:
             ELAPSED=0
 
             while [ $ELAPSED -lt $MAX_WAIT ]; do
-                WEB_HEALTHY=$(docker compose -f "$COMPOSE_FILE" --env-file .env ps web --format "table {{.Status}}" | grep -c "healthy" || echo 0)
-                DB_HEALTHY=$(docker compose -f "$COMPOSE_FILE" --env-file .env ps db --format "table {{.Status}}" | grep -c "healthy" || echo 0)
+                WEB_STATUS=$(docker compose -f "$COMPOSE_FILE" --env-file .env ps web --format "{{.Status}}" 2>/dev/null || echo "")
+                DB_STATUS=$(docker compose -f "$COMPOSE_FILE" --env-file .env ps db --format "{{.Status}}" 2>/dev/null || echo "")
 
-                if [ "$WEB_HEALTHY" -ge 1 ] && [ "$DB_HEALTHY" -ge 1 ]; then
+                if echo "$WEB_STATUS" | grep -q "healthy" && echo "$DB_STATUS" | grep -q "healthy"; then
                     echo "✓ All critical services are healthy"
                     break
                 fi
