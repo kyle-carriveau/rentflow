@@ -36,16 +36,19 @@ if docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm --entrypoin
     echo "=== 3. Checking if certificate is self-signed (dummy) ==="
     CERT_INFO=$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm --entrypoint "openssl x509 -in /etc/letsencrypt/live/$DOMAIN/fullchain.pem -noout -issuer -dates" certbot 2>/dev/null)
 
-    if echo "$CERT_INFO" | grep -q "CN = $DOMAIN"; then
+    # Real Let's Encrypt certs have issuer like: "O = Let's Encrypt, CN = R3" or similar
+    # Dummy self-signed certs have issuer like: "CN = rentflow.cloud"
+    if echo "$CERT_INFO" | grep -q "Let's Encrypt"; then
+        echo "✓ This appears to be a real Let's Encrypt certificate"
+        echo ""
+        echo "$CERT_INFO"
+    else
         echo "⚠️  WARNING: This is a DUMMY self-signed certificate!"
         echo ""
         echo "$CERT_INFO"
         echo ""
+        echo "Issuer does NOT contain 'Let's Encrypt' - this is self-signed."
         echo "You need to obtain real Let's Encrypt certificates."
-    else
-        echo "✓ This appears to be a real Let's Encrypt certificate"
-        echo ""
-        echo "$CERT_INFO"
     fi
 else
     echo "❌ No certificate files found"

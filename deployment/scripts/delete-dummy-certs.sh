@@ -40,12 +40,12 @@ else
 fi
 
 echo ""
-echo "=== Removing certificate files manually ==="
+echo "=== Removing certificate files and corrupted renewal configs ==="
 
-# Also remove the files directly to be thorough
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm --entrypoint "sh -c \"rm -rf /etc/letsencrypt/live/$DOMAIN /etc/letsencrypt/archive/$DOMAIN /etc/letsencrypt/renewal/$DOMAIN.conf\"" certbot 2>/dev/null || true
+# Remove certificate files, archives, and renewal configs (including corrupted ones)
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm --entrypoint "sh -c \"rm -rf /etc/letsencrypt/live/$DOMAIN /etc/letsencrypt/archive/$DOMAIN /etc/letsencrypt/renewal/$DOMAIN.conf /etc/letsencrypt/renewal/*\"" certbot 2>/dev/null || true
 
-echo "✓ Certificate files removed"
+echo "✓ Certificate files and renewal configs removed"
 
 echo ""
 echo "=========================================="
