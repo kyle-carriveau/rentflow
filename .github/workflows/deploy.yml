@@ -50,6 +50,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 20m
           script: |
             set -e
 
@@ -180,11 +181,18 @@ jobs:
 
             echo "=== Initializing SSL certificates (if needed) ==="
             # Check if SSL certificates already exist
-            if docker compose -f "$COMPOSE_FILE" --env-file .env run --rm certbot certificates 2>/dev/null | grep -q "rentflow.cloud"; then
+            echo "Checking for existing certificates..."
+            if docker compose -f "$COMPOSE_FILE" --env-file .env run --rm certbot certificates 2>&1 | grep -q "rentflow.cloud"; then
                 echo "✓ SSL certificates already exist, skipping initialization"
+                docker compose -f "$COMPOSE_FILE" --env-file .env run --rm certbot certificates 2>&1 | head -20
             else
                 echo "⚠ No SSL certificates found, running SSL initialization..."
-                ./deployment/scripts/init-ssl.sh --yes || echo "⚠ SSL initialization failed, will retry on next deployment"
+                echo "This may take 3-5 minutes (DH parameter generation + Let's Encrypt request)..."
+                timeout 600 ./deployment/scripts/init-ssl.sh --yes || {
+                    echo "⚠ SSL initialization failed or timed out after 10 minutes"
+                    echo "This is non-fatal - HTTPS will work with dummy certificates for now"
+                    echo "You can manually run: ./deployment/scripts/init-ssl.sh on the VPS"
+                }
             fi
 
             echo "=== Cleaning up old images ==="
