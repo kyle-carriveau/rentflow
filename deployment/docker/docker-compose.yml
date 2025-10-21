@@ -108,6 +108,8 @@ services:
       - ../../deployment/nginx/conf.d:/etc/nginx/conf.d:ro
       - ../../deployment/ssl:/etc/nginx/ssl:ro
       - ../../logs/nginx:/var/log/nginx
+      - ../../website/static:/app/website/static:ro
+      - ../../uploads:/app/uploads:ro
     depends_on:
       - web
     logging:
