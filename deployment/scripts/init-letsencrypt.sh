@@ -79,11 +79,25 @@ cp certbot/conf/live/$DOMAIN/fullchain.pem certbot/conf/live/$DOMAIN/chain.pem
 
 print_status "✓ Dummy certificates created"
 
+print_status "Switching to HTTP-only NGINX config for certificate setup..."
+# Temporarily disable HTTPS config, enable HTTP-only config
+if [ -f "deployment/nginx/conf.d/rentflow.conf" ]; then
+    mv deployment/nginx/conf.d/rentflow.conf deployment/nginx/conf.d/rentflow.conf.disabled
+fi
+if [ -f "deployment/nginx/conf.d/rentflow-http-only.conf" ]; then
+    cp deployment/nginx/conf.d/rentflow-http-only.conf deployment/nginx/conf.d/rentflow-http-only.conf.active
+fi
+
 print_status "Starting NGINX to handle ACME challenge..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d nginx
 
 print_status "Waiting for NGINX to be ready..."
-sleep 5
+sleep 10
+
+print_status "Verifying NGINX is serving ACME challenge directory..."
+if ! docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec nginx test -d /var/www/certbot/.well-known; then
+    docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec nginx mkdir -p /var/www/certbot/.well-known/acme-challenge
+fi
 
 print_status "Removing dummy certificates..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm --entrypoint "\
@@ -118,10 +132,25 @@ else
     print_status "  1. Domain $DOMAIN points to this server"
     print_status "  2. Ports 80 and 443 are open in firewall"
     print_status "  3. No other service is using port 80"
+
+    print_status "Restoring original NGINX config..."
+    if [ -f "deployment/nginx/conf.d/rentflow.conf.disabled" ]; then
+        mv deployment/nginx/conf.d/rentflow.conf.disabled deployment/nginx/conf.d/rentflow.conf
+    fi
+    rm -f deployment/nginx/conf.d/rentflow-http-only.conf.active
     exit 1
 fi
 
-print_status "Reloading NGINX with new certificates..."
+print_status "Restoring HTTPS NGINX configuration..."
+# Remove HTTP-only config
+rm -f deployment/nginx/conf.d/rentflow-http-only.conf.active
+
+# Restore HTTPS config
+if [ -f "deployment/nginx/conf.d/rentflow.conf.disabled" ]; then
+    mv deployment/nginx/conf.d/rentflow.conf.disabled deployment/nginx/conf.d/rentflow.conf
+fi
+
+print_status "Reloading NGINX with HTTPS configuration..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec nginx nginx -s reload
 
 print_status "${GREEN}✓${NC} SSL setup complete!"
