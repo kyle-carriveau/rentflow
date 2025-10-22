@@ -6,20 +6,35 @@ from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_mail import Mail
-from decouple import config
+from decouple import config as env_config
+
+# Import configuration management
+from config import get_config
 
 db = SQLAlchemy(session_options={"autoflush": False})
 migrate = Migrate()
 limiter = Limiter(key_func=get_remote_address)
 mail = Mail()
 
-def create_app():
+def create_app(config_name=None):
+    """
+    Application factory pattern.
+
+    Args:
+        config_name: Environment name (development, staging, production, testing)
+                    If None, reads from FLASK_ENV environment variable
+
+    Returns:
+        Configured Flask application instance
+    """
     app = Flask(__name__)
 
-    app.config['SECRET_KEY'] = config('SECRET_KEY', default='keyissecret')
-    app.config['SQLALCHEMY_DATABASE_URI'] = config('DATABASE_URL', default='sqlite:///database.db')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['DEBUG'] = config('DEBUG', default=True, cast=bool)
+    # Load environment-specific configuration
+    config_class = get_config(config_name)
+    app.config.from_object(config_class)
+
+    # Initialize config (runs environment-specific setup)
+    config_class.init_app(app)
 
     # Initialize extensions
     db.init_app(app)

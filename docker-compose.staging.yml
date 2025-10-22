@@ -1,0 +1,208 @@
+# Docker Compose for Staging Environment
+# Runs on same VPS as production but with different ports and separate data
+#
+# Purpose: Pre-production testing and QA
+# - Tests features before production deployment
+# - Mirrors production configuration
+# - Separate database and volumes from production
+# - Auto-deploys from 'develop' branch via GitHub Actions
+#
+# Deployment Location: /home/ubuntu/rentflow-staging/
+# URL: https://staging.yourdomain.com (or http://your-ip:8080)
+#
+# Usage:
+#   Start: docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
+#   Stop:  docker compose -f docker-compose.staging.yml --env-file .env.staging down
+#   Logs:  docker compose -f docker-compose.staging.yml --env-file .env.staging logs -f
+#
+# Ports (non-conflicting with production):
+#   8080  - HTTP (NGINX)
+#   8443  - HTTPS (NGINX)
+#   9000  - Flask application (internal)
+#   5433  - PostgreSQL (internal only)
+#   6380  - Redis (internal only)
+
+services:
+  # PostgreSQL Database (Staging)
+  db:
+    image: postgres:16-alpine
+    container_name: rentflow_staging_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rentflow_staging}
+      POSTGRES_USER: ${POSTGRES_USER:-rentflow_staging}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+    # Ports NOT exposed - use docker exec for database access
+    # Uncomment for direct database access (development/debugging only):
+    # ports:
+    #   - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rentflow_staging}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - rentflow_staging_network
+
+  # Redis for Rate Limiting (Staging)
+  redis:
+    image: redis:7-alpine
+    container_name: rentflow_staging_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --port 6380
+    volumes:
+      - redis_staging_data:/data
+    # Ports NOT exposed
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6380", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - rentflow_staging_network
+
+  # Flask Application (Staging)
+  web:
+    build:
+      context: ../..  # Build from project root (two levels up from deployment/docker/)
+      dockerfile: deployment/docker/Dockerfile
+    container_name: rentflow_staging_web
+    restart: unless-stopped
+    environment:
+      FLASK_ENV: staging
+      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-rentflow_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-rentflow_staging}
+      RATELIMIT_STORAGE_URL: redis://redis:6380/0
+      SESSION_COOKIE_SECURE: "True"
+      DEBUG: "False"
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
+    volumes:
+      - ../../instance-staging:/app/instance
+      - ../../logs-staging:/app/logs
+      - ../../uploads-staging:/app/uploads
+    ports:
+      - "9000:8000"  # Flask internal port (mapped to 9000 on host)
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - rentflow_staging_network
+
+  # NGINX Reverse Proxy (Staging)
+  nginx:
+    image: nginx:alpine
+    container_name: rentflow_staging_nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"    # HTTP on port 8080
+      - "8443:443"   # HTTPS on port 8443
+    volumes:
+      # Use staging-specific NGINX config
+      - ../../deployment/nginx/staging/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../../deployment/nginx/staging/conf.d:/etc/nginx/conf.d:ro
+      - ../../deployment/ssl-staging:/etc/nginx/ssl:ro
+      - ../../logs-staging/nginx:/var/log/nginx
+      - ../../website/static:/app/website/static:ro
+      - ../../uploads-staging:/app/uploads:ro
+    depends_on:
+      - web
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - rentflow_staging_network
+
+volumes:
+  postgres_staging_data:
+    driver: local
+  redis_staging_data:
+    driver: local
+
+networks:
+  rentflow_staging_network:
+    driver: bridge
+
+# Staging Environment Notes:
+# =========================
+#
+# 1. ISOLATION: Completely separate from production
+#    - Different database (rentflow_staging)
+#    - Different volumes (postgres_staging_data, redis_staging_data)
+#    - Different network (rentflow_staging_network)
+#    - Different container names
+#
+# 2. PORT MAPPING: Non-conflicting with production
+#    - Production: 80/443 (NGINX), 8000 (Flask), 5432 (PG), 6379 (Redis)
+#    - Staging: 8080/8443 (NGINX), 9000 (Flask), 5433 (PG), 6380 (Redis)
+#
+# 3. DATA DIRECTORIES: Separate from production
+#    - instance-staging/ (app data)
+#    - logs-staging/ (application logs)
+#    - uploads-staging/ (user uploads)
+#
+# 4. SSL CERTIFICATES: Staging-specific
+#    - Use separate SSL certs in deployment/ssl-staging/
+#    - Can use self-signed certs or separate Cloudflare origin cert
+#
+# 5. FIREWALL RULES NEEDED:
+#    sudo ufw allow 8080/tcp  # Staging HTTP
+#    sudo ufw allow 8443/tcp  # Staging HTTPS
+#
+# 6. DEPLOYMENT:
+#    - Auto-deploys from 'develop' branch
+#    - Deploy script: ./deploy-staging.sh
+#    - Location: /home/ubuntu/rentflow-staging/
+#
+# 7. ACCESS:
+#    - Via subdomain: https://staging.yourdomain.com (recommended)
+#    - Via IP + port: https://your-ip:8443 (temporary)
+#
+# 8. DATABASE SYNC:
+#    - To sync production data to staging:
+#      ./scripts/db-sync-to-staging.sh
+#    - This will sanitize PII before syncing
+#
+# 9. ENVIRONMENT FILE:
+#    - Use .env.staging (copy from .env.staging.example)
+#    - Different SECRET_KEY and POSTGRES_PASSWORD from production
+#
+# 10. TESTING WORKFLOW:
+#     - Develop feature → Push to 'develop' branch
+#     - Auto-deploys to staging
+#     - QA team tests on staging
+#     - Merge 'develop' → 'main' for production deployment

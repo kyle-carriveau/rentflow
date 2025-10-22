@@ -1,14 +1,26 @@
-# ⚠️ DEPRECATED: This file has been moved to the project root
-# ⚠️ New location: ../../docker-compose.production.yml
-# ⚠️ This file is kept temporarily for backwards compatibility
-# ⚠️ Please update your deployment scripts to use: docker-compose.production.yml
+# Docker Compose for Production Environment
+# Fully secured production deployment with PostgreSQL, Redis, NGINX, and Cloudflare SSL
 #
-# Migration Guide:
-#   Old: docker compose -f deployment/docker/docker-compose.yml up -d
-#   New: docker compose -f docker-compose.production.yml up -d
+# Deployment Location: /home/ubuntu/rentflow/
+# URL: https://yourdomain.com
 #
-# Or use the deployment script:
-#   ./deploy.sh (automatically uses correct file)
+# Usage:
+#   Start: docker compose -f docker-compose.production.yml --env-file .env.production up -d
+#   Stop:  docker compose -f docker-compose.production.yml --env-file .env.production down
+#   Logs:  docker compose -f docker-compose.production.yml --env-file .env.production logs -f
+#
+# Simplified Usage (if .env exists):
+#   Start: docker compose -f docker-compose.production.yml up -d
+#   Stop:  docker compose -f docker-compose.production.yml down
+#
+# Deploy Script: ./deploy.sh (handles migrations, backups, health checks)
+#
+# Ports:
+#   80   - HTTP (NGINX)
+#   443  - HTTPS (NGINX with Cloudflare SSL)
+#   8000 - Flask application (internal only)
+#   5432 - PostgreSQL (internal only)
+#   6379 - Redis (internal only)
 
 services:
   # PostgreSQL Database
@@ -68,7 +80,7 @@ services:
   # Flask Application
   web:
     build:
-      context: ../..
+      context: .
       dockerfile: deployment/docker/Dockerfile
     container_name: rentflow_web
     restart: unless-stopped
@@ -83,9 +95,9 @@ services:
       GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
     volumes:
-      - ../../instance:/app/instance
-      - ../../logs:/app/logs
-      - ../../uploads:/app/uploads
+      - ./instance:/app/instance
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
     ports:
       - "8000:8000"
     depends_on:
@@ -116,12 +128,12 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ../../deployment/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ../../deployment/nginx/conf.d:/etc/nginx/conf.d:ro
-      - ../../deployment/ssl:/etc/nginx/ssl:ro
-      - ../../logs/nginx:/var/log/nginx
-      - ../../website/static:/app/website/static:ro
-      - ../../uploads:/app/uploads:ro
+      - ./deployment/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deployment/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./deployment/ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+      - ./website/static:/app/website/static:ro
+      - ./uploads:/app/uploads:ro
     depends_on:
       - web
     logging:

@@ -55,8 +55,17 @@ jobs:
           script: |
             set -e
 
-            # Docker Compose file location
-            COMPOSE_FILE="deployment/docker/docker-compose.yml"
+            # Docker Compose file location (try new location first, fall back to legacy)
+            if [ -f "docker-compose.production.yml" ]; then
+                COMPOSE_FILE="docker-compose.production.yml"
+                echo "Using new compose file location: $COMPOSE_FILE"
+            elif [ -f "deployment/docker/docker-compose.yml" ]; then
+                COMPOSE_FILE="deployment/docker/docker-compose.yml"
+                echo "Using legacy compose file location: $COMPOSE_FILE"
+            else
+                echo "ERROR: No production compose file found!"
+                exit 1
+            fi
 
             echo "=== Pre-deployment Checks ==="
             if ! command -v docker &> /dev/null; then
@@ -171,7 +180,16 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
             cd /home/ubuntu/rentflow
-            COMPOSE_FILE="deployment/docker/docker-compose.yml"
+
+            # Use same compose file detection logic
+            if [ -f "docker-compose.production.yml" ]; then
+                COMPOSE_FILE="docker-compose.production.yml"
+            elif [ -f "deployment/docker/docker-compose.yml" ]; then
+                COMPOSE_FILE="deployment/docker/docker-compose.yml"
+            else
+                echo "ERROR: No production compose file found!"
+                exit 1
+            fi
 
             echo "=== Service Status ==="
             docker compose -f "$COMPOSE_FILE" --env-file .env ps
