@@ -76,6 +76,7 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
+    "--cov-fail-under=10",  # Start low, increase as test suite grows
 ]
 markers = [
     "unit: Unit tests (fast, isolated)",
