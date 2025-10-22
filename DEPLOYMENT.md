@@ -1,16 +1,21 @@
 # RentFlow Production Deployment Guide
 
-This guide covers deploying RentFlow to a production Ubuntu server using Docker, NGINX, and PostgreSQL with full CI/CD via GitHub Actions.
+**Complete deployment guide for RentFlow using Docker, NGINX, PostgreSQL, and Cloudflare.**
+
+This guide consolidates all deployment documentation into a single source of truth.
 
 ## Table of Contents
 
 1. [Prerequisites](#prerequisites)
 2. [Server Setup](#server-setup)
-3. [Initial Deployment](#initial-deployment)
-4. [CI/CD Setup](#cicd-setup)
-5. [Database Management](#database-management)
-6. [Monitoring & Maintenance](#monitoring--maintenance)
-7. [Troubleshooting](#troubleshooting)
+3. [SSL Setup with Cloudflare](#ssl-setup-with-cloudflare)
+4. [Origin Security (Block Direct IP Access)](#origin-security)
+5. [Environment Configuration](#environment-configuration)
+6. [Initial Deployment](#initial-deployment)
+7. [CI/CD Setup](#cicd-setup)
+8. [Database Management](#database-management)
+9. [Monitoring & Maintenance](#monitoring--maintenance)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -84,28 +89,143 @@ sudo ufw enable
 sudo ufw status
 ```
 
-### 4. Setup SSL Certificates
+---
 
-Option A: Using Let's Encrypt (Recommended)
+## SSL Setup with Cloudflare
+
+RentFlow uses **Cloudflare for automatic SSL** (zero maintenance, 15-year certificates, global CDN).
+
+### 1. Add Domain to Cloudflare
+
+1. Sign up at https://dash.cloudflare.com
+2. Add your domain (e.g., `rentflow.cloud`)
+3. Update nameservers at your domain registrar to Cloudflare's nameservers
+4. Wait for DNS propagation (~5-30 minutes)
+
+### 2. Configure SSL Settings
+
+In Cloudflare Dashboard:
+1. Go to **SSL/TLS** → Select **"Full (strict)"** mode
+2. Go to **SSL/TLS** → **Edge Certificates** → Enable **"Always Use HTTPS"**
+3. Set **Minimum TLS Version** to **TLS 1.2**
+
+### 3. Generate Origin Certificates
+
+1. Go to **SSL/TLS** → **Origin Server** → Click **"Create Certificate"**
+2. Settings:
+   - Private key type: **RSA**
+   - Certificate validity: **15 years**
+   - Hostnames: `yourdomain.com, www.yourdomain.com, *.yourdomain.com`
+3. Click **Create**
+
+### 4. Install Certificates on VPS
 
 ```bash
-# Install Certbot
-sudo apt install -y certbot python3-certbot-nginx
+ssh root@your-vps-ip
+cd /home/ubuntu/rentflow
 
-# Generate certificate
-sudo certbot certonly --standalone -d your-domain.com -d www.your-domain.com
+# Create SSL directory
+mkdir -p deployment/ssl
 
-# Certificates will be in /etc/letsencrypt/live/your-domain.com/
+# Create origin certificate (paste from Cloudflare)
+cat > deployment/ssl/cloudflare-origin.crt << 'EOF'
+-----BEGIN CERTIFICATE-----
+[PASTE YOUR ORIGIN CERTIFICATE HERE]
+-----END CERTIFICATE-----
+EOF
+
+# Create private key (paste from Cloudflare)
+cat > deployment/ssl/cloudflare-origin.key << 'EOF'
+-----BEGIN PRIVATE KEY-----
+[PASTE YOUR PRIVATE KEY HERE]
+-----END PRIVATE KEY-----
+EOF
+
+# Download Cloudflare Origin Pull CA certificate (for Authenticated Origin Pulls)
+curl -s https://developers.cloudflare.com/ssl/static/authenticated_origin_pull_ca.pem \
+  -o deployment/ssl/cloudflare-origin-pull-ca.pem
+
+# Set proper permissions
+chmod 600 deployment/ssl/cloudflare-origin.key
+chmod 644 deployment/ssl/cloudflare-origin.crt deployment/ssl/cloudflare-origin-pull-ca.pem
 ```
 
-Option B: Self-signed (Development Only)
+---
+
+## Origin Security
+
+**Block direct IP access** and ensure all traffic goes through Cloudflare.
+
+### Enable Authenticated Origin Pulls
+
+In Cloudflare Dashboard:
+1. Go to **SSL/TLS** → **Origin Server**
+2. Scroll to **Authenticated Origin Pulls**
+3. Toggle **ON**
+
+This ensures NGINX only accepts connections from Cloudflare (blocks direct IP access).
+
+### Verify Security
 
 ```bash
-# Generate self-signed certificate
-sudo mkdir -p /home/ubuntu/rentflow/ssl
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout /home/ubuntu/rentflow/ssl/key.pem \
-  -out /home/ubuntu/rentflow/ssl/cert.pem
+# Direct IP access should be blocked
+curl -v http://YOUR_SERVER_IP
+# Expected: Connection closed (no response)
+
+curl -v -k https://YOUR_SERVER_IP
+# Expected: Connection closed (no response)
+
+# Domain access should work
+curl -v https://yourdomain.com
+# Expected: 200 OK
+```
+
+---
+
+## Environment Configuration
+
+The `.env` file contains production secrets and must be created manually on the VPS.
+
+**Location:** `/home/ubuntu/rentflow/.env` (root level)
+
+```bash
+# Navigate to app directory
+cd /home/ubuntu/rentflow
+
+# Create .env file
+nano .env
+```
+
+**Required variables:**
+
+```bash
+# Flask Configuration
+SECRET_KEY=generate-with-openssl-rand-hex-32
+FLASK_ENV=production
+DEBUG=False
+
+# Database Configuration
+POSTGRES_DB=rentflow
+POSTGRES_USER=rentflow_user
+POSTGRES_PASSWORD=generate-secure-password
+
+# Session Security
+SESSION_COOKIE_SECURE=True
+
+# Gunicorn Configuration
+GUNICORN_WORKERS=4
+GUNICORN_THREADS=2
+GUNICORN_TIMEOUT=120
+```
+
+**Generate secure values:**
+
+```bash
+# Generate SECRET_KEY
+openssl rand -hex 32
+
+# Generate POSTGRES_PASSWORD
+openssl rand -base64 32
 ```
 
 ---
