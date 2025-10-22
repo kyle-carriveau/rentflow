@@ -162,12 +162,19 @@ class TestingConfig(Config):
     WTF_CSRF_ENABLED = False
     SESSION_COOKIE_SECURE = False
 
+    # SQLite doesn't support PostgreSQL pooling options
+    # Override the base class engine options with SQLite-compatible settings
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'connect_args': {'check_same_thread': False}  # Allow SQLite to work with Flask threading
+    }
+
     # Disable rate limiting in tests
     RATELIMIT_ENABLED = False
 
     @classmethod
     def init_app(cls, app):
         """Initialize testing-specific settings."""
+        print('✅ TEST Loading TestingConfig')
         print('🧪 Running in TESTING mode')
 
 
