@@ -1,48 +1,35 @@
 name: Deploy to Production
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:  # Allow manual trigger
+  workflow_run:
+    workflows: ["Tests"]
+    types:
+      - completed
+  workflow_dispatch:
 
 jobs:
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-          cache-dependency-path: 'requirements/dev.txt'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements/dev.txt
-
-      - name: Run tests
-        run: |
-          pytest tests/ -v --maxfail=1
-        env:
-          FLASK_ENV: testing
-          SECRET_KEY: test-secret-key
-
   deploy:
-    name: Deploy to Server
+    name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: test
-    if: github.ref == 'refs/heads/main'
+    # Only deploy if Tests passed AND it was triggered from main branch
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
 
     steps:
+      - name: Debug workflow trigger info
+        run: |
+          echo "=== Workflow Run Information ==="
+          echo "Triggered by workflow: ${{ github.event.workflow_run.name }}"
+          echo "Branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "================================"
+
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}  # Deploy exact tested commit
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.2.0
@@ -55,8 +42,7 @@ jobs:
           script: |
             set -e
 
-            # Docker Compose file location
-            COMPOSE_FILE="deployment/docker/docker-compose.yml"
+            COMPOSE_FILE="docker-compose.production.yml"
 
             echo "=== Pre-deployment Checks ==="
             if ! command -v docker &> /dev/null; then
@@ -113,35 +99,54 @@ jobs:
             echo "✓ Current backups: $BACKUP_COUNT files"
 
             echo "=== Building Docker images ==="
-            docker compose -f "$COMPOSE_FILE" --env-file .env build --no-cache web
+            docker compose -f "$COMPOSE_FILE" --env-file .env build web
+            echo "✓ New web image built"
 
-            echo "=== Stopping all services ==="
-            docker compose -f "$COMPOSE_FILE" --env-file .env down 2>/dev/null || true
-            echo "✓ Services stopped"
+            echo "=== Ensuring database and Redis are running ==="
+            docker compose -f "$COMPOSE_FILE" --env-file .env up -d db redis
+            echo "✓ Database and Redis services ready"
 
-            echo "=== Running database migrations ==="
-            if ! docker compose -f "$COMPOSE_FILE" --env-file .env run --rm web flask db upgrade; then
+            echo "=== Running database migrations (zero-downtime) ==="
+            # Run migrations using temporary container while old web is still serving traffic
+            if ! docker compose -f "$COMPOSE_FILE" --env-file .env run --rm --no-deps web flask db upgrade; then
                 echo "ERROR: Database migration failed!"
-                echo "Attempting to restart services..."
-                docker compose -f "$COMPOSE_FILE" --env-file .env up -d
+                echo "Old version still running - no downtime occurred"
+                docker compose -f "$COMPOSE_FILE" --env-file .env ps
                 exit 1
             fi
-            echo "✓ Database migrations completed"
+            echo "✓ Database migrations completed successfully"
 
-            echo "=== Starting services ==="
-            docker compose -f "$COMPOSE_FILE" --env-file .env up -d
+            echo "=== Deploying new web container (zero-downtime rolling update) ==="
+            # This performs a rolling update: starts new container, waits for health, then stops old
+            docker compose -f "$COMPOSE_FILE" --env-file .env up -d --no-deps web
+            echo "✓ Web container updated"
 
-            echo "=== Waiting for services to be healthy ==="
-            MAX_WAIT=60
+            echo "=== Ensuring NGINX is running ==="
+            docker compose -f "$COMPOSE_FILE" --env-file .env up -d nginx
+            echo "✓ NGINX ready"
+
+            echo "=== Waiting for new web container to be healthy ==="
+            MAX_WAIT=90
             ELAPSED=0
+            HEALTH_CHECK_PASSED=false
 
             while [ $ELAPSED -lt $MAX_WAIT ]; do
+                # Check container health status
                 WEB_STATUS=$(docker compose -f "$COMPOSE_FILE" --env-file .env ps web --format "{{.Status}}" 2>/dev/null || echo "")
-                DB_STATUS=$(docker compose -f "$COMPOSE_FILE" --env-file .env ps db --format "{{.Status}}" 2>/dev/null || echo "")
 
-                if echo "$WEB_STATUS" | grep -q "healthy" && echo "$DB_STATUS" | grep -q "healthy"; then
-                    echo "✓ All critical services are healthy"
-                    break
+                if echo "$WEB_STATUS" | grep -q "healthy"; then
+                    echo "✓ Web container is healthy"
+
+                    # Double-check by hitting the health endpoint
+                    if curl -f -s http://localhost:8000/health > /dev/null 2>&1; then
+                        echo "✓ Health endpoint responding"
+                        HEALTH_CHECK_PASSED=true
+                        break
+                    else
+                        echo "  Health check endpoint not ready yet..."
+                    fi
+                else
+                    echo "  Container status: $WEB_STATUS"
                 fi
 
                 echo "Waiting for health checks... ($ELAPSED/$MAX_WAIT seconds)"
@@ -149,10 +154,14 @@ jobs:
                 ELAPSED=$((ELAPSED + 5))
             done
 
-            if [ $ELAPSED -ge $MAX_WAIT ]; then
-                echo "⚠ Warning: Health check timeout reached"
-                echo "Services may still be starting up. Check logs if issues occur."
+            if [ "$HEALTH_CHECK_PASSED" = false ]; then
+                echo "❌ ERROR: Health check failed after $MAX_WAIT seconds"
+                echo "Deployment may have failed. Checking logs..."
+                docker compose -f "$COMPOSE_FILE" --env-file .env logs --tail=50 web
+                exit 1
             fi
+
+            echo "✓ Deployment successful - new container is healthy and serving traffic"
 
             echo "=== Final service status ==="
             docker compose -f "$COMPOSE_FILE" --env-file .env ps
@@ -171,7 +180,7 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
             cd /home/ubuntu/rentflow
-            COMPOSE_FILE="deployment/docker/docker-compose.yml"
+            COMPOSE_FILE="docker-compose.production.yml"
 
             echo "=== Service Status ==="
             docker compose -f "$COMPOSE_FILE" --env-file .env ps

@@ -4,5 +4,11 @@
 # WSGI HTTP Server
 gunicorn==21.2.0
 
-# PostgreSQL adapter
+# Database drivers
 psycopg2-binary==2.9.9
+
+# Redis client (caching and sessions)
+redis==5.2.1
+
+# Production monitoring and logging (optional but recommended)
+# sentry-sdk==2.19.2  # Uncomment when ready for error tracking

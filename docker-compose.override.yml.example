@@ -1,0 +1,164 @@
+# Docker Compose Override File (Example)
+# Copy this file to docker-compose.override.yml to customize your local environment
+#
+# File: docker-compose.override.yml.example
+#
+# Purpose:
+#   - Personal developer customizations that don't belong in version control
+#   - Override ports if defaults conflict with your setup
+#   - Mount additional volumes for development tools
+#   - Change resource limits or logging settings
+#
+# Usage:
+#   1. Copy: cp docker-compose.override.yml.example docker-compose.override.yml
+#   2. Edit docker-compose.override.yml to your needs
+#   3. Start: docker compose -f docker-compose.local.yml up -d
+#      (override file is automatically loaded)
+#
+# Note: docker-compose.override.yml is in .gitignore (not committed to repo)
+
+# ============================================
+# Example 1: Change Ports (if defaults conflict)
+# ============================================
+# services:
+#   web:
+#     ports:
+#       - "5001:8000"  # Change Flask port to 5001
+#
+#   db:
+#     ports:
+#       - "5433:5432"  # Change PostgreSQL port to 5433
+#
+#   redis:
+#     ports:
+#       - "6380:6379"  # Change Redis port to 6380
+
+# ============================================
+# Example 2: Mount Additional Code for Hot Reload
+# ============================================
+# services:
+#   web:
+#     volumes:
+#       - ./my-custom-module:/app/my-custom-module:ro
+
+# ============================================
+# Example 3: Add Development Tools Container
+# ============================================
+# services:
+#   # pgAdmin for database management
+#   pgadmin:
+#     image: dpage/pgadmin4:latest
+#     container_name: rentflow_pgadmin
+#     environment:
+#       PGADMIN_DEFAULT_EMAIL: admin@local.dev
+#       PGADMIN_DEFAULT_PASSWORD: admin
+#     ports:
+#       - "5050:80"
+#     networks:
+#       - rentflow_dev_network
+#     depends_on:
+#       - db
+
+# ============================================
+# Example 4: Resource Limits (for slower machines)
+# ============================================
+# services:
+#   web:
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: '0.5'
+#           memory: 512M
+
+# ============================================
+# Example 5: Different Logging Configuration
+# ============================================
+# services:
+#   web:
+#     logging:
+#       driver: "none"  # Disable logs for performance
+
+# ============================================
+# Example 6: Environment Variable Overrides
+# ============================================
+# services:
+#   web:
+#     environment:
+#       DEBUG: "True"
+#       LOG_LEVEL: "DEBUG"
+#       CUSTOM_VAR: "my_value"
+
+# ============================================
+# Example 7: Custom Network Configuration
+# ============================================
+# networks:
+#   rentflow_dev_network:
+#     driver: bridge
+#     ipam:
+#       config:
+#         - subnet: 172.28.0.0/16
+
+# ============================================
+# Common Developer Customizations
+# ============================================
+
+# Uncomment and modify as needed for your local setup:
+
+# services:
+#   web:
+#     # Use a different Flask port if 5000 is taken
+#     # ports:
+#     #   - "5001:8000"
+#
+#     # Add your IDE's debugger port
+#     # ports:
+#     #   - "5678:5678"  # Python debugger (debugpy)
+#
+#     # Mount additional development files
+#     # volumes:
+#     #   - ./scripts:/app/scripts:ro
+#     #   - ~/.aws:/root/.aws:ro  # AWS credentials
+#
+#     # Override Gunicorn workers for debugging
+#     # environment:
+#     #   GUNICORN_WORKERS: "1"
+#     #   GUNICORN_RELOAD: "True"
+#
+#   db:
+#     # Expose database on different port
+#     # ports:
+#     #   - "5433:5432"
+#
+#     # Mount database init scripts
+#     # volumes:
+#     #   - ./db-init:/docker-entrypoint-initdb.d
+#
+#   redis:
+#     # Expose Redis on different port
+#     # ports:
+#     #   - "6380:6379"
+
+# ============================================
+# Tips
+# ============================================
+#
+# 1. Port Conflicts:
+#    If you get "port is already allocated" errors, change the host port (left side)
+#    Example: "5001:8000" instead of "5000:8000"
+#
+# 2. Hot Reload Not Working:
+#    Make sure volumes are mounted with :ro (read-only) or without :cached
+#    Example: - ./website:/app/website:ro
+#
+# 3. Database Connection Issues:
+#    If connecting from host (not container), use localhost:5432
+#    From inside containers, use db:5432
+#
+# 4. Performance Issues:
+#    Reduce GUNICORN_WORKERS to 1 for development
+#    Disable logging with driver: "none"
+#
+# 5. Multiple Environments:
+#    Create separate override files:
+#    - docker-compose.override.yml (auto-loaded)
+#    - docker-compose.custom.yml (load with: -f docker-compose.custom.yml)

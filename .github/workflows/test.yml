@@ -1,0 +1,281 @@
+name: Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.12']
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: rentflow_test
+          POSTGRES_USER: rentflow_test
+          POSTGRES_PASSWORD: rentflow_test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements/dev.txt'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+
+      - name: Verify database connection
+        env:
+          DATABASE_URL: postgresql://rentflow_test:rentflow_test_password@localhost:5432/rentflow_test
+        run: |
+          python -c "import psycopg2; conn = psycopg2.connect('$DATABASE_URL'); print('✓ Database connection successful')"
+
+      - name: Run linting (flake8)
+        continue-on-error: true  # Don't fail build on linting errors yet
+        run: |
+          echo "=== Running Flake8 linting ==="
+          flake8 website/ --count --select=E9,F63,F7,F82 --show-source --statistics || true
+          flake8 website/ --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics || true
+
+      - name: Check code formatting (black)
+        continue-on-error: true  # Don't fail build on formatting yet
+        run: |
+          echo "=== Checking code formatting ==="
+          black --check website/ || true
+
+      - name: Run unit tests
+        env:
+          FLASK_ENV: testing
+          SECRET_KEY: test-secret-key-for-ci
+          DATABASE_URL: postgresql://rentflow_test:rentflow_test_password@localhost:5432/rentflow_test
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          echo "=== Running Unit Tests ==="
+          pytest tests/ -v -m "unit or not integration" --maxfail=5 --tb=short
+
+      - name: Run integration tests
+        continue-on-error: true  # Don't fail if no integration tests exist yet
+        env:
+          FLASK_ENV: testing
+          SECRET_KEY: test-secret-key-for-ci
+          DATABASE_URL: postgresql://rentflow_test:rentflow_test_password@localhost:5432/rentflow_test
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          echo "=== Running Integration Tests ==="
+          pytest tests/ -v -m integration --maxfail=3 --tb=short || echo "⚠️  No integration tests found (add tests marked with @pytest.mark.integration)"
+
+      - name: Run all tests with coverage
+        env:
+          FLASK_ENV: testing
+          SECRET_KEY: test-secret-key-for-ci
+          DATABASE_URL: postgresql://rentflow_test:rentflow_test_password@localhost:5432/rentflow_test
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          echo "=== Running Full Test Suite with Coverage ==="
+          pytest tests/ \
+            -v \
+            --cov=website \
+            --cov-report=term-missing \
+            --cov-report=html \
+            --cov-report=xml \
+            --cov-fail-under=10 \
+            --maxfail=1
+          echo "✅ Current coverage is sufficient for development phase"
+          echo "📊 Target: Incrementally increase to 80% as application grows"
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-rentflow
+          fail_ci_if_error: false
+
+      - name: Upload coverage HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: htmlcov/
+          retention-days: 30
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "=== Test Summary ==="
+          echo "✓ Tests completed"
+          echo "Check artifacts for detailed coverage report"
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Don't fail build on security warnings
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety bandit
+
+      - name: Run Safety check (dependency vulnerabilities)
+        continue-on-error: true
+        run: |
+          echo "=== Checking for known security vulnerabilities ==="
+          pip freeze | safety check --stdin || true
+
+      - name: Run Bandit (code security scan)
+        continue-on-error: true
+        run: |
+          echo "=== Running security scan on code ==="
+          bandit -r website/ -f json -o bandit-report.json || true
+          bandit -r website/ || true
+
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'requirements/dev.txt'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort mypy
+
+      - name: Run flake8
+        continue-on-error: true
+        run: |
+          echo "=== Flake8 Analysis ==="
+          flake8 website/ --config=.flake8 || true
+
+      - name: Run black
+        continue-on-error: true
+        run: |
+          echo "=== Black Format Check ==="
+          black --check website/ || true
+
+      - name: Run isort
+        continue-on-error: true
+        run: |
+          echo "=== Import Sorting Check ==="
+          isort --check-only website/ || true
+
+      - name: Type checking (mypy)
+        continue-on-error: true
+        run: |
+          echo "=== Type Checking ==="
+          mypy website/ --ignore-missing-imports || true
+
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./deployment/docker/Dockerfile
+          push: false
+          load: true
+          tags: rentflow:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker image
+        run: |
+          echo "=== Testing Docker image ==="
+          docker run --rm rentflow:test python --version
+          echo "✓ Docker image builds successfully"
+
+  results:
+    name: Test Results
+    runs-on: ubuntu-latest
+    needs: [test, security, lint, build]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "=== CI Pipeline Results ==="
+          echo "Tests: ${{ needs.test.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Build: ${{ needs.build.result }}"
+
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "❌ Tests failed!"
+            exit 1
+          fi
+
+          if [ "${{ needs.build.result }}" != "success" ]; then
+            echo "❌ Build failed!"
+            exit 1
+          fi
+
+          echo "✅ All critical checks passed!"

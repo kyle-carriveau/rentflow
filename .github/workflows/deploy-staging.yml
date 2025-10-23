@@ -1,0 +1,215 @@
+name: Deploy to Staging
+
+on:
+  workflow_run:
+    workflows: ["Tests"]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    # Only deploy if Tests passed AND it was triggered from develop branch
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'develop'
+    environment: staging
+
+    steps:
+      - name: Debug workflow trigger info
+        run: |
+          echo "=== Workflow Run Information ==="
+          echo "Triggered by workflow: ${{ github.event.workflow_run.name }}"
+          echo "Branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "================================"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}  # Deploy exact tested commit
+
+      - name: Deploy to Staging Environment
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          command_timeout: 20m
+          script: |
+            set -e
+
+            # Staging configuration
+            APP_DIR="/home/ubuntu/rentflow"
+            COMPOSE_FILE="docker-compose.staging.yml"
+            ENV_FILE=".env.staging"
+
+            echo "=== Staging Deployment Started ==="
+            echo "Deploying develop branch to staging environment"
+            echo ""
+
+            echo "=== Pre-deployment Checks ==="
+            if ! command -v docker &> /dev/null; then
+                echo "ERROR: Docker is not installed!"
+                exit 1
+            fi
+
+            if ! command -v docker compose &> /dev/null; then
+                echo "ERROR: Docker Compose is not installed!"
+                exit 1
+            fi
+            echo "✓ Docker and Docker Compose found"
+
+            echo "=== Navigating to application directory ==="
+            cd "$APP_DIR" || exit 1
+            echo "✓ In directory: $(pwd)"
+
+            echo "=== Pulling latest code from develop ==="
+            git fetch origin develop
+            git reset --hard origin/develop
+            echo "✓ Code updated to: $(git rev-parse --short HEAD)"
+            echo "✓ Branch: $(git branch --show-current)"
+
+            echo "=== Verifying deployment structure ==="
+            if [ ! -f "$COMPOSE_FILE" ]; then
+                echo "ERROR: Docker Compose file not found: $COMPOSE_FILE"
+                exit 1
+            fi
+            if [ ! -f "$ENV_FILE" ]; then
+                echo "ERROR: Environment file not found: $ENV_FILE"
+                echo "Please create $ENV_FILE with required variables"
+                exit 1
+            fi
+            echo "✓ Compose file: $COMPOSE_FILE"
+            echo "✓ Environment file: $ENV_FILE"
+
+            echo "=== Creating staging directories ==="
+            mkdir -p logs-staging uploads-staging instance-staging backups
+            chmod 777 logs-staging uploads-staging instance-staging
+            echo "✓ Directories created"
+
+            echo "=== Backing up staging database ==="
+            BACKUP_FILE="backups/staging-backup-$(date +%Y%m%d-%H%M%S).sql"
+            if docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T db pg_dump -U rentflow_staging rentflow_staging > "$BACKUP_FILE" 2>/dev/null; then
+                echo "✓ Database backed up: $BACKUP_FILE"
+            else
+                echo "⚠ Warning: Database backup failed (might not exist yet)"
+            fi
+
+            echo "=== Cleaning up old backups ==="
+            find backups/ -name "staging-backup-*.sql" -type f -mtime +7 -delete 2>/dev/null || true
+            BACKUP_COUNT=$(find backups/ -name "staging-backup-*.sql" -type f 2>/dev/null | wc -l)
+            echo "✓ Staging backups: $BACKUP_COUNT files"
+
+            echo "=== Building staging Docker images ==="
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build web
+            echo "✓ New web image built"
+
+            echo "=== Ensuring database and Redis are running ==="
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d db redis
+            echo "✓ Database and Redis services ready"
+
+            echo "=== Running database migrations (zero-downtime) ==="
+            # Run migrations using temporary container while old web is still serving traffic
+            if ! docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm --no-deps web flask db upgrade; then
+                echo "ERROR: Database migration failed!"
+                echo "Old version still running - no downtime occurred"
+                docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
+                exit 1
+            fi
+            echo "✓ Database migrations completed successfully"
+
+            echo "=== Deploying new web container (zero-downtime rolling update) ==="
+            # This performs a rolling update: starts new container, waits for health, then stops old
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --no-deps web
+            echo "✓ Web container updated"
+
+            echo "=== Ensuring NGINX is running ==="
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d nginx
+            echo "✓ NGINX ready"
+
+            echo "=== Waiting for new web container to be healthy ==="
+            MAX_WAIT=90
+            ELAPSED=0
+            HEALTH_CHECK_PASSED=false
+
+            while [ $ELAPSED -lt $MAX_WAIT ]; do
+                # Check container health status
+                WEB_STATUS=$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps web --format "{{.Status}}" 2>/dev/null || echo "")
+
+                if echo "$WEB_STATUS" | grep -q "Up"; then
+                    echo "✓ Web container is running"
+
+                    # Double-check by hitting the health endpoint (staging uses port 9000)
+                    if curl -f -s http://localhost:9000/health > /dev/null 2>&1; then
+                        echo "✓ Health endpoint responding"
+                        HEALTH_CHECK_PASSED=true
+                        break
+                    else
+                        echo "  Health check endpoint not ready yet..."
+                    fi
+                else
+                    echo "  Container status: $WEB_STATUS"
+                fi
+
+                echo "Waiting for health checks... ($ELAPSED/$MAX_WAIT seconds)"
+                sleep 5
+                ELAPSED=$((ELAPSED + 5))
+            done
+
+            if [ "$HEALTH_CHECK_PASSED" = false ]; then
+                echo "❌ ERROR: Health check failed after $MAX_WAIT seconds"
+                echo "Deployment may have failed. Checking logs..."
+                docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --tail=50 web
+                exit 1
+            fi
+
+            echo "✓ Staging deployment successful - new container is healthy and serving traffic"
+
+            echo "=== Staging service status ==="
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
+
+            echo "=== Cleaning up old images ==="
+            docker image prune -f
+
+            echo "=== Staging deployment complete! ==="
+            echo "Access staging at: http://$(hostname -I | awk '{print $1}'):8080"
+
+      - name: Verify staging deployment
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            cd /home/ubuntu/rentflow
+            COMPOSE_FILE="docker-compose.staging.yml"
+            ENV_FILE=".env.staging"
+
+            echo "=== Staging Status ==="
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
+
+            echo "=== Recent Logs ==="
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --tail=50 web
+
+            echo "=== Health Check ==="
+            # Staging might use different health endpoint or port
+            curl -f http://localhost:9000/health || echo "⚠ Health check failed (non-critical for staging)"
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ Staging deployment successful!"
+          echo "Access at: http://<vps-ip>:8080"
+
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "❌ Staging deployment failed!"
+          echo "Check logs and fix issues before merging to main"
+          exit 1

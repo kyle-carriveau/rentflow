@@ -1,0 +1,31 @@
+# Bandit Security Scanning Configuration
+
+[bandit]
+# Paths to exclude from scanning
+exclude_dirs = [
+    '/tests/',
+    '/migrations/',
+    '/.venv/',
+    '/venv/',
+    '/env/',
+    '/reenv.*/',
+    '/instance/',
+    '/logs/',
+    '/uploads/',
+    '/backups/',
+]
+
+# Security issues to skip
+skips = [
+    'B101',  # assert_used - assertions are ok in tests
+    'B601',  # paramiko_calls - if using paramiko for SSH
+]
+
+# Test IDs to run (leave empty to run all)
+tests = []
+
+# Severity level
+level = 'MEDIUM'
+
+# Confidence level
+confidence = 'MEDIUM'
