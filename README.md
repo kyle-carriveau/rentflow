@@ -235,14 +235,20 @@ cp .env.example .env
 #### Docker Compose Deployment
 
 ```bash
-# Start all services (PostgreSQL, Redis, Flask, NGINX)
-docker compose -f deployment/docker/docker-compose.yml up -d
+# Local development
+docker compose -f docker-compose.local.yml up -d
 
-# View logs
-docker compose -f deployment/docker/docker-compose.yml logs -f
+# Staging environment
+docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
+
+# Production environment
+docker compose -f docker-compose.production.yml --env-file .env up -d
+
+# View logs (any environment)
+docker compose -f docker-compose.local.yml logs -f
 
 # Stop services
-docker compose -f deployment/docker/docker-compose.yml down
+docker compose -f docker-compose.local.yml down
 ```
 
 #### Services

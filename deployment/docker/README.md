@@ -1,34 +1,45 @@
-# Docker Deployment Configuration
+# Docker Build Configuration
 
-This directory contains all Docker-related files for the RentFlow application.
+This directory contains Docker build assets for the RentFlow application.
 
 ## Files
 
 - **Dockerfile** - Production container image definition
-- **docker-compose.yml** - Multi-service orchestration configuration
-- **.dockerignore** - Files to exclude from Docker build context
+- **nginx.conf** - NGINX reverse proxy configuration
+
+**Note**: Docker Compose orchestration files are located at the project root:
+- `docker-compose.local.yml` - Local development
+- `docker-compose.staging.yml` - Staging environment
+- `docker-compose.production.yml` - Production deployment
 
 ## Running the Application
 
-### From Project Root (Recommended)
+### Local Development
 ```bash
 # Start services
-docker-compose -f deployment/docker/docker-compose.yml up -d
+docker compose -f docker-compose.local.yml up -d
 
 # View logs
-docker-compose -f deployment/docker/docker-compose.yml logs -f
+docker compose -f docker-compose.local.yml logs -f
 
 # Stop services
-docker-compose -f deployment/docker/docker-compose.yml down
+docker compose -f docker-compose.local.yml down
+```
 
-# Rebuild and restart
-docker-compose -f deployment/docker/docker-compose.yml up -d --build
+### Staging Environment
+```bash
+docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
+```
+
+### Production Environment
+```bash
+docker compose -f docker-compose.production.yml --env-file .env up -d
 ```
 
 ### Using Helper Script
-Use the deployment script from project root:
+For production deployments:
 ```bash
-./deployment/scripts/deploy.sh
+./deploy.sh
 ```
 
 ## Services
@@ -96,47 +107,49 @@ All services include health checks:
 
 ### Check Service Status
 ```bash
-docker-compose -f deployment/docker/docker-compose.yml ps
+docker compose -f docker-compose.local.yml ps
 ```
 
 ### View Service Logs
 ```bash
 # All services
-docker-compose -f deployment/docker/docker-compose.yml logs
+docker compose -f docker-compose.local.yml logs
 
 # Specific service
-docker-compose -f deployment/docker/docker-compose.yml logs web
-docker-compose -f deployment/docker/docker-compose.yml logs db
+docker compose -f docker-compose.local.yml logs web
+docker compose -f docker-compose.local.yml logs db
 ```
 
 ### Rebuild After Code Changes
 ```bash
-docker-compose -f deployment/docker/docker-compose.yml up -d --build web
+docker compose -f docker-compose.local.yml up -d --build web
 ```
 
 ### Database Migrations
 ```bash
-docker-compose -f deployment/docker/docker-compose.yml run --rm web flask db upgrade
+docker compose -f docker-compose.local.yml run --rm web flask db upgrade
 ```
 
 ### Access Database
 ```bash
-docker-compose -f deployment/docker/docker-compose.yml exec db psql -U rentflow_user -d rentflow
+docker compose -f docker-compose.local.yml exec db psql -U rentflow_user -d rentflow
 ```
 
 ## Path Structure
 
-The docker-compose.yml expects to be run from the project root:
+Docker Compose files are at the project root:
 
 ```
 re2/                                    # <- Run docker-compose from here
+├── docker-compose.local.yml           # <- Local development
+├── docker-compose.staging.yml         # <- Staging environment
+├── docker-compose.production.yml      # <- Production deployment
 ├── deployment/
 │   ├── docker/
-│   │   ├── Dockerfile
-│   │   ├── docker-compose.yml         # <- Using -f flag
-│   │   └── .dockerignore
+│   │   ├── Dockerfile                 # <- Build configuration
+│   │   └── nginx.conf                 # <- NGINX config
 │   ├── nginx/                         # <- Mounted to nginx container
-│   └── ssl/                           # <- SSL certificates
+│   └── scripts/                       # <- Deployment scripts
 ├── instance/                          # <- Mounted to web container
 ├── logs/                              # <- Mounted to web container
 └── uploads/                           # <- Mounted to web container
@@ -144,15 +157,19 @@ re2/                                    # <- Run docker-compose from here
 
 ## Production Deployment
 
-For production deployments, use the GitHub Actions workflow or the deployment script:
+Production deployment is automated via GitHub Actions:
+- Push to `main` branch triggers production deployment
+- Push to `develop` branch triggers staging deployment
+
+For manual deployment:
 
 ```bash
 cd /path/to/rentflow
 git pull origin main
-./deployment/scripts/deploy.sh
+./deploy.sh
 ```
 
-See `deployment/scripts/deploy.sh` for automated deployment with:
+The deployment script provides:
 - Pre-deployment checks
 - Database backups
 - Zero-downtime updates
