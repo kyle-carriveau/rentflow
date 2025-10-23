@@ -30,7 +30,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: develop  # Ensure we check out the develop branch
+          ref: ${{ github.event.workflow_run.head_sha }}  # Deploy exact tested commit
 
       - name: Deploy to Staging Environment
         uses: appleboy/ssh-action@v1.2.0
