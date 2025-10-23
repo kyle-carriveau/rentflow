@@ -103,7 +103,7 @@ class StagingConfig(Config):
     """
 
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = env_config('DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = env_config('DATABASE_URL', default='postgresql://user:pass@localhost/db')
     SESSION_COOKIE_SECURE = True
 
     # Staging-specific settings
@@ -133,7 +133,7 @@ class ProductionConfig(Config):
     """
 
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = env_config('DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = env_config('DATABASE_URL', default='postgresql://user:pass@localhost/db')
     SESSION_COOKIE_SECURE = True
 
     # Production requires strict settings
