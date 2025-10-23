@@ -5,20 +5,32 @@ on:
     workflows: ["Tests"]
     types:
       - completed
-    branches:
-      - develop
   workflow_dispatch:
 
 jobs:
   deploy:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # Only deploy if Tests passed AND it was triggered from develop branch
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'develop'
     environment: staging
 
     steps:
+      - name: Debug workflow trigger info
+        run: |
+          echo "=== Workflow Run Information ==="
+          echo "Triggered by workflow: ${{ github.event.workflow_run.name }}"
+          echo "Branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "================================"
+
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: develop  # Ensure we check out the develop branch
 
       - name: Deploy to Staging Environment
         uses: appleboy/ssh-action@v1.2.0
