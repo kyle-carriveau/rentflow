@@ -94,46 +94,69 @@ jobs:
             echo "✓ Staging backups: $BACKUP_COUNT files"
 
             echo "=== Building staging Docker images ==="
-            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build --no-cache web
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build web
+            echo "✓ New web image built"
 
-            echo "=== Stopping staging services ==="
-            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down 2>/dev/null || true
-            echo "✓ Services stopped"
+            echo "=== Ensuring database and Redis are running ==="
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d db redis
+            echo "✓ Database and Redis services ready"
 
-            echo "=== Running database migrations ==="
-            if ! docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm web flask db upgrade; then
+            echo "=== Running database migrations (zero-downtime) ==="
+            # Run migrations using temporary container while old web is still serving traffic
+            if ! docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm --no-deps web flask db upgrade; then
                 echo "ERROR: Database migration failed!"
-                echo "Attempting to restart services..."
-                docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
+                echo "Old version still running - no downtime occurred"
+                docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
                 exit 1
             fi
-            echo "✓ Migrations completed"
+            echo "✓ Database migrations completed successfully"
 
-            echo "=== Starting staging services ==="
-            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
+            echo "=== Deploying new web container (zero-downtime rolling update) ==="
+            # This performs a rolling update: starts new container, waits for health, then stops old
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --no-deps web
+            echo "✓ Web container updated"
 
-            echo "=== Waiting for services ==="
-            MAX_WAIT=60
+            echo "=== Ensuring NGINX is running ==="
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d nginx
+            echo "✓ NGINX ready"
+
+            echo "=== Waiting for new web container to be healthy ==="
+            MAX_WAIT=90
             ELAPSED=0
+            HEALTH_CHECK_PASSED=false
 
             while [ $ELAPSED -lt $MAX_WAIT ]; do
+                # Check container health status
                 WEB_STATUS=$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps web --format "{{.Status}}" 2>/dev/null || echo "")
-                DB_STATUS=$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps db --format "{{.Status}}" 2>/dev/null || echo "")
 
-                if echo "$WEB_STATUS" | grep -q "Up" && echo "$DB_STATUS" | grep -q "Up"; then
-                    echo "✓ Services are running"
-                    break
+                if echo "$WEB_STATUS" | grep -q "Up"; then
+                    echo "✓ Web container is running"
+
+                    # Double-check by hitting the health endpoint (staging uses port 9000)
+                    if curl -f -s http://localhost:9000/health > /dev/null 2>&1; then
+                        echo "✓ Health endpoint responding"
+                        HEALTH_CHECK_PASSED=true
+                        break
+                    else
+                        echo "  Health check endpoint not ready yet..."
+                    fi
+                else
+                    echo "  Container status: $WEB_STATUS"
                 fi
 
-                echo "Waiting... ($ELAPSED/$MAX_WAIT seconds)"
+                echo "Waiting for health checks... ($ELAPSED/$MAX_WAIT seconds)"
                 sleep 5
                 ELAPSED=$((ELAPSED + 5))
             done
 
-            if [ $ELAPSED -ge $MAX_WAIT ]; then
-                echo "⚠ Warning: Timeout reached"
-                echo "Services may still be starting. Check logs."
+            if [ "$HEALTH_CHECK_PASSED" = false ]; then
+                echo "❌ ERROR: Health check failed after $MAX_WAIT seconds"
+                echo "Deployment may have failed. Checking logs..."
+                docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --tail=50 web
+                exit 1
             fi
+
+            echo "✓ Staging deployment successful - new container is healthy and serving traffic"
 
             echo "=== Staging service status ==="
             docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps

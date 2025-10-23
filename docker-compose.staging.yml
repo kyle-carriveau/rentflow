@@ -77,7 +77,7 @@ services:
   # Flask Application (Staging)
   web:
     build:
-      context: ../..  # Build from project root (two levels up from deployment/docker/)
+      context: .  # Build from project root
       dockerfile: deployment/docker/Dockerfile
     container_name: rentflow_staging_web
     restart: unless-stopped
@@ -92,9 +92,9 @@ services:
       GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
     volumes:
-      - ../../instance-staging:/app/instance
-      - ../../logs-staging:/app/logs
-      - ../../uploads-staging:/app/uploads
+      - ./instance-staging:/app/instance
+      - ./logs-staging:/app/logs
+      - ./uploads-staging:/app/uploads
     ports:
       - "9000:8000"  # Flask internal port (mapped to 9000 on host)
     depends_on:
@@ -126,12 +126,12 @@ services:
       - "8443:443"   # HTTPS on port 8443
     volumes:
       # Use staging-specific NGINX config
-      - ../../deployment/nginx/staging/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ../../deployment/nginx/staging/conf.d:/etc/nginx/conf.d:ro
-      - ../../deployment/ssl-staging:/etc/nginx/ssl:ro
-      - ../../logs-staging/nginx:/var/log/nginx
-      - ../../website/static:/app/website/static:ro
-      - ../../uploads-staging:/app/uploads:ro
+      - ./deployment/nginx/staging/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deployment/nginx/staging/conf.d:/etc/nginx/conf.d:ro
+      - ./deployment/ssl-staging:/etc/nginx/ssl:ro
+      - ./logs-staging/nginx:/var/log/nginx
+      - ./website/static:/app/website/static:ro
+      - ./uploads-staging:/app/uploads:ro
     depends_on:
       - web
     healthcheck:
