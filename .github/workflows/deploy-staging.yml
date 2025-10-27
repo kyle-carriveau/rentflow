@@ -201,8 +201,11 @@ jobs:
             echo "=== Staging service status ==="
             docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
 
-            # Note: Skipping "docker image prune" to avoid affecting production images on shared VPS
-            # Old staging images will be cleaned up on next build (Docker build cache handles this)
+            echo "=== Cleaning up dangling images ==="
+            # Safe: only removes untagged/unreferenced images, not images used by running containers
+            # Necessary: prevents disk exhaustion from accumulated build layers over time
+            docker image prune -f
+            echo "✓ Dangling images cleaned up"
 
             echo "=== Staging deployment complete! ==="
             echo "Access staging at: http://$(hostname -I | awk '{print $1}'):8080"
