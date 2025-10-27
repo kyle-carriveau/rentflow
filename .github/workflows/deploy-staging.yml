@@ -187,9 +187,12 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            cd /home/ubuntu/rentflow
+            # Staging configuration
+            APP_DIR="/home/ubuntu/staging-rentflow"
             COMPOSE_FILE="docker-compose.staging.yml"
             ENV_FILE=".env.staging"
+
+            cd "$APP_DIR"
 
             echo "=== Staging Status ==="
             docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
