@@ -44,7 +44,7 @@ jobs:
             set -e
 
             # Staging configuration
-            APP_DIR="/home/ubuntu/rentflow"
+            APP_DIR="/home/ubuntu/staging-rentflow"
             COMPOSE_FILE="docker-compose.staging.yml"
             ENV_FILE=".env.staging"
 

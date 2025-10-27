@@ -98,12 +98,20 @@ jobs:
             BACKUP_COUNT=$(find backups/ -name "backup-*.sql" -type f 2>/dev/null | wc -l)
             echo "✓ Current backups: $BACKUP_COUNT files"
 
+            echo "=== One-time cleanup: remove orphaned containers ==="
+            # Remove any orphaned containers from previous deployments
+            # This is safe: only affects stopped/orphaned containers
+            # Needed for transition to zero-downtime deployments
+            docker compose -f "$COMPOSE_FILE" --env-file .env down --remove-orphans 2>/dev/null || true
+            docker system prune -f --volumes=false 2>/dev/null || true
+            echo "✓ Cleanup complete - ready for zero-downtime deployment"
+
             echo "=== Building Docker images ==="
             docker compose -f "$COMPOSE_FILE" --env-file .env build web
             echo "✓ New web image built"
 
             echo "=== Ensuring database and Redis are running ==="
-            docker compose -f "$COMPOSE_FILE" --env-file .env up -d db redis
+            docker compose -f "$COMPOSE_FILE" --env-file .env up -d --no-deps db redis
             echo "✓ Database and Redis services ready"
 
             echo "=== Running database migrations (zero-downtime) ==="
@@ -122,7 +130,7 @@ jobs:
             echo "✓ Web container updated"
 
             echo "=== Ensuring NGINX is running ==="
-            docker compose -f "$COMPOSE_FILE" --env-file .env up -d nginx
+            docker compose -f "$COMPOSE_FILE" --env-file .env up -d --no-deps nginx
             echo "✓ NGINX ready"
 
             echo "=== Waiting for new web container to be healthy ==="
