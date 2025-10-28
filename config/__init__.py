@@ -100,11 +100,14 @@ class StagingConfig(Config):
 
     Mirrors production setup but with separate database and relaxed security
     for testing purposes. Deployed on same VPS as production but different ports.
+
+    Note: SESSION_COOKIE_SECURE is False because staging uses HTTP (port 8080)
+    without SSL certificates. Production uses HTTPS with Cloudflare SSL.
     """
 
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = env_config('DATABASE_URL', default='postgresql://user:pass@localhost/db')
-    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = False  # Staging uses HTTP, not HTTPS
 
     # Staging-specific settings
     TESTING = False

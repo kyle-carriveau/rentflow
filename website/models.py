@@ -229,7 +229,27 @@ class User(db.Model, UserMixin):
         return query.first()
 
 class AnonymousUser(AnonymousUserMixin):
+    """Anonymous user proxy for Flask-Login with role-checking methods."""
+
     def is_owner(self):
+        return False
+
+    def is_manager(self):
+        return False
+
+    def is_staff(self):
+        return False
+
+    def can_create(self):
+        return False
+
+    def can_edit(self):
+        return False
+
+    def can_delete(self):
+        return False
+
+    def can_manage_users(self):
         return False
 
 class Portfolio(db.Model):

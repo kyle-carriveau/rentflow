@@ -111,6 +111,34 @@ jobs:
 
             echo "=== Ensuring database and Redis are running ==="
             docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d db redis
+
+            echo "=== Waiting for database to be healthy ==="
+            MAX_DB_WAIT=60
+            DB_ELAPSED=0
+            DB_HEALTHY=false
+
+            while [ $DB_ELAPSED -lt $MAX_DB_WAIT ]; do
+                DB_STATUS=$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps db --format "{{.Status}}" 2>/dev/null || echo "")
+
+                if echo "$DB_STATUS" | grep -q "healthy"; then
+                    echo "✓ Database is healthy and ready"
+                    DB_HEALTHY=true
+                    break
+                else
+                    echo "  Database status: $DB_STATUS"
+                    echo "  Waiting for database to be healthy... ($DB_ELAPSED/$MAX_DB_WAIT seconds)"
+                fi
+
+                sleep 2
+                DB_ELAPSED=$((DB_ELAPSED + 2))
+            done
+
+            if [ "$DB_HEALTHY" = false ]; then
+                echo "❌ ERROR: Database did not become healthy after $MAX_DB_WAIT seconds"
+                docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --tail=50 db
+                exit 1
+            fi
+
             echo "✓ Database and Redis services ready"
 
             echo "=== Running database migrations (zero-downtime) ==="
@@ -173,8 +201,11 @@ jobs:
             echo "=== Staging service status ==="
             docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
 
-            echo "=== Cleaning up old images ==="
+            echo "=== Cleaning up dangling images ==="
+            # Safe: only removes untagged/unreferenced images, not images used by running containers
+            # Necessary: prevents disk exhaustion from accumulated build layers over time
             docker image prune -f
+            echo "✓ Dangling images cleaned up"
 
             echo "=== Staging deployment complete! ==="
             echo "Access staging at: http://$(hostname -I | awk '{print $1}'):8080"

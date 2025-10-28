@@ -23,9 +23,13 @@ class SessionSecurity:
             current_app.logger.warning("Generated new SECRET_KEY. Please set a permanent key in production.")
 
         # Secure session configuration
+        # Only set SESSION_COOKIE_SECURE if not explicitly set by config class
+        # This allows environment-specific configs (StagingConfig) to override
+        if 'SESSION_COOKIE_SECURE' not in app.config:
+            app.config['SESSION_COOKIE_SECURE'] = not app.config.get('DEBUG', False)
+
         app.config.update({
-            # Session security
-            'SESSION_COOKIE_SECURE': not app.config.get('DEBUG', False),  # HTTPS only in production
+            # Session security (SESSION_COOKIE_SECURE handled above to respect config)
             'SESSION_COOKIE_HTTPONLY': True,  # Prevent XSS attacks
             'SESSION_COOKIE_SAMESITE': 'Lax',  # CSRF protection
             'PERMANENT_SESSION_LIFETIME': timedelta(minutes=cls.DEFAULT_TIMEOUT_MINUTES),
