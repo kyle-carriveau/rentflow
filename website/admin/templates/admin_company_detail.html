@@ -1,0 +1,500 @@
+{% extends "admin_base.html" %}
+
+{% block title %}{{ company.name }} - Company Details - Super Admin{% endblock %}
+
+{% block content %}
+
+<!-- Company Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}" class="text-danger">Dashboard</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page">Company Details</li>
+            </ol>
+        </nav>
+        <h2 class="mb-0 text-white">
+            <span class="fas fa-building text-danger me-2"></span>{{ company.name }}
+        </h2>
+        <p class="mb-0 text-500">Complete company overview and analytics</p>
+    </div>
+    <div class="col-auto">
+        <div class="badge bg-danger">
+            <span class="fas fa-shield-alt me-1"></span>READ-ONLY
+        </div>
+    </div>
+</div>
+
+<!-- Company Information Card -->
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-gradient-primary">
+                <h6 class="mb-0 text-white">
+                    <span class="fas fa-info-circle me-2"></span>Company Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tbody>
+                                <tr>
+                                    <td class="text-500 fw-semi-bold" style="width: 150px;">Company ID:</td>
+                                    <td class="text-white">{{ company.id }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-500 fw-semi-bold">Company Name:</td>
+                                    <td class="text-white fw-bold">{{ company.name }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-500 fw-semi-bold">Email:</td>
+                                    <td>
+                                        {% if company.email %}
+                                        <a href="mailto:{{ company.email }}" class="text-info">{{ company.email }}</a>
+                                        {% else %}
+                                        <span class="text-500">Not provided</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-500 fw-semi-bold">Phone:</td>
+                                    <td class="text-white">{{ company.phone or 'Not provided' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tbody>
+                                <tr>
+                                    <td class="text-500 fw-semi-bold" style="width: 150px;">Address:</td>
+                                    <td class="text-white">{{ company.address or 'Not provided' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-500 fw-semi-bold">City:</td>
+                                    <td class="text-white">{{ company.city or 'Not provided' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-500 fw-semi-bold">State:</td>
+                                    <td class="text-white">{{ company.state or 'Not provided' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-500 fw-semi-bold">Created:</td>
+                                    <td class="text-white">{{ company.created_at.strftime('%B %d, %Y at %I:%M %p') if company.created_at else 'Unknown' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <h5 class="text-white mb-3">
+            <span class="fas fa-chart-bar me-2"></span>Company Metrics
+        </h5>
+    </div>
+
+    <!-- Total Users -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Users</h6>
+                        <h2 class="text-white mb-0">{{ total_users }}</h2>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-primary">
+                            <span class="fas fa-users fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Properties -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Properties</h6>
+                        <h2 class="text-white mb-0">{{ total_properties }}</h2>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-info">
+                            <span class="fas fa-building fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Units -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Units</h6>
+                        <h2 class="text-white mb-0">{{ total_units }}</h2>
+                        <small class="text-success">{{ occupied_units }} occupied</small>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-success">
+                            <span class="fas fa-home fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Occupancy Rate -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Occupancy</h6>
+                        <h2 class="text-white mb-0">{{ "%.1f"|format(occupancy_rate) }}%</h2>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-warning">
+                            <span class="fas fa-chart-pie fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Metrics -->
+<div class="row g-3 mb-3">
+    <!-- Total Tenants -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Tenants</h6>
+                        <h2 class="text-white mb-0">{{ total_tenants }}</h2>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-info">
+                            <span class="fas fa-user-friends fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Leases -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Leases</h6>
+                        <h2 class="text-white mb-0">{{ total_leases }}</h2>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-primary">
+                            <span class="fas fa-file-contract fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users by Role -->
+    <div class="col-md-12 col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h6 class="mb-0 text-white">Users by Role</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <small class="text-500">Owners:</small>
+                        <h5 class="text-white mb-2">{{ users_by_role.get('owner', 0) }}</h5>
+                        <small class="text-500">Staff:</small>
+                        <h5 class="text-white mb-0">{{ users_by_role.get('staff', 0) }}</h5>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-500">Managers:</small>
+                        <h5 class="text-white mb-2">{{ users_by_role.get('manager', 0) }}</h5>
+                        <small class="text-500">Viewers:</small>
+                        <h5 class="text-white mb-0">{{ users_by_role.get('viewer', 0) }}</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Users List -->
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0 text-white">
+                    <span class="fas fa-users me-2"></span>Company Users ({{ users|length }})
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Date Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td class="text-white">{{ user.first_name }} {{ user.last_name }}</td>
+                                <td><a href="mailto:{{ user.email }}" class="text-info">{{ user.email }}</a></td>
+                                <td>
+                                    {% if user.role == 'owner' %}
+                                    <span class="badge bg-danger">Owner</span>
+                                    {% elif user.role == 'manager' %}
+                                    <span class="badge bg-warning">Manager</span>
+                                    {% elif user.role == 'staff' %}
+                                    <span class="badge bg-info">Staff</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Viewer</span>
+                                    {% endif %}
+                                </td>
+                                <td><small class="text-500">{{ user.date_joined.strftime('%m/%d/%Y') if user.date_joined else '—' }}</small></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-500 py-3">No users in this company</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Properties List -->
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0 text-white">
+                    <span class="fas fa-building me-2"></span>Properties ({{ properties|length }})
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Property Name</th>
+                                <th>Address</th>
+                                <th>City</th>
+                                <th>State</th>
+                                <th>Units</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for property in properties %}
+                            <tr>
+                                <td class="text-white fw-semi-bold">{{ property.name }}</td>
+                                <td>{{ property.address or '—' }}</td>
+                                <td>{{ property.city or '—' }}</td>
+                                <td>{{ property.state or '—' }}</td>
+                                <td><span class="badge bg-info">{{ property.units|length }}</span></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-500 py-3">No properties in this company</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Units List -->
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0 text-white">
+                    <span class="fas fa-home me-2"></span>Units ({{ units|length }})
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Unit Number</th>
+                                <th>Property</th>
+                                <th>Bedrooms</th>
+                                <th>Bathrooms</th>
+                                <th>Rent</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for unit in units %}
+                            <tr>
+                                <td class="text-white fw-semi-bold">{{ unit.unit_number }}</td>
+                                <td>{{ unit.property_ref.name if unit.property_ref else '—' }}</td>
+                                <td>{{ unit.bedrooms or '—' }}</td>
+                                <td>{{ unit.bathrooms or '—' }}</td>
+                                <td class="text-white">${{ unit.rent }}</td>
+                                <td>
+                                    {% if unit.occupancy_status == 'Occupied' %}
+                                    <span class="badge bg-success">Occupied</span>
+                                    {% elif unit.occupancy_status == 'Available' %}
+                                    <span class="badge bg-info">Available</span>
+                                    {% elif unit.occupancy_status == 'Reserved' %}
+                                    <span class="badge bg-warning">Reserved</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ unit.occupancy_status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-500 py-3">No units in this company</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tenants List -->
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0 text-white">
+                    <span class="fas fa-user-friends me-2"></span>Tenants ({{ tenants|length }})
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Date Added</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tenant in tenants %}
+                            <tr>
+                                <td class="text-white">{{ tenant.first_name }} {{ tenant.last_name }}</td>
+                                <td>
+                                    {% if tenant.email %}
+                                    <a href="mailto:{{ tenant.email }}" class="text-info">{{ tenant.email }}</a>
+                                    {% else %}
+                                    <span class="text-500">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ tenant.phone or '—' }}</td>
+                                <td><small class="text-500">{{ tenant.date_added.strftime('%m/%d/%Y') if tenant.date_added else '—' }}</small></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-500 py-3">No tenants in this company</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leases List -->
+<div class="row g-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0 text-white">
+                    <span class="fas fa-file-contract me-2"></span>Leases ({{ leases|length }})
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Tenant</th>
+                                <th>Unit</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Rent</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lease in leases %}
+                            <tr>
+                                <td class="text-white">{{ lease.tenant_ref.first_name if lease.tenant_ref else '—' }} {{ lease.tenant_ref.last_name if lease.tenant_ref else '' }}</td>
+                                <td>{{ lease.unit_ref.unit_number if lease.unit_ref else '—' }}</td>
+                                <td><small class="text-500">{{ lease.start.strftime('%m/%d/%Y') if lease.start else '—' }}</small></td>
+                                <td><small class="text-500">{{ lease.end.strftime('%m/%d/%Y') if lease.end else '—' }}</small></td>
+                                <td class="text-white">${{ lease.rent }}</td>
+                                <td>
+                                    {% if lease.status == 'Active' %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% elif lease.status == 'Pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% elif lease.status == 'Expired' %}
+                                    <span class="badge bg-danger">Expired</span>
+                                    {% elif lease.status == 'Terminated' %}
+                                    <span class="badge bg-secondary">Terminated</span>
+                                    {% else %}
+                                    <span class="badge bg-info">{{ lease.status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-500 py-3">No leases in this company</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

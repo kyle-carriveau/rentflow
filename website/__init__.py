@@ -98,7 +98,9 @@ def create_app(config_name=None):
 
     # Super Admin Blueprint (separate authentication system)
     from website.admin import admin
+    from website.admin.cli import admin_cli
     app.register_blueprint(admin)
+    app.register_blueprint(admin_cli)
 
     from website.errors import page_not_found, forbidden, internal_server_error
     app.register_error_handler(404, page_not_found)
