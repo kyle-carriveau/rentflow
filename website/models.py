@@ -1576,12 +1576,19 @@ class SuperAdmin(db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     notes = db.Column(db.Text)  # Internal notes about this admin
 
+    # Security fields
+    must_change_password = db.Column(db.Boolean, nullable=False, default=False)  # Force password change on next login
+    created_by_admin_id = db.Column(db.Integer, db.ForeignKey('super_admin.id'), nullable=True)  # Tracks who created this admin
+    password_changed_at = db.Column(db.DateTime, nullable=True)  # Last password change timestamp
+
     # Relationships
     audit_logs = db.relationship('SuperAdminAuditLog', backref='admin', lazy=True)
+    created_by = db.relationship('SuperAdmin', remote_side=[id], backref='created_admins', foreign_keys=[created_by_admin_id])
 
     def set_password(self, password):
-        """Set admin password with secure hashing."""
+        """Set admin password with secure hashing and track change timestamp."""
         self.password_hash = generate_password_hash(password)
+        self.password_changed_at = datetime.utcnow()
 
     def check_password(self, password):
         """Verify admin password."""

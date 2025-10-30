@@ -100,7 +100,7 @@ def create_app(config_name=None):
     from website.admin import admin
     from website.admin.cli import admin_cli
     app.register_blueprint(admin)
-    app.register_blueprint(admin_cli)
+    app.cli.add_command(admin_cli)
 
     from website.errors import page_not_found, forbidden, internal_server_error
     app.register_error_handler(404, page_not_found)
@@ -114,7 +114,11 @@ def create_app(config_name=None):
         PasswordHistoryModel, AuditLogModel, EmailVerificationAttempt,
         SuperAdmin, SuperAdminAuditLog
     )
-    
+
+    # Initialize admin bootstrap (creates initial admin from ENV vars if needed)
+    from website.admin.bootstrap import init_admin_bootstrap
+    init_admin_bootstrap(app)
+
     # with app.app_context():
     #     create_database(app)
     
