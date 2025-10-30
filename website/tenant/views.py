@@ -96,12 +96,12 @@ def create():
             return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
 
         # Check if phone number is already in use
-        existing_tenant_phone = Tenant.query.filter_by(phone=int(phone_digits)).first()
+        existing_tenant_phone = Tenant.query.filter_by(phone=phone_digits).first()
         if existing_tenant_phone:
             flash('Phone number is already in use by another tenant.', 'error')
             return render_template("/create_tenant.html", user=current_user, properties=get_properties(), states=get_states())
 
-        phone = int(phone_digits)
+        phone = phone_digits
 
         company_id = current_user.get_company_id()
 
@@ -229,12 +229,12 @@ def edit(uuid):
             return render_template("edit_tenant.html", tenant=tenant, user=current_user, properties=get_properties(), states=get_states())
 
         # Check if phone number is already in use (excluding current tenant)
-        existing_tenant_phone = Tenant.query.filter_by(phone=int(phone_digits)).filter(Tenant.id != tenant.id).first()
+        existing_tenant_phone = Tenant.query.filter_by(phone=phone_digits).filter(Tenant.id != tenant.id).first()
         if existing_tenant_phone:
             flash('Phone number is already in use by another tenant.', 'error')
             return render_template("edit_tenant.html", tenant=tenant, user=current_user, properties=get_properties(), states=get_states())
 
-        phone = int(phone_digits)
+        phone = phone_digits
 
         # Convert empty strings to None for optional fields
         property_id = property_id if property_id else None
