@@ -3,13 +3,11 @@ name: Tests
 on:
   pull_request:
     branches:
-      - main
-      - develop
+      - main  # Test PRs to main (validates merge before production)
   push:
     branches:
-      - main
-      - develop
-  workflow_dispatch:
+      - develop  # Test direct pushes to develop (triggers staging deployment)
+  workflow_dispatch:  # Allow manual trigger
 
 jobs:
   test:

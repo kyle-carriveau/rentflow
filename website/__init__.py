@@ -96,6 +96,12 @@ def create_app(config_name=None):
     from website.health import health_bp
     app.register_blueprint(health_bp)
 
+    # Super Admin Blueprint (separate authentication system)
+    from website.admin import admin
+    from website.admin.cli import admin_cli
+    app.register_blueprint(admin)
+    app.cli.add_command(admin_cli)
+
     from website.errors import page_not_found, forbidden, internal_server_error
     app.register_error_handler(404, page_not_found)
     app.register_error_handler(403, forbidden)
@@ -104,9 +110,15 @@ def create_app(config_name=None):
     # Import all models to ensure they're registered with SQLAlchemy
     from website.models import (
         User, Company, Portfolio, Property, Unit,
-        Tenant, Lease, LeaseTemplate, Payment, Expense, PasswordHistoryModel, AuditLogModel, EmailVerificationAttempt
+        Tenant, Lease, LeaseTemplate, Payment, Expense,
+        PasswordHistoryModel, AuditLogModel, EmailVerificationAttempt,
+        SuperAdmin, SuperAdminAuditLog
     )
-    
+
+    # Initialize admin bootstrap (creates initial admin from ENV vars if needed)
+    from website.admin.bootstrap import init_admin_bootstrap
+    init_admin_bootstrap(app)
+
     # with app.app_context():
     #     create_database(app)
     

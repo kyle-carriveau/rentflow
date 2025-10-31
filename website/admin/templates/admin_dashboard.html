@@ -1,0 +1,483 @@
+{% extends "admin_base.html" %}
+
+{% block title %}God View Dashboard - Super Admin{% endblock %}
+
+{% block content %}
+
+<!-- Dashboard Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0 text-white">
+            <span class="fas fa-crown text-danger me-2"></span>God View Dashboard
+        </h2>
+        <p class="mb-0 text-500">System-wide analytics and company management</p>
+    </div>
+    <div class="col-auto">
+        <div class="badge bg-danger">
+            <span class="fas fa-shield-alt me-1"></span>READ-ONLY ACCESS
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     SECTION 1: COMPANY METRICS
+     ========================================== -->
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <h5 class="text-white mb-3">
+            <span class="fas fa-building me-2"></span>Company Overview
+        </h5>
+    </div>
+
+    <!-- Total Companies -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Total Companies</h6>
+                        <h2 class="text-white mb-0">{{ total_companies }}</h2>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-primary">
+                            <span class="fas fa-building fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New This Month -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">New This Month</h6>
+                        <h2 class="text-white mb-0">{{ new_companies_this_month }}</h2>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-success">
+                            <span class="fas fa-plus-circle fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Companies -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Active (30 days)</h6>
+                        <h2 class="text-white mb-0">{{ active_companies_count }}</h2>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-info">
+                            <span class="fas fa-chart-line fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inactive Companies -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Inactive (90+ days)</h6>
+                        <h2 class="text-white mb-0">{{ inactive_companies_count }}</h2>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-warning">
+                            <span class="fas fa-exclamation-triangle fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     SECTION 2: USER METRICS
+     ========================================== -->
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <h5 class="text-white mb-3 mt-2">
+            <span class="fas fa-users me-2"></span>User Metrics
+        </h5>
+    </div>
+
+    <!-- Total Users -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Total Users</h6>
+                        <h2 class="text-white mb-0">{{ total_users }}</h2>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-primary">
+                            <span class="fas fa-users fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <small class="text-500">
+                        <span class="fas fa-user-plus me-1"></span>
+                        {{ recent_signups }} new in last 30 days
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users by Role -->
+    <div class="col-md-6 col-lg-8">
+        <div class="card h-100">
+            <div class="card-header">
+                <h6 class="mb-0 text-white">Users by Role</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6 col-lg-3 mb-2">
+                        <div class="text-center">
+                            <h4 class="text-white mb-0">{{ role_counts.get('owner', 0) }}</h4>
+                            <small class="text-500">Owners</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-3 mb-2">
+                        <div class="text-center">
+                            <h4 class="text-white mb-0">{{ role_counts.get('manager', 0) }}</h4>
+                            <small class="text-500">Managers</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-3 mb-2">
+                        <div class="text-center">
+                            <h4 class="text-white mb-0">{{ role_counts.get('staff', 0) }}</h4>
+                            <small class="text-500">Staff</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-3 mb-2">
+                        <div class="text-center">
+                            <h4 class="text-white mb-0">{{ role_counts.get('viewer', 0) }}</h4>
+                            <small class="text-500">Viewers</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     SECTION 3: PROPERTY/ASSET METRICS
+     ========================================== -->
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <h5 class="text-white mb-3 mt-2">
+            <span class="fas fa-home me-2"></span>Property & Asset Metrics
+        </h5>
+    </div>
+
+    <!-- Total Properties -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Properties</h6>
+                        <h2 class="text-white mb-0">{{ total_properties }}</h2>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-primary">
+                            <span class="fas fa-building fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Units -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Units</h6>
+                        <h2 class="text-white mb-0">{{ total_units }}</h2>
+                        <small class="text-success">{{ occupied_units }} occupied</small>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-info">
+                            <span class="fas fa-home fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Occupancy Rate -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Occupancy Rate</h6>
+                        <h2 class="text-white mb-0">{{ "%.1f"|format(occupancy_rate) }}%</h2>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-success">
+                            <span class="fas fa-chart-pie fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Tenants -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-500 mb-1">Tenants</h6>
+                        <h2 class="text-white mb-0">{{ total_tenants }}</h2>
+                    </div>
+                    <div class="avatar avatar-3xl">
+                        <div class="avatar-name rounded-circle bg-gradient-warning">
+                            <span class="fas fa-users fa-2x text-white"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     SECTION 4: TOP COMPANIES
+     ========================================== -->
+<div class="row g-3 mb-3">
+    <!-- Top Companies by Users -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h6 class="mb-0 text-white">
+                    <span class="fas fa-trophy me-2"></span>Top Companies by Users
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Company</th>
+                                <th class="text-end">Users</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for company_name, company_id, user_count in top_companies_by_users %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td class="text-white">{{ company_name }}</td>
+                                <td class="text-end">
+                                    <span class="badge bg-primary">{{ user_count }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ url_for('admin.company_detail', company_id=company_id) }}" class="btn btn-sm btn-falcon-default">
+                                        View <span class="fas fa-arrow-right ms-1"></span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-500">No companies found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Companies by Properties -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h6 class="mb-0 text-white">
+                    <span class="fas fa-building me-2"></span>Top Companies by Properties
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Company</th>
+                                <th class="text-end">Properties</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for company_name, company_id, property_count in top_companies_by_properties %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td class="text-white">{{ company_name }}</td>
+                                <td class="text-end">
+                                    <span class="badge bg-info">{{ property_count }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ url_for('admin.company_detail', company_id=company_id) }}" class="btn btn-sm btn-falcon-default">
+                                        View <span class="fas fa-arrow-right ms-1"></span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-500">No companies found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     SECTION 5: ALL COMPANIES LIST
+     ========================================== -->
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 text-white">
+                    <span class="fas fa-list me-2"></span>All Companies
+                </h6>
+                <span class="badge bg-primary">{{ all_companies|length }} total</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Company Name</th>
+                                <th>Contact Email</th>
+                                <th>Phone</th>
+                                <th>Created</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for company in all_companies %}
+                            <tr>
+                                <td>{{ company.id }}</td>
+                                <td class="text-white fw-semi-bold">{{ company.name }}</td>
+                                <td>
+                                    {% if company.email %}
+                                    <a href="mailto:{{ company.email }}" class="text-info">{{ company.email }}</a>
+                                    {% else %}
+                                    <span class="text-500">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ company.phone or '—' }}</td>
+                                <td>
+                                    <small class="text-500">{{ company.created_at.strftime('%m/%d/%Y') if company.created_at else '—' }}</small>
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ url_for('admin.company_detail', company_id=company.id) }}" class="btn btn-sm btn-falcon-primary">
+                                        <span class="fas fa-eye me-1"></span>View Details
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-500 py-4">
+                                    <span class="fas fa-inbox fa-2x mb-2 d-block"></span>
+                                    No companies registered yet
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     SECTION 6: RECENT COMPANIES
+     ========================================== -->
+<div class="row g-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0 text-white">
+                    <span class="fas fa-clock me-2"></span>Recent Company Signups
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark mb-0">
+                        <thead>
+                            <tr>
+                                <th>Company Name</th>
+                                <th>Contact</th>
+                                <th>Created</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for company in recent_companies %}
+                            <tr>
+                                <td class="text-white fw-semi-bold">{{ company.name }}</td>
+                                <td>
+                                    {% if company.email %}
+                                    <a href="mailto:{{ company.email }}" class="text-info">{{ company.email }}</a>
+                                    {% else %}
+                                    <span class="text-500">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-500">{{ company.created_at.strftime('%m/%d/%Y %I:%M %p') if company.created_at else '—' }}</small>
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ url_for('admin.company_detail', company_id=company.id) }}" class="btn btn-sm btn-falcon-default">
+                                        View <span class="fas fa-arrow-right ms-1"></span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-500 py-3">No recent signups</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1553,3 +1553,76 @@ class EmailVerificationAttempt(db.Model):
 
     def __repr__(self):
         return f'<EmailVerificationAttempt {self.user_id} - {self.email} - {self.created_at}>'
+
+
+class SuperAdmin(db.Model):
+    """
+    Super Administrator model for God View Dashboard.
+
+    Exists completely outside the multi-tenant system - no company_id.
+    Super admins can view all companies and their data but cannot modify anything.
+    Separate from regular User model for complete security isolation.
+    """
+    __tablename__ = 'super_admin'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(1500), nullable=False)
+    first_name = db.Column(db.String(150))
+    last_name = db.Column(db.String(150))
+    email = db.Column(db.String(150))  # For notifications, not login
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    notes = db.Column(db.Text)  # Internal notes about this admin
+
+    # Security fields
+    must_change_password = db.Column(db.Boolean, nullable=False, default=False)  # Force password change on next login
+    created_by_admin_id = db.Column(db.Integer, db.ForeignKey('super_admin.id'), nullable=True)  # Tracks who created this admin
+    password_changed_at = db.Column(db.DateTime, nullable=True)  # Last password change timestamp
+
+    # Relationships
+    audit_logs = db.relationship('SuperAdminAuditLog', backref='admin', lazy=True)
+    created_by = db.relationship('SuperAdmin', remote_side=[id], backref='created_admins', foreign_keys=[created_by_admin_id])
+
+    def set_password(self, password):
+        """Set admin password with secure hashing and track change timestamp."""
+        self.password_hash = generate_password_hash(password)
+        self.password_changed_at = datetime.utcnow()
+
+    def check_password(self, password):
+        """Verify admin password."""
+        return check_password_hash(self.password_hash, password)
+
+    def update_last_login(self):
+        """Update last login timestamp."""
+        self.last_login = datetime.utcnow()
+        db.session.commit()
+
+    def __repr__(self):
+        return f'<SuperAdmin {self.username}>'
+
+
+class SuperAdminAuditLog(db.Model):
+    """
+    Audit log for all super admin actions.
+
+    Tracks every action taken by super admins for security and compliance.
+    Logs what was viewed, when, by whom, and from where.
+    """
+    __tablename__ = 'super_admin_audit_log'
+
+    id = db.Column(db.Integer, primary_key=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('super_admin.id'), nullable=False)
+    action = db.Column(db.String(100), nullable=False)  # 'viewed_dashboard', 'viewed_company', etc.
+    target_company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)  # Which company was viewed
+    ip_address = db.Column(db.String(45))  # IPv6 compatible
+    user_agent = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    details = db.Column(db.Text)  # JSON string with additional context
+
+    # Relationships
+    target_company = db.relationship('Company', backref='admin_views', lazy=True)
+
+    def __repr__(self):
+        return f'<SuperAdminAuditLog {self.action} by admin_{self.admin_id} at {self.timestamp}>'
