@@ -1208,7 +1208,7 @@ class Lease(db.Model):
         # Generate populated contract
         return self.template.populate_template(lease_data)
 
-    def __init__(self, tenant_id=None, unit_id=None, property_id=None, company_id=None, start=None, end=None, rent=None):
+    def __init__(self, tenant_id=None, unit_id=None, property_id=None, company_id=None, start=None, end=None, rent=None, **kwargs):
         self.uuid = str(uuid.uuid4())
         self.tenant_id = tenant_id
         self.unit_id = unit_id
@@ -1217,6 +1217,12 @@ class Lease(db.Model):
         self.start = start
         self.end = end
         self.rent = rent
+
+        # Set any additional keyword arguments as attributes
+        # This allows setting template_id and all other optional Lease fields at creation
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
 
     @classmethod
     def find_by_uuid(cls, lease_uuid, company_id=None):
