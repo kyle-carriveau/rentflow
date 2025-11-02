@@ -5,16 +5,16 @@ on:
     workflows: ["Tests"]
     types:
       - completed
+    branches:
+      - develop  # Only trigger when Tests runs on develop branch
   workflow_dispatch:
 
 jobs:
   deploy:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    # Only deploy if Tests passed AND it was triggered from develop branch
-    if: |
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'develop'
+    # Only deploy if Tests passed (branch filter handled by workflow_run trigger)
+    if: github.event.workflow_run.conclusion == 'success'
     environment: staging
 
     steps:
