@@ -87,7 +87,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-rentflow_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-rentflow_staging}
       RATELIMIT_STORAGE_URL: redis://redis:6380/0
       # SESSION_COOKIE_SECURE: Removed - StagingConfig sets to False for HTTP
-      DEBUG: "False"
+      DEBUG: "True"  # Enable debug mode in staging
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
       GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
