@@ -1115,13 +1115,13 @@ class Lease(db.Model):
         Synchronize the occupancy status of the associated unit and property
         after this lease's status changes.
         """
-        # Update unit status
-        if self.unit_ref:
-            self.unit_ref.update_occupancy_status()
+        # Update unit status - use direct relationship for consistency
+        if self.unit:
+            self.unit.update_occupancy_status()
 
-        # Update property status
-        if self.property_ref:
-            self.property_ref.update_occupancy_status()
+        # Update property status - use direct relationship for consistency
+        if self.property_obj:
+            self.property_obj.update_occupancy_status()
 
     @staticmethod
     def update_all_statuses(company_id=None):
@@ -1191,7 +1191,7 @@ class Lease(db.Model):
             'tenant_phone': self.tenant_ref.phone if self.tenant_ref else '',
             'landlord_name': self.company_ref.name if self.company_ref else '',
             'landlord_company': self.company_ref.name if self.company_ref else '',
-            'property_address': self.property_ref.address if self.property_ref else '',
+            'property_address': self.property_obj.address if self.property_obj else '',
             'unit_number': self.unit_ref.name if self.unit_ref else '',
             'rent_amount': f"${self.rent:,.2f}",
             'security_deposit': f"${self.security_deposit:,.2f}" if self.security_deposit else '$0.00',
