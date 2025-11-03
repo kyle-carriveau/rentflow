@@ -777,10 +777,10 @@ class Lease(db.Model):
     violation_history = db.Column(db.Text, nullable=True)  # JSON array of lease violations
     maintenance_requests = db.Column(db.Text, nullable=True)  # JSON array of maintenance request references
 
-    # Relationships
-    tenant = db.relationship('Tenant', foreign_keys=[tenant_id])
-    unit = db.relationship('Unit', foreign_keys=[unit_id])
-    property_obj = db.relationship('Property', foreign_keys=[property_id])
+    # Relationships (with overlaps to resolve backref conflicts)
+    tenant = db.relationship('Tenant', foreign_keys=[tenant_id], overlaps="leases,tenant_ref")
+    unit = db.relationship('Unit', foreign_keys=[unit_id], overlaps="leases,unit_ref")
+    property_obj = db.relationship('Property', foreign_keys=[property_id], overlaps="lease_property_ref,leases")
     payments = db.relationship('Payment', backref='lease_ref', lazy=True, cascade='all, delete-orphan')
     template = db.relationship('LeaseTemplate', backref='leases_using_template', foreign_keys=[template_id])
 
@@ -1115,13 +1115,13 @@ class Lease(db.Model):
         Synchronize the occupancy status of the associated unit and property
         after this lease's status changes.
         """
-        # Update unit status
-        if self.unit_ref:
-            self.unit_ref.update_occupancy_status()
+        # Update unit status - use direct relationship for consistency
+        if self.unit:
+            self.unit.update_occupancy_status()
 
-        # Update property status
-        if self.property_ref:
-            self.property_ref.update_occupancy_status()
+        # Update property status - use direct relationship for consistency
+        if self.property_obj:
+            self.property_obj.update_occupancy_status()
 
     @staticmethod
     def update_all_statuses(company_id=None):
@@ -1191,7 +1191,7 @@ class Lease(db.Model):
             'tenant_phone': self.tenant_ref.phone if self.tenant_ref else '',
             'landlord_name': self.company_ref.name if self.company_ref else '',
             'landlord_company': self.company_ref.name if self.company_ref else '',
-            'property_address': self.property_ref.address if self.property_ref else '',
+            'property_address': self.property_obj.address if self.property_obj else '',
             'unit_number': self.unit_ref.name if self.unit_ref else '',
             'rent_amount': f"${self.rent:,.2f}",
             'security_deposit': f"${self.security_deposit:,.2f}" if self.security_deposit else '$0.00',
@@ -1208,7 +1208,7 @@ class Lease(db.Model):
         # Generate populated contract
         return self.template.populate_template(lease_data)
 
-    def __init__(self, tenant_id=None, unit_id=None, property_id=None, company_id=None, start=None, end=None, rent=None):
+    def __init__(self, tenant_id=None, unit_id=None, property_id=None, company_id=None, start=None, end=None, rent=None, **kwargs):
         self.uuid = str(uuid.uuid4())
         self.tenant_id = tenant_id
         self.unit_id = unit_id
@@ -1217,6 +1217,12 @@ class Lease(db.Model):
         self.start = start
         self.end = end
         self.rent = rent
+
+        # Set any additional keyword arguments as attributes
+        # This allows setting template_id and all other optional Lease fields at creation
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
 
     @classmethod
     def find_by_uuid(cls, lease_uuid, company_id=None):

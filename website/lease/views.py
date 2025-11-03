@@ -461,7 +461,7 @@ def delete(uuid):
 
     # Store references to unit and property before deletion
     unit = lease.unit_ref
-    property_obj = lease.property_ref
+    property_obj = lease.property_obj
 
     try:
         db.session.delete(lease)

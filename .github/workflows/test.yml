@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - develop  # Test direct pushes to develop (triggers staging deployment)
+      - main  # Test pushes to main (triggers production deployment)
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
