@@ -7,7 +7,7 @@ All routes are protected by @super_admin_required decorator except login/logout.
 
 from flask import render_template, request, redirect, url_for, flash, session
 from website.admin import admin
-from website.admin.forms import AdminLoginForm
+from website.admin.forms import AdminLoginForm, AdminPasswordChangeForm, AdminUserCreateForm
 from website.models import SuperAdmin, SuperAdminAuditLog, Company, User, Property, Unit, Tenant, Lease
 from website.auth_utils import super_admin_required, log_admin_action
 from website import db
@@ -55,6 +55,11 @@ def login():
                 path='/admin/login'
             )
 
+            # Check if admin must change password
+            if admin_user.must_change_password:
+                flash('You must change your password before continuing', 'warning')
+                return redirect(url_for('admin.change_password'))
+
             flash(f'Welcome, {admin_user.first_name or admin_user.username}!', 'success')
             return redirect(url_for('admin.dashboard'))
         else:
@@ -87,6 +92,74 @@ def logout():
     return redirect(url_for('admin.login'))
 
 
+@admin.route('/change-password', methods=['GET', 'POST'])
+def change_password():
+    """
+    Forced password change for super admins.
+
+    This route is accessible without @super_admin_required because admins
+    who must change their password need to access it before they can use
+    any other admin features.
+
+    Security:
+    - Still requires admin_id in session (must be logged in)
+    - Validates current password before allowing change
+    - Enforces strong password policy
+    - Logs password change action
+    - Clears must_change_password flag
+    """
+    # Require admin to be logged in (but not necessarily past password change)
+    admin_id = session.get('admin_id')
+    if not admin_id:
+        flash('Please log in first', 'warning')
+        return redirect(url_for('admin.login'))
+
+    # Get current admin
+    admin = SuperAdmin.query.get(admin_id)
+    if not admin or not admin.is_active:
+        session.clear()
+        flash('Admin account not found or inactive', 'error')
+        return redirect(url_for('admin.login'))
+
+    form = AdminPasswordChangeForm()
+
+    if form.validate_on_submit():
+        current_password = form.current_password.data
+        new_password = form.new_password.data
+
+        # Verify current password
+        if not admin.check_password(current_password):
+            flash('Current password is incorrect', 'error')
+            return render_template('admin_change_password.html', form=form, admin=admin)
+
+        # Check if new password is same as current
+        if admin.check_password(new_password):
+            flash('New password must be different from current password', 'error')
+            return render_template('admin_change_password.html', form=form, admin=admin)
+
+        # Set new password (handles hashing and password_changed_at)
+        admin.set_password(new_password)
+
+        # Clear the must_change_password flag
+        admin.must_change_password = False
+
+        # Commit changes
+        db.session.commit()
+
+        # Log the password change
+        log_admin_action(
+            admin_id=admin.id,
+            action='admin_password_changed',
+            path='/admin/change-password',
+            details='{"forced": true}'
+        )
+
+        flash('Password changed successfully! You can now access the admin dashboard.', 'success')
+        return redirect(url_for('admin.dashboard'))
+
+    return render_template('admin_change_password.html', form=form, admin=admin)
+
+
 @admin.route('/dashboard')
 @super_admin_required
 def dashboard():
@@ -101,6 +174,11 @@ def dashboard():
     # Get current admin info
     admin_id = session.get('admin_id')
     admin = SuperAdmin.query.get(admin_id)
+
+    # Force password change if required (in case user tries to access dashboard directly)
+    if admin.must_change_password:
+        flash('You must change your password before accessing the dashboard', 'warning')
+        return redirect(url_for('admin.change_password'))
 
     # Calculate date ranges
     now = datetime.utcnow()
@@ -249,6 +327,121 @@ def dashboard():
     )
 
 
+@admin.route('/users')
+@super_admin_required
+def admin_users_list():
+    """
+    List all super admin accounts.
+
+    Shows a table of all admin users with:
+    - Username, name, email
+    - Active status
+    - Created date and creator
+    - Last login
+    - Actions (view, edit, deactivate)
+    """
+    # Force password change if required
+    admin_id = session.get('admin_id')
+    current_admin = SuperAdmin.query.get(admin_id)
+    if current_admin.must_change_password:
+        flash('You must change your password before accessing admin management', 'warning')
+        return redirect(url_for('admin.change_password'))
+
+    # Get all admins with their creator information
+    admins = SuperAdmin.query.order_by(SuperAdmin.created_at.desc()).all()
+
+    # Build list with creator names
+    admin_list = []
+    for admin in admins:
+        creator_name = None
+        if admin.created_by_admin_id:
+            creator = SuperAdmin.query.get(admin.created_by_admin_id)
+            if creator:
+                creator_name = creator.username
+
+        admin_list.append({
+            'admin': admin,
+            'creator_name': creator_name
+        })
+
+    return render_template('admin_users_list.html', admin_list=admin_list, current_admin=current_admin)
+
+
+@admin.route('/users/create', methods=['GET', 'POST'])
+@super_admin_required
+def admin_user_create():
+    """
+    Create a new super administrator account.
+
+    Security:
+    - Requires existing admin to be logged in
+    - Enforces strong password policy
+    - Tracks creator via created_by_admin_id
+    - Forces new admin to change password on first login
+    - Logs admin creation action
+    """
+    # Force password change if required
+    admin_id = session.get('admin_id')
+    current_admin = SuperAdmin.query.get(admin_id)
+    if current_admin.must_change_password:
+        flash('You must change your password before creating admin accounts', 'warning')
+        return redirect(url_for('admin.change_password'))
+
+    form = AdminUserCreateForm()
+
+    if form.validate_on_submit():
+        username = form.username.data
+        first_name = form.first_name.data or None
+        last_name = form.last_name.data or None
+        email = form.email.data or None
+        password = form.password.data
+        notes = form.notes.data or None
+
+        # Check if username already exists
+        existing_admin = SuperAdmin.query.filter_by(username=username).first()
+        if existing_admin:
+            flash(f'Username "{username}" is already taken. Please choose a different username.', 'error')
+            return render_template('admin_user_create.html', form=form, current_admin=current_admin)
+
+        try:
+            # Create new admin account
+            new_admin = SuperAdmin(
+                username=username,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                is_active=True,
+                must_change_password=True,  # Force password change on first login
+                created_by_admin_id=current_admin.id,  # Track who created this admin
+                notes=notes
+            )
+
+            # Set password (handles hashing and password_changed_at)
+            new_admin.set_password(password)
+
+            # Save to database
+            db.session.add(new_admin)
+            db.session.commit()
+
+            # Log the admin creation
+            log_admin_action(
+                admin_id=current_admin.id,
+                action='admin_user_created',
+                path='/admin/users/create',
+                details=f'{{"new_admin_id": {new_admin.id}, "new_admin_username": "{username}"}}'
+            )
+
+            flash(f'Admin account "{username}" created successfully! They must change their password on first login.', 'success')
+            return redirect(url_for('admin.admin_users_list'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating admin account: {str(e)}', 'error')
+            return render_template('admin_user_create.html', form=form, current_admin=current_admin)
+
+    return render_template('admin_user_create.html', form=form, current_admin=current_admin)
+
+
 @admin.route('/company/<int:company_id>')
 @super_admin_required
 def company_detail(company_id):
@@ -261,6 +454,13 @@ def company_detail(company_id):
     - Properties, units, tenants
     - Activity metrics
     """
+    # Force password change if required
+    admin_id = session.get('admin_id')
+    admin = SuperAdmin.query.get(admin_id)
+    if admin.must_change_password:
+        flash('You must change your password before accessing company details', 'warning')
+        return redirect(url_for('admin.change_password'))
+
     company = Company.query.get_or_404(company_id)
 
     # Get company users

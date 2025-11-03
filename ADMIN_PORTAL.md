@@ -44,11 +44,74 @@ The Super Admin Portal is a **read-only system administration interface** that p
 
 - Deployment must be completed (Docker containers running)
 - Database migrations must be applied
-- CLI access to the production/staging server
 
 ### Initial Setup
 
-#### Step 1: Create Your First Admin Account
+There are **two ways** to create your first admin account:
+
+#### Method 1: Automatic Bootstrap (Recommended for Production)
+
+The easiest way to create an initial admin account is to use **environment variable bootstrap**. This method automatically creates an admin account when the application starts for the first time.
+
+**Step 1: Configure Environment Variables**
+
+Edit your `.env` file (production or staging) and add:
+
+```bash
+# Super Admin Bootstrap
+INITIAL_ADMIN_USERNAME=admin
+INITIAL_ADMIN_PASSWORD=YourSecure123!Password
+INITIAL_ADMIN_EMAIL=admin@yourdomain.com
+INITIAL_ADMIN_FIRST_NAME=System
+INITIAL_ADMIN_LAST_NAME=Administrator
+```
+
+**Password Requirements:**
+- Minimum 12 characters
+- At least one uppercase letter (A-Z)
+- At least one lowercase letter (a-z)
+- At least one digit (0-9)
+- At least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)
+
+**Step 2: Deploy or Restart Application**
+
+The admin account will be created automatically on next application startup:
+
+```bash
+# Docker deployment
+docker compose -f deployment/docker/docker-compose.yml up -d
+
+# Or restart if already running
+docker compose -f deployment/docker/docker-compose.yml restart web
+```
+
+**Step 3: Verify Creation**
+
+Check application logs for confirmation:
+
+```bash
+docker compose -f deployment/docker/docker-compose.yml logs web | grep "admin created"
+```
+
+You should see:
+```
+✅ Initial super admin created successfully: admin
+   Email: admin@yourdomain.com
+   Must change password on first login: Yes
+⚠️  SECURITY: Admin must change password on first login!
+```
+
+**Important Security Notes:**
+- The bootstrap admin will be **required to change their password** on first login
+- Bootstrap only runs if **zero admins exist** (idempotent - safe to leave configured)
+- Password is never logged in plaintext
+- After first admin is created, you can remove these variables or leave them (they won't create duplicates)
+
+---
+
+#### Method 2: CLI Command (Alternative)
+
+If you prefer CLI access or need to create additional admins without web access:
 
 **On Local Development:**
 ```bash
@@ -93,13 +156,25 @@ Navigate to the admin login page:
 - **Staging**: `https://staging.yourdomain.com/admin/login`
 - **Production**: `https://yourdomain.com/admin/login`
 
-#### Step 3: Log In
+#### Step 3: Log In and Change Password
 
-1. Enter your admin username (not email)
-2. Enter your admin password
-3. Click "Login as Admin"
+1. Navigate to `/admin/login`
+2. Enter your admin username (not email)
+3. Enter your admin password
+4. Click "Login as Admin"
 
 **Note:** Admin login is completely separate from regular user login. You cannot use regular user credentials to access the admin portal.
+
+**First Login - Password Change Required:**
+
+If this is your first login (or if `must_change_password` is set), you will be automatically redirected to change your password:
+
+1. Enter your **current password** (the bootstrap/initial password)
+2. Enter your **new password** (must meet strict admin requirements)
+3. Confirm your new password
+4. Click "Change Password"
+
+After successfully changing your password, you'll be redirected to the admin dashboard.
 
 ### User Interface Overview
 
@@ -113,9 +188,74 @@ After logging in, you'll see:
 
 ## Managing Admin Accounts
 
+### Overview
+
+Admin accounts can be managed through **two methods**:
+
+1. **Web Interface** (`/admin/users`) - Recommended for day-to-day admin management
+2. **CLI Commands** - Alternative for server-side management
+
+### Web-Based Admin Management (Recommended)
+
+#### Access the Manage Admins Page
+
+1. Log in to the admin portal at `/admin/login`
+2. Click "**Manage Admins**" in the navigation menu
+3. You'll see a list of all super administrator accounts
+
+#### Create New Admin Account (Web UI)
+
+**Steps:**
+
+1. Go to `/admin/users` (Manage Admins page)
+2. Click the "**Create New Admin**" button (top right)
+3. Fill out the admin creation form:
+   - **Username** (required): 3-50 characters, must be unique
+   - **First Name** (optional): Admin's first name
+   - **Last Name** (optional): Admin's last name
+   - **Email** (optional but recommended): For contact and notifications
+   - **Initial Password** (required): Must meet strict admin password requirements
+   - **Confirm Password** (required): Must match initial password
+   - **Notes** (optional): Internal notes about this admin account (max 500 chars)
+4. Click "**Create Admin Account**"
+
+**Password Requirements (Enforced):**
+- Minimum 12 characters
+- At least one uppercase letter (A-Z)
+- At least one lowercase letter (a-z)
+- At least one digit (0-9)
+- At least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)
+
+**Important Security Features:**
+- New admin will be **required to change their password on first login**
+- Creator is tracked (shows in admin list as "Created by")
+- Admin creation is logged in audit trail
+- Form validates username uniqueness before creation
+
+#### View Admin List
+
+The Manage Admins page (`/admin/users`) shows:
+
+- **Avatar**: Color-coded by status (green = active, gray = inactive)
+- **Username**: Admin's username with "You" badge for current admin
+- **Name**: First and last name (if provided)
+- **Email**: Clickable mailto link (if provided)
+- **Status**: Active/Inactive badge
+- **Created**: Account creation date
+- **Creator**: Who created this admin ("Bootstrap" if from environment variables)
+- **Last Login**: Most recent login timestamp or "Never"
+- **Warning Indicators**: Yellow warning for admins who haven't changed password yet
+
+#### Navigation
+
+- **Dashboard** → View system-wide metrics
+- **Manage Admins** → View and create admin accounts
+
+---
+
 ### CLI Commands Reference
 
-All admin management is done via Flask CLI commands. These commands must be run on the server (via SSH or Docker exec).
+Alternative method for admin management via command line. These commands must be run on the server (via SSH or Docker exec).
 
 #### Create Admin Account
 
@@ -254,18 +394,23 @@ Repeat for confirmation:
 ### Best Practices for Admin Management
 
 #### Password Security
-- ✅ Use strong passwords (min 8 chars, recommend 12+ chars)
-- ✅ Use mix of uppercase, lowercase, numbers, symbols
+- ✅ Use strong passwords (minimum 12 chars required, recommend 16+ chars)
+- ✅ Must contain: uppercase, lowercase, digit, special character
 - ✅ Never share admin passwords
+- ✅ Change initial/bootstrap passwords immediately after first login
 - ✅ Rotate passwords regularly (every 90 days recommended)
 - ✅ Use password manager for storage
+- ✅ All new admins are forced to change password on first login (automatic security)
 
 #### Account Management
 - ✅ Create individual accounts for each admin (no sharing)
 - ✅ Use descriptive first/last names for audit clarity
 - ✅ Provide valid email addresses for contact
-- ✅ Deactivate accounts when admins leave
-- ✅ Regularly review active admins (`list-admins`)
+- ✅ **Preferred**: Use web interface (`/admin/users/create`) for easier admin creation
+- ✅ **Alternative**: Use CLI commands if web access unavailable
+- ✅ **Bootstrap**: Use environment variables for initial admin on first deployment
+- ✅ Deactivate accounts when admins leave (CLI: `deactivate-admin`)
+- ✅ Regularly review active admins (Web: `/admin/users` or CLI: `list-admins`)
 
 #### Access Control
 - ✅ Limit number of super admins (principle of least privilege)
@@ -527,14 +672,55 @@ ORDER BY sal.timestamp DESC;
 - **Verification**: `check_password_hash()` for login
 
 #### Password Requirements
-- Minimum 8 characters (enforced by CLI)
+
+**Strict Admin Password Policy (Enforced):**
+- **Minimum 12 characters** (strictly enforced for all admin passwords)
+- **Uppercase letter** (A-Z) - at least one required
+- **Lowercase letter** (a-z) - at least one required
+- **Digit** (0-9) - at least one required
+- **Special character** (!@#$%^&*()_+-=[]{}|;:,.<>?) - at least one required
 - No maximum length
-- Recommend: 12+ characters with mixed case, numbers, symbols
+- Recommend: 16+ characters with random generation for maximum security
+
+**Validation:**
+- Enforced on web-based admin creation form
+- Enforced on password change page
+- Enforced by CLI commands
+- Enforced on bootstrap admin creation
+
+#### Forced Password Change on First Login
+
+**Security Feature:**
+
+All new admin accounts (created via bootstrap, web form, or CLI) are automatically flagged with `must_change_password=True`. This ensures:
+
+1. **Initial passwords are temporary**: Bootstrap and CLI-created passwords are never meant to be permanent
+2. **Admins choose their own password**: After first login, admin must set a password they know and trust
+3. **Prevents password sharing**: Forces each admin to personalize their credentials
+4. **Audit trail**: Password change is logged separately from account creation
+
+**How it Works:**
+
+1. Admin logs in with initial password (from bootstrap, web form, or CLI)
+2. System detects `must_change_password=True`
+3. Redirects to `/admin/change-password` automatically
+4. Admin cannot access dashboard or other features until password is changed
+5. After successful password change:
+   - `must_change_password` flag is cleared
+   - Action is logged in audit trail
+   - Admin can access full admin portal
+
+**Accessing Password Change Page:**
+
+- **Automatic**: After first login with initial password
+- **Manual**: Admins can access `/admin/change-password` anytime after login
+- **Protected**: Must be logged in, but bypasses `@super_admin_required` check
 
 #### Password Reset
-- Only via CLI command (no email reset link)
-- Requires server access
-- New password required immediately
+- **Web UI**: Admins can change their own password at `/admin/change-password`
+- **CLI**: Admin can be reset via `flask admin-cli reset-password USERNAME`
+- **No email reset**: Admin passwords cannot be reset via email (security by design)
+- **Requires**: Current password verification (web UI) or server access (CLI)
 
 ---
 
@@ -751,7 +937,9 @@ A: Yes. The sessions are completely separate (`session['user_id']` vs `session['
 A: Follow the principle of least privilege. Create one account per administrator who needs system-wide visibility. Typically 1-3 accounts for a small team.
 
 **Q: Can I create admin accounts through the web interface?**
-A: No. Admin accounts can only be created via CLI commands (`flask admin-cli create-admin`). This is a security feature requiring server access.
+A: **Yes!** Admin accounts can be created through the web interface at `/admin/users/create` (recommended method). Alternatively, you can use:
+- **Bootstrap**: Environment variables (`INITIAL_ADMIN_USERNAME`, `INITIAL_ADMIN_PASSWORD`) for automatic initial admin creation
+- **CLI**: `flask admin-cli create-admin` command if you prefer server-side management
 
 ---
 
@@ -844,11 +1032,12 @@ However, this stores the password in command history, so use with caution.
 
 ### Code Locations
 - **Models**: `website/models.py` (SuperAdmin, SuperAdminAuditLog)
-- **Views**: `website/admin/views.py`
-- **Forms**: `website/admin/forms.py`
-- **Templates**: `website/admin/templates/`
-- **CLI**: `website/admin/cli.py`
-- **Auth Utils**: `website/auth_utils.py` (@super_admin_required)
+- **Views**: `website/admin/views.py` (login, dashboard, password change, admin management)
+- **Forms**: `website/admin/forms.py` (AdminLoginForm, AdminPasswordChangeForm, AdminUserCreateForm)
+- **Templates**: `website/admin/templates/` (admin_login.html, admin_dashboard.html, admin_change_password.html, admin_users_list.html, admin_user_create.html, admin_base.html)
+- **Bootstrap**: `website/admin/bootstrap.py` (environment variable admin creation)
+- **CLI**: `website/admin/cli.py` (alternative admin management commands)
+- **Auth Utils**: `website/auth_utils.py` (@super_admin_required decorator)
 - **Migration**: `migrations/versions/f9a1b3c4d5e6_*.py`
 
 ### Support
@@ -860,9 +1049,19 @@ For issues or questions:
 
 ---
 
-**Version**: 1.0
-**Last Updated**: January 29, 2025
+**Version**: 2.0
+**Last Updated**: February 2, 2025
 **Status**: Production Ready ✅
+
+**New Features in v2.0:**
+- ✨ Environment variable bootstrap for automatic admin creation
+- ✨ Web-based admin user management (`/admin/users`)
+- ✨ Web-based admin creation form (`/admin/users/create`)
+- ✨ Forced password change on first login (security enhancement)
+- ✨ Strict 12-character password policy with complexity requirements
+- ✨ Admin navigation menu with "Manage Admins" link
+- ✨ Creator tracking for admin accounts
+- ✨ Enhanced admin list view with status indicators
 
 ---
 

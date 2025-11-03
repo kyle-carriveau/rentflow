@@ -130,6 +130,11 @@
                   <span class="fas fa-chart-pie me-1"></span>Dashboard
                 </a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint in ['admin.admin_users_list', 'admin.admin_user_create'] %}active text-danger{% else %}text-white{% endif %}" href="{{ url_for('admin.admin_users_list') }}">
+                  <span class="fas fa-user-shield me-1"></span>Manage Admins
+                </a>
+              </li>
             </ul>
 
             <!-- Right Side Navigation -->

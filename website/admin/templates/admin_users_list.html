@@ -1,0 +1,191 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Manage Admins - Super Admin{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0 text-white">
+            <span class="fas fa-user-shield text-danger me-2"></span>Manage Super Admins
+        </h2>
+        <p class="mb-0 text-500">View and manage super administrator accounts</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('admin.admin_user_create') }}" class="btn btn-danger">
+            <span class="fas fa-plus me-1"></span>Create New Admin
+        </a>
+    </div>
+</div>
+
+<!-- Admin Users Table -->
+<div class="card">
+    <div class="card-header">
+        <div class="row flex-between-center">
+            <div class="col-6">
+                <h5 class="mb-0 text-white">
+                    <span class="fas fa-users me-2"></span>Administrator Accounts
+                </h5>
+            </div>
+            <div class="col-6 text-end">
+                <span class="badge bg-secondary">
+                    {{ admin_list|length }} Total Admin{{ 's' if admin_list|length != 1 else '' }}
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover mb-0">
+                <thead class="bg-dark">
+                    <tr>
+                        <th scope="col">Username</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Created</th>
+                        <th scope="col">Creator</th>
+                        <th scope="col">Last Login</th>
+                        <th scope="col" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if admin_list %}
+                        {% for item in admin_list %}
+                        <tr {% if item.admin.id == current_admin.id %}class="table-active"{% endif %}>
+                            <!-- Username -->
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-xl me-2">
+                                        <div class="avatar-name rounded-circle {% if item.admin.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                            <span class="text-white fw-bold">{{ item.admin.username[0].upper() }}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="fw-semi-bold text-white">{{ item.admin.username }}</span>
+                                        {% if item.admin.id == current_admin.id %}
+                                            <span class="badge bg-info ms-1">You</span>
+                                        {% endif %}
+                                        {% if item.admin.must_change_password %}
+                                            <br><small class="text-warning"><span class="fas fa-exclamation-triangle me-1"></span>Password change required</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Name -->
+                            <td>
+                                {% if item.admin.first_name or item.admin.last_name %}
+                                    {{ item.admin.first_name }} {{ item.admin.last_name }}
+                                {% else %}
+                                    <span class="text-500">—</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Email -->
+                            <td>
+                                {% if item.admin.email %}
+                                    <a href="mailto:{{ item.admin.email }}" class="text-primary">{{ item.admin.email }}</a>
+                                {% else %}
+                                    <span class="text-500">—</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Status -->
+                            <td>
+                                {% if item.admin.is_active %}
+                                    <span class="badge bg-success">
+                                        <span class="fas fa-check-circle me-1"></span>Active
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger">
+                                        <span class="fas fa-ban me-1"></span>Inactive
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Created -->
+                            <td>
+                                <small class="text-500">
+                                    {{ item.admin.created_at.strftime('%b %d, %Y') if item.admin.created_at else '—' }}
+                                </small>
+                            </td>
+
+                            <!-- Creator -->
+                            <td>
+                                {% if item.creator_name %}
+                                    <span class="text-500">{{ item.creator_name }}</span>
+                                {% elif item.admin.created_by_admin_id %}
+                                    <span class="text-500">Admin #{{ item.admin.created_by_admin_id }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Bootstrap</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Last Login -->
+                            <td>
+                                {% if item.admin.last_login_at %}
+                                    <small class="text-500" title="{{ item.admin.last_login_at.strftime('%Y-%m-%d %H:%M:%S') }}">
+                                        {{ item.admin.last_login_at.strftime('%b %d, %Y') }}
+                                    </small>
+                                {% else %}
+                                    <span class="text-500">Never</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    {% if item.admin.id != current_admin.id %}
+                                        {% if item.admin.is_active %}
+                                            <button class="btn btn-sm btn-outline-warning" disabled title="Deactivate admin (coming soon)">
+                                                <span class="fas fa-ban"></span>
+                                            </button>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-outline-success" disabled title="Reactivate admin (coming soon)">
+                                                <span class="fas fa-check"></span>
+                                            </button>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <div class="text-500">
+                                    <span class="fas fa-users fa-3x mb-3 d-block opacity-50"></span>
+                                    <h5 class="text-white">No administrators found</h5>
+                                    <p class="mb-0">Get started by creating your first super admin account.</p>
+                                    <a href="{{ url_for('admin.admin_user_create') }}" class="btn btn-danger btn-sm mt-3">
+                                        <span class="fas fa-plus me-1"></span>Create Admin
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Management Info Card -->
+<div class="card mt-4">
+    <div class="card-body">
+        <h6 class="text-white mb-3">
+            <span class="fas fa-info-circle text-info me-2"></span>Admin Management Notes
+        </h6>
+        <ul class="text-500 mb-0">
+            <li>Super admins have read-only access to all company data across the platform</li>
+            <li>New admins are automatically required to change their password on first login</li>
+            <li>Bootstrap admins (created from environment variables) have no creator listed</li>
+            <li>Admin actions are logged in the audit trail for security compliance</li>
+            <li>Deactivated admins cannot log in but their account history is preserved</li>
+        </ul>
+    </div>
+</div>
+
+{% endblock %}
