@@ -118,9 +118,6 @@ def create_app(config_name=None):
     # Initialize admin bootstrap (creates initial admin from ENV vars if needed)
     from website.admin.bootstrap import init_admin_bootstrap
     init_admin_bootstrap(app)
-
-    # with app.app_context():
-    #     create_database(app)
     
     # Register template filters for consistent number formatting
     @app.template_filter('currency')
@@ -187,9 +184,3 @@ def create_app(config_name=None):
             return None
     
     return app
-
-# def create_database(app):
-#     # Always create tables (db.create_all() is safe to call multiple times)
-#     db.create_all()
-#     print('Created database and tables')
-

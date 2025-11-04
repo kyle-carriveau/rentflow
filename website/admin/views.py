@@ -12,7 +12,7 @@ from website.models import SuperAdmin, SuperAdminAuditLog, Company, User, Proper
 from website.auth_utils import super_admin_required, log_admin_action
 from website import db
 from sqlalchemy import func
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 @admin.route('/login', methods=['GET', 'POST'])
@@ -181,7 +181,7 @@ def dashboard():
         return redirect(url_for('admin.change_password'))
 
     # Calculate date ranges
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     thirty_days_ago = now - timedelta(days=30)
     ninety_days_ago = now - timedelta(days=90)
@@ -198,12 +198,10 @@ def dashboard():
         Company.created_at >= start_of_month
     ).count()
 
-    # Active companies (had users login in last 30 days)
-    # Subquery to find companies with recent user activity
-    active_companies_subquery = db.session.query(User.company_id).join(
-        SuperAdminAuditLog, SuperAdminAuditLog.admin_id == admin_id
-    ).filter(
-        User.date_joined >= thirty_days_ago  # Using date_joined as proxy for activity
+    # Active companies (had users created/joined in last 30 days)
+    # Using date_joined as a proxy for activity since we don't track last_login
+    active_companies_subquery = db.session.query(User.company_id).filter(
+        User.date_joined >= thirty_days_ago
     ).distinct().subquery()
 
     active_companies_count = db.session.query(func.count(Company.id)).filter(
