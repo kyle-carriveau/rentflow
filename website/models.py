@@ -231,6 +231,27 @@ class User(db.Model, UserMixin):
 class AnonymousUser(AnonymousUserMixin):
     """Anonymous user proxy for Flask-Login with role-checking methods."""
 
+    # Add safe default attributes to prevent template errors
+    @property
+    def first_name(self):
+        return "Guest"
+
+    @property
+    def last_name(self):
+        return "User"
+
+    @property
+    def email(self):
+        return ""
+
+    @property
+    def company_id(self):
+        return None
+
+    @property
+    def role(self):
+        return "anonymous"
+
     def is_owner(self):
         return False
 

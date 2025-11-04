@@ -33,7 +33,7 @@
                                     <small class="text-600">Expires: {{ lease.end.strftime('%m/%d/%Y') }}</small>
                                 </div>
                                 <small class="text-warning">
-                                    {% set days_left = (lease.end - today_date).days %}
+                                    {% set days_left = (lease.end.date() - today_date).days %}
                                     {{ days_left }} days
                                 </small>
                             </div>
@@ -554,7 +554,7 @@
                     {% if loop.index <= 6 %}
                     <div class="d-flex align-items-center mb-3">
                         <div class="avatar avatar-l me-3">
-                            {% set days_left = (lease.end - today_date).days %}
+                            {% set days_left = (lease.end.date() - today_date).days %}
                             <div class="avatar-name rounded-circle {% if days_left <= 30 %}bg-soft-danger text-danger{% elif days_left <= 60 %}bg-soft-warning text-warning{% else %}bg-soft-info text-info{% endif %} d-flex align-items-center justify-content-center">
                                 <span class="fas fa-calendar-alt"></span>
                             </div>

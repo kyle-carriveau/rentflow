@@ -170,7 +170,9 @@ def dashboard():
     # Renewal risk assessment
     renewal_risk_leases = []
     for lease in expiring_leases[:10]:  # Top 10 expiring leases
-        days_to_expiry = (lease.end - today_date).days
+        # Convert datetime to date for consistent comparison
+        lease_end_date = lease.end.date() if isinstance(lease.end, datetime) else lease.end
+        days_to_expiry = (lease_end_date - today_date).days
         risk_level = 'high' if days_to_expiry <= 30 else 'medium' if days_to_expiry <= 60 else 'low'
 
         renewal_risk_leases.append({
