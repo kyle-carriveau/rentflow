@@ -3,7 +3,7 @@ from flask_login import UserMixin, AnonymousUserMixin
 from sqlalchemy.sql import func
 from sqlalchemy import and_
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 class Company(db.Model):
@@ -230,6 +230,27 @@ class User(db.Model, UserMixin):
 
 class AnonymousUser(AnonymousUserMixin):
     """Anonymous user proxy for Flask-Login with role-checking methods."""
+
+    # Add safe default attributes to prevent template errors
+    @property
+    def first_name(self):
+        return "Guest"
+
+    @property
+    def last_name(self):
+        return "User"
+
+    @property
+    def email(self):
+        return ""
+
+    @property
+    def company_id(self):
+        return None
+
+    @property
+    def role(self):
+        return "anonymous"
 
     def is_owner(self):
         return False
@@ -1594,7 +1615,7 @@ class SuperAdmin(db.Model):
     def set_password(self, password):
         """Set admin password with secure hashing and track change timestamp."""
         self.password_hash = generate_password_hash(password)
-        self.password_changed_at = datetime.utcnow()
+        self.password_changed_at = datetime.now(timezone.utc)
 
     def check_password(self, password):
         """Verify admin password."""
@@ -1602,7 +1623,7 @@ class SuperAdmin(db.Model):
 
     def update_last_login(self):
         """Update last login timestamp."""
-        self.last_login = datetime.utcnow()
+        self.last_login = datetime.now(timezone.utc)
         db.session.commit()
 
     def __repr__(self):

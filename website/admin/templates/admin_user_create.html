@@ -1,0 +1,196 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Create New Admin - Super Admin{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="row align-items-center justify-content-between g-3 mb-4">
+    <div class="col-auto">
+        <h2 class="mb-0 text-white">
+            <span class="fas fa-user-plus text-danger me-2"></span>Create New Administrator
+        </h2>
+        <p class="mb-0 text-500">Add a new super administrator account to the system</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('admin.admin_users_list') }}" class="btn btn-secondary">
+            <span class="fas fa-arrow-left me-1"></span>Back to Admin List
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Admin Creation Form -->
+    <div class="col-xl-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0 text-white">
+                    <span class="fas fa-id-card me-2"></span>Administrator Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.csrf_token }}
+
+                    <!-- Username -->
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label text-white") }}
+                        <span class="text-danger">*</span>
+                        {{ form.username(class="form-control", placeholder="Enter unique username") }}
+                        <small class="form-text text-500">Username must be unique and 3-50 characters long</small>
+                        {% if form.username.errors %}
+                        <div class="mt-2">
+                            {% for error in form.username.errors %}
+                            <small class="text-danger"><span class="fas fa-exclamation-circle me-1"></span>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- First Name and Last Name -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.first_name.label(class="form-label text-white") }}
+                            {{ form.first_name(class="form-control", placeholder="First name (optional)") }}
+                            {% if form.first_name.errors %}
+                            <div class="mt-2">
+                                {% for error in form.first_name.errors %}
+                                <small class="text-danger"><span class="fas fa-exclamation-circle me-1"></span>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.last_name.label(class="form-label text-white") }}
+                            {{ form.last_name(class="form-control", placeholder="Last name (optional)") }}
+                            {% if form.last_name.errors %}
+                            <div class="mt-2">
+                                {% for error in form.last_name.errors %}
+                                <small class="text-danger"><span class="fas fa-exclamation-circle me-1"></span>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label text-white") }}
+                        {{ form.email(class="form-control", placeholder="email@example.com (optional)") }}
+                        <small class="form-text text-500">Optional - used for notifications and password recovery</small>
+                        {% if form.email.errors %}
+                        <div class="mt-2">
+                            {% for error in form.email.errors %}
+                            <small class="text-danger"><span class="fas fa-exclamation-circle me-1"></span>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Initial Password -->
+                    <div class="mb-3">
+                        {{ form.password.label(class="form-label text-white") }}
+                        <span class="text-danger">*</span>
+                        {{ form.password(class="form-control", placeholder="Set initial password") }}
+                        <small class="form-text text-500">Admin will be required to change this password on first login</small>
+                        {% if form.password.errors %}
+                        <div class="mt-2">
+                            {% for error in form.password.errors %}
+                            <small class="text-danger"><span class="fas fa-exclamation-circle me-1"></span>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="mb-3">
+                        {{ form.confirm_password.label(class="form-label text-white") }}
+                        <span class="text-danger">*</span>
+                        {{ form.confirm_password(class="form-control", placeholder="Confirm password") }}
+                        {% if form.confirm_password.errors %}
+                        <div class="mt-2">
+                            {% for error in form.confirm_password.errors %}
+                            <small class="text-danger"><span class="fas fa-exclamation-circle me-1"></span>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Notes -->
+                    <div class="mb-3">
+                        {{ form.notes.label(class="form-label text-white") }}
+                        {{ form.notes(class="form-control", placeholder="Optional notes about this admin account", rows="3") }}
+                        <small class="form-text text-500">Internal notes (not visible to the admin user)</small>
+                        {% if form.notes.errors %}
+                        <div class="mt-2">
+                            {% for error in form.notes.errors %}
+                            <small class="text-danger"><span class="fas fa-exclamation-circle me-1"></span>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="mt-4">
+                        {{ form.submit(class="btn btn-danger btn-lg w-100") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Requirements & Security Info -->
+    <div class="col-xl-4">
+        <!-- Password Requirements -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0 text-white">
+                    <span class="fas fa-shield-alt text-danger me-2"></span>Password Requirements
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="text-500 mb-3 fs--1">Admin passwords must meet these strict requirements:</p>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2 text-500 fs--1">
+                        <span class="fas fa-check-circle text-success me-2"></span>At least 12 characters
+                    </li>
+                    <li class="mb-2 text-500 fs--1">
+                        <span class="fas fa-check-circle text-success me-2"></span>Uppercase letter (A-Z)
+                    </li>
+                    <li class="mb-2 text-500 fs--1">
+                        <span class="fas fa-check-circle text-success me-2"></span>Lowercase letter (a-z)
+                    </li>
+                    <li class="mb-2 text-500 fs--1">
+                        <span class="fas fa-check-circle text-success me-2"></span>Digit (0-9)
+                    </li>
+                    <li class="mb-0 text-500 fs--1">
+                        <span class="fas fa-check-circle text-success me-2"></span>Special character (!@#$%...)
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Security Notice -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0 text-white">
+                    <span class="fas fa-info-circle text-info me-2"></span>Security Notice
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="text-500 mb-0 fs--1">
+                    <li class="mb-2">New admin will be required to change their password on first login</li>
+                    <li class="mb-2">All admin actions are logged in the audit trail</li>
+                    <li class="mb-2">Admin accounts have read-only access to all company data</li>
+                    <li class="mb-0">Creator information is tracked for accountability</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
