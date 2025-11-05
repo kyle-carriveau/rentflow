@@ -561,7 +561,7 @@
                         </div>
                         <div class="flex-1">
                             <p class="mb-0 fw-semi-bold">
-                                <a href="{{ url_for('tenant.show', uuid=lease.tenant_ref.uuid) }}" class="text-decoration-none">
+                                <a href="{{ url_for('tenant.home', uuid=lease.tenant_ref.uuid) }}" class="text-decoration-none">
                                     {{ lease.tenant_ref.first_name }} {{ lease.tenant_ref.last_name }}
                                 </a>
                             </p>
