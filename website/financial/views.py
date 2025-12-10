@@ -1,4 +1,4 @@
-from flask import render_template, Blueprint, request, redirect, url_for, flash, jsonify
+from flask import render_template, Blueprint, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
 from website.models import Payment, Expense, Lease, Property, Tenant
 from website import db
@@ -16,35 +16,37 @@ def dashboard():
     today = datetime.now()
     start_of_month = today.replace(day=1)
     end_of_month = (start_of_month + timedelta(days=32)).replace(day=1) - timedelta(days=1)
-    
+
+    # ✅ SECURITY FIX: Use company_id for multi-tenant isolation
+    company_id = current_user.get_company_id()
+
     # Income summary
     monthly_payments = Payment.query.filter(
-        Payment.user_id == current_user.id,
+        Payment.company_id == company_id,  # ✅ FIXED: was user_id
         Payment.status == 'completed',
         Payment.payment_date >= start_of_month,
         Payment.payment_date <= end_of_month
     ).all()
-    
+
     monthly_income = sum(payment.amount for payment in monthly_payments)
-    
+
     # Expense summary
     monthly_expenses = Expense.query.filter(
-        Expense.user_id == current_user.id,
+        Expense.company_id == company_id,  # ✅ FIXED: was user_id
         Expense.expense_date >= start_of_month,
         Expense.expense_date <= end_of_month
     ).all()
-    
+
     monthly_expense_total = sum(expense.amount for expense in monthly_expenses)
-    
+
     # Outstanding rent
     overdue_leases = []
-    company_id = current_user.get_company_id()
     current_leases = Lease.query.join(Property).filter(
         Property.company_id == company_id,
         Lease.start <= today,
         Lease.end >= today
     ).all()
-    
+
     total_outstanding = 0
     for lease in current_leases:
         balance = lease.get_outstanding_balance()
@@ -56,16 +58,16 @@ def dashboard():
                 'property': lease.lease_property_ref
             })
             total_outstanding += balance
-    
+
     # Recent transactions
     recent_payments = Payment.query.filter(
-        Payment.user_id == current_user.id
+        Payment.company_id == company_id  # ✅ FIXED: was user_id
     ).order_by(Payment.payment_date.desc()).limit(10).all()
-    
+
     recent_expenses = Expense.query.filter(
-        Expense.user_id == current_user.id
+        Expense.company_id == company_id  # ✅ FIXED: was user_id
     ).order_by(Expense.expense_date.desc()).limit(10).all()
-    
+
     return render_template('financial_dashboard.html',
                          user=current_user,
                          monthly_income=monthly_income,
@@ -84,22 +86,23 @@ def payments():
     page = request.args.get('page', 1, type=int)
     status_filter = request.args.get('status', 'all')
     property_filter = request.args.get('property', 'all')
-    
-    query = Payment.query.filter(Payment.user_id == current_user.id)
-    
+
+    # ✅ SECURITY FIX: Use company_id for multi-tenant isolation
+    company_id = current_user.get_company_id()
+    query = Payment.query.filter(Payment.company_id == company_id)  # ✅ FIXED: was user_id
+
     if status_filter != 'all':
         query = query.filter(Payment.status == status_filter)
-    
+
     if property_filter != 'all':
         query = query.filter(Payment.property_id == property_filter)
-    
+
     payments = query.order_by(Payment.payment_date.desc()).paginate(
         page=page, per_page=20, error_out=False
     )
-    
-    company_id = current_user.get_company_id()
+
     properties = Property.query.filter_by(company_id=company_id).all()
-    
+
     return render_template('payments.html',
                          user=current_user,
                          payments=payments,
@@ -130,12 +133,12 @@ def record_payment():
             errors.append('Please enter a valid payment amount greater than 0.')
         if not payment_date:
             errors.append('Please select a payment date.')
-            
+
         if errors:
             for error in errors:
                 flash(error, 'error')
             return redirect(url_for('financial.record_payment'))
-        
+
         try:
             # Validate lease exists and belongs to user's company
             company_id = current_user.get_company_id()
@@ -143,29 +146,30 @@ def record_payment():
             if not lease:
                 flash('The selected lease could not be found.', 'error')
                 return redirect(url_for('financial.record_payment'))
-                
-            if lease.lease_property_ref.company_id != current_user.get_company_id():
+
+            if lease.lease_property_ref.company_id != company_id:
                 flash('You do not have permission to record payments for this lease.', 'error')
                 return redirect(url_for('financial.record_payment'))
-            
+
             # Validate amount
             payment_amount = Decimal(amount)
             if payment_amount > 99999.99:
                 flash('Payment amount cannot exceed $99,999.99.', 'error')
                 return redirect(url_for('financial.record_payment'))
-            
+
             # Validate date
             try:
                 payment_date_obj = datetime.strptime(payment_date, '%Y-%m-%d')
             except ValueError:
                 flash('Please enter a valid payment date.', 'error')
                 return redirect(url_for('financial.record_payment'))
-            
-            # Create payment record
+
+            # ✅ SECURITY FIX: Create payment record with company_id AND fix undefined lease_id variable
             payment = Payment(
-                lease_id=lease_id,
+                lease_id=lease.id,  # ✅ FIXED: was undefined variable lease_id
                 property_id=lease.property_id,
-                user_id=current_user.id,
+                user_id=current_user.id,  # Track who created the payment
+                company_id=company_id,  # ✅ NEW: Multi-tenant isolation
                 amount=payment_amount,
                 payment_date=payment_date_obj,
                 due_date=payment_date_obj,  # Simplified for now
@@ -174,24 +178,26 @@ def record_payment():
                 notes=notes.strip() if notes else '',
                 status='completed'
             )
-            
+
             db.session.add(payment)
             db.session.commit()
-            
+
             # Success message with details
             tenant_name = f"{lease.tenant_ref.first_name} {lease.tenant_ref.last_name}"
             flash(f'Payment of ${payment_amount:,.2f} recorded successfully for {tenant_name}.', 'success')
             return redirect(url_for('financial.payments'))
-            
+
         except ValueError as e:
             db.session.rollback()
             flash('Invalid payment amount format. Please enter a valid number.', 'error')
             return redirect(url_for('financial.record_payment'))
         except Exception as e:
             db.session.rollback()
+            # ✅ SECURITY: Add logging without information disclosure
+            current_app.logger.error(f"Payment recording error for company {company_id}: {str(e)}", exc_info=True)
             flash('An unexpected error occurred while recording the payment. Please try again.', 'error')
             return redirect(url_for('financial.record_payment'))
-    
+
     # GET request - show form
     company_id = current_user.get_company_id()
     active_leases = Lease.query.join(Property).filter(
@@ -199,7 +205,7 @@ def record_payment():
         Lease.start <= datetime.now(),
         Lease.end >= datetime.now()
     ).all()
-    
+
     return render_template('record_payment.html',
                          user=current_user,
                          leases=active_leases,
@@ -212,26 +218,27 @@ def expenses():
     page = request.args.get('page', 1, type=int)
     category_filter = request.args.get('category', 'all')
     property_filter = request.args.get('property', 'all')
-    
-    query = Expense.query.filter(Expense.user_id == current_user.id)
-    
+
+    # ✅ SECURITY FIX: Use company_id for multi-tenant isolation
+    company_id = current_user.get_company_id()
+    query = Expense.query.filter(Expense.company_id == company_id)  # ✅ FIXED: was user_id
+
     if category_filter != 'all':
         query = query.filter(Expense.category == category_filter)
-    
+
     if property_filter != 'all':
         if property_filter == 'general':
             query = query.filter(Expense.property_id.is_(None))
         else:
             query = query.filter(Expense.property_id == property_filter)
-    
+
     expenses = query.order_by(Expense.expense_date.desc()).paginate(
         page=page, per_page=20, error_out=False
     )
-    
-    company_id = current_user.get_company_id()
+
     properties = Property.query.filter_by(company_id=company_id).all()
     categories = Expense.get_categories()
-    
+
     return render_template('expenses.html',
                          user=current_user,
                          expenses=expenses,
@@ -255,15 +262,19 @@ def add_expense():
         reference_number = request.form.get('reference_number', '')
         notes = request.form.get('notes', '')
         tax_deductible = bool(request.form.get('tax_deductible'))
-        
+
         # Validation
         if not all([amount, expense_date, category, description]):
             flash('Please fill in all required fields.', 'error')
             return redirect(url_for('financial.add_expense'))
-        
+
         try:
+            # ✅ SECURITY FIX: Add company_id to expense
+            company_id = current_user.get_company_id()
+
             expense = Expense(
-                user_id=current_user.id,
+                user_id=current_user.id,  # Track who created the expense
+                company_id=company_id,  # ✅ NEW: Multi-tenant isolation
                 property_id=int(property_id) if property_id and property_id != 'general' else None,
                 amount=Decimal(amount),
                 expense_date=datetime.strptime(expense_date, '%Y-%m-%d'),
@@ -275,22 +286,24 @@ def add_expense():
                 notes=notes,
                 tax_deductible=tax_deductible
             )
-            
+
             db.session.add(expense)
             db.session.commit()
             flash('Expense added successfully!', 'success')
             return redirect(url_for('financial.expenses'))
-            
+
         except Exception as e:
             db.session.rollback()
+            # ✅ SECURITY: Add logging without information disclosure
+            current_app.logger.error(f"Expense creation error for company {company_id}: {str(e)}", exc_info=True)
             flash('Error adding expense. Please try again.', 'error')
             return redirect(url_for('financial.add_expense'))
-    
+
     # GET request - show form
     company_id = current_user.get_company_id()
     properties = Property.query.filter_by(company_id=company_id).all()
     categories = Expense.get_categories()
-    
+
     return render_template('add_expense.html',
                          user=current_user,
                          properties=properties,
@@ -303,18 +316,21 @@ def reports():
     """Financial reports and analytics."""
     # Year-to-date summary
     year_start = datetime.now().replace(month=1, day=1)
-    
+
+    # ✅ SECURITY FIX: Use company_id for all queries
+    company_id = current_user.get_company_id()
+
     ytd_income = db.session.query(func.sum(Payment.amount)).filter(
-        Payment.user_id == current_user.id,
+        Payment.company_id == company_id,  # ✅ FIXED: was user_id
         Payment.status == 'completed',
         Payment.payment_date >= year_start
     ).scalar() or 0
-    
+
     ytd_expenses = db.session.query(func.sum(Expense.amount)).filter(
-        Expense.user_id == current_user.id,
+        Expense.company_id == company_id,  # ✅ FIXED: was user_id
         Expense.expense_date >= year_start
     ).scalar() or 0
-    
+
     # Monthly breakdown for chart
     monthly_data = []
     for month in range(1, 13):
@@ -323,39 +339,39 @@ def reports():
             month_end = datetime.now().replace(year=datetime.now().year + 1, month=1, day=1) - timedelta(days=1)
         else:
             month_end = datetime.now().replace(month=month + 1, day=1) - timedelta(days=1)
-        
+
         if month_start > datetime.now():
             break
-            
+
         income = db.session.query(func.sum(Payment.amount)).filter(
-            Payment.user_id == current_user.id,
+            Payment.company_id == company_id,  # ✅ FIXED: was user_id
             Payment.status == 'completed',
             Payment.payment_date >= month_start,
             Payment.payment_date <= month_end
         ).scalar() or 0
-        
+
         expenses = db.session.query(func.sum(Expense.amount)).filter(
-            Expense.user_id == current_user.id,
+            Expense.company_id == company_id,  # ✅ FIXED: was user_id
             Expense.expense_date >= month_start,
             Expense.expense_date <= month_end
         ).scalar() or 0
-        
+
         monthly_data.append({
             'month': month_start.strftime('%B'),
             'income': float(income),
             'expenses': float(expenses),
             'net': float(income - expenses)
         })
-    
+
     # Expense breakdown by category
     expense_categories = db.session.query(
         Expense.category,
         func.sum(Expense.amount).label('total')
     ).filter(
-        Expense.user_id == current_user.id,
+        Expense.company_id == company_id,  # ✅ FIXED: was user_id
         Expense.expense_date >= year_start
     ).group_by(Expense.category).all()
-    
+
     return render_template('financial_reports.html',
                          user=current_user,
                          ytd_income=ytd_income,

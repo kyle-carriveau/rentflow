@@ -9,6 +9,29 @@ from sqlalchemy import and_, or_, func
 from datetime import datetime, timedelta
 
 
+def escape_like_wildcards(text):
+    """
+    Escape SQL LIKE wildcards (%, _) in user input to prevent wildcard injection attacks.
+
+    Args:
+        text (str): User input text to escape
+
+    Returns:
+        str: Escaped text safe for LIKE queries
+    """
+    if not text:
+        return text
+    # Escape backslash first to prevent double-escaping
+    text = text.replace('\\', '\\\\')
+    # Escape SQL LIKE wildcards
+    text = text.replace('%', '\\%')
+    text = text.replace('_', '\\_')
+    # Escape bracket wildcards (for some SQL dialects)
+    text = text.replace('[', '\\[')
+    text = text.replace(']', '\\]')
+    return text
+
+
 def build_unit_query(company_id, filters):
     """
     Build a dynamic Unit query based on provided filters.
@@ -24,11 +47,13 @@ def build_unit_query(company_id, filters):
 
     # Text search in unit name and description
     if filters.get('query'):
-        search_term = f"%{filters['query']}%"
+        # ✅ SECURITY FIX: Escape wildcards to prevent injection
+        escaped_query = escape_like_wildcards(filters['query'])
+        search_term = f"%{escaped_query}%"
         query = query.filter(
             or_(
-                Unit.name.ilike(search_term),
-                Unit.description.ilike(search_term)
+                Unit.name.ilike(search_term, escape='\\'),
+                Unit.description.ilike(search_term, escape='\\')
             )
         )
 
@@ -107,12 +132,14 @@ def build_property_query(company_id, filters):
 
     # Text search
     if filters.get('query'):
-        search_term = f"%{filters['query']}%"
+        # ✅ SECURITY FIX: Escape wildcards to prevent injection
+        escaped_query = escape_like_wildcards(filters['query'])
+        search_term = f"%{escaped_query}%"
         query = query.filter(
             or_(
-                Property.name.ilike(search_term),
-                Property.address.ilike(search_term),
-                Property.description.ilike(search_term)
+                Property.name.ilike(search_term, escape='\\'),
+                Property.address.ilike(search_term, escape='\\'),
+                Property.description.ilike(search_term, escape='\\')
             )
         )
 
@@ -122,7 +149,9 @@ def build_property_query(company_id, filters):
 
     # City filter
     if filters.get('city'):
-        query = query.filter(Property.city.ilike(f"%{filters['city']}%"))
+        # ✅ SECURITY FIX: Escape wildcards to prevent injection
+        escaped_city = escape_like_wildcards(filters['city'])
+        query = query.filter(Property.city.ilike(f"%{escaped_city}%", escape='\\'))
 
     # State filter
     if filters.get('state'):
@@ -157,13 +186,15 @@ def build_tenant_query(company_id, filters):
 
     # Text search in name, email, phone
     if filters.get('query'):
-        search_term = f"%{filters['query']}%"
+        # ✅ SECURITY FIX: Escape wildcards to prevent injection
+        escaped_query = escape_like_wildcards(filters['query'])
+        search_term = f"%{escaped_query}%"
         query = query.filter(
             or_(
-                Tenant.first_name.ilike(search_term),
-                Tenant.last_name.ilike(search_term),
-                Tenant.email.ilike(search_term),
-                Tenant.phone.ilike(search_term)
+                Tenant.first_name.ilike(search_term, escape='\\'),
+                Tenant.last_name.ilike(search_term, escape='\\'),
+                Tenant.email.ilike(search_term, escape='\\'),
+                Tenant.phone.ilike(search_term, escape='\\')
             )
         )
 
@@ -197,11 +228,13 @@ def build_lease_query(company_id, filters):
 
     # Text search (in tenant name via relationship)
     if filters.get('query'):
-        search_term = f"%{filters['query']}%"
+        # ✅ SECURITY FIX: Escape wildcards to prevent injection
+        escaped_query = escape_like_wildcards(filters['query'])
+        search_term = f"%{escaped_query}%"
         query = query.join(Tenant).filter(
             or_(
-                Tenant.first_name.ilike(search_term),
-                Tenant.last_name.ilike(search_term)
+                Tenant.first_name.ilike(search_term, escape='\\'),
+                Tenant.last_name.ilike(search_term, escape='\\')
             )
         )
 
@@ -261,14 +294,16 @@ def global_search(company_id, query_string, resource_type='all'):
         'leases': []
     }
 
-    search_term = f"%{query_string}%"
+    # ✅ SECURITY FIX: Escape wildcards to prevent injection
+    escaped_query = escape_like_wildcards(query_string)
+    search_term = f"%{escaped_query}%"
 
     if resource_type in ['all', 'units']:
         # Search units by name or description
         results['units'] = Unit.query.filter_by(company_id=company_id).filter(
             or_(
-                Unit.name.ilike(search_term),
-                Unit.description.ilike(search_term)
+                Unit.name.ilike(search_term, escape='\\'),
+                Unit.description.ilike(search_term, escape='\\')
             )
         ).limit(10).all()
 
@@ -276,9 +311,9 @@ def global_search(company_id, query_string, resource_type='all'):
         # Search properties by name or address
         results['properties'] = Property.query.filter_by(company_id=company_id).filter(
             or_(
-                Property.name.ilike(search_term),
-                Property.address.ilike(search_term),
-                Property.description.ilike(search_term)
+                Property.name.ilike(search_term, escape='\\'),
+                Property.address.ilike(search_term, escape='\\'),
+                Property.description.ilike(search_term, escape='\\')
             )
         ).limit(10).all()
 
@@ -286,9 +321,9 @@ def global_search(company_id, query_string, resource_type='all'):
         # Search tenants by name or email
         results['tenants'] = Tenant.query.filter_by(company_id=company_id).filter(
             or_(
-                Tenant.first_name.ilike(search_term),
-                Tenant.last_name.ilike(search_term),
-                Tenant.email.ilike(search_term)
+                Tenant.first_name.ilike(search_term, escape='\\'),
+                Tenant.last_name.ilike(search_term, escape='\\'),
+                Tenant.email.ilike(search_term, escape='\\')
             )
         ).limit(10).all()
 
@@ -296,8 +331,8 @@ def global_search(company_id, query_string, resource_type='all'):
         # Search leases by tenant name
         results['leases'] = Lease.query.filter_by(company_id=company_id).join(Tenant).filter(
             or_(
-                Tenant.first_name.ilike(search_term),
-                Tenant.last_name.ilike(search_term)
+                Tenant.first_name.ilike(search_term, escape='\\'),
+                Tenant.last_name.ilike(search_term, escape='\\')
             )
         ).limit(10).all()
 
