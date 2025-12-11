@@ -1,7 +1,7 @@
 from flask.app import Flask
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, RadioField, SelectMultipleField, PasswordField, BooleanField, TextAreaField, IntegerField, DateField
-from wtforms.validators import InputRequired, DataRequired, Length, NoneOf, ValidationError, Email, Regexp, Optional
+from wtforms.validators import InputRequired, DataRequired, Length, NoneOf, ValidationError, Email, Regexp, Optional, EqualTo
 from website.models import User
 
 # Form for login
@@ -64,3 +64,39 @@ class RegistrationForm(FlaskForm):
     def validate_password_confirm(self, field):
         if self.password.data != field.data:
             raise ValidationError("Passwords do not match.")
+
+
+# Form for forgot password request
+class ForgotPasswordForm(FlaskForm):
+    """Form for requesting password reset email."""
+    email = StringField(
+        'Email Address',
+        validators=[
+            DataRequired(message="Email address is required."),
+            Email(message="Please enter a valid email address.")
+        ],
+        render_kw={"placeholder": "Enter your email address"}
+    )
+    submit = SubmitField('Send Reset Link')
+
+
+# Form for resetting password with token
+class ResetPasswordForm(FlaskForm):
+    """Form for setting new password via reset token."""
+    password = PasswordField(
+        'New Password',
+        validators=[
+            DataRequired(message="Password is required."),
+            Length(min=8, message="Password must be at least 8 characters long.")
+        ],
+        render_kw={"placeholder": "Enter new password"}
+    )
+    confirm_password = PasswordField(
+        'Confirm Password',
+        validators=[
+            DataRequired(message="Please confirm your password."),
+            EqualTo('password', message='Passwords must match.')
+        ],
+        render_kw={"placeholder": "Confirm new password"}
+    )
+    submit = SubmitField('Reset Password')

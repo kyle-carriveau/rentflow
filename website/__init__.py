@@ -112,7 +112,7 @@ def create_app(config_name=None):
         User, Company, Portfolio, Property, Unit,
         Tenant, Lease, LeaseTemplate, Payment, Expense,
         PasswordHistoryModel, AuditLogModel, EmailVerificationAttempt,
-        SuperAdmin, SuperAdminAuditLog
+        PasswordResetToken, SuperAdmin, SuperAdminAuditLog
     )
 
     # Initialize admin bootstrap (creates initial admin from ENV vars if needed)

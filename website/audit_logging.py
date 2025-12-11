@@ -23,6 +23,7 @@ class AuditLogger:
     EVENT_LOGIN_FAILED = 'login_failed'
     EVENT_LOGOUT = 'logout'
     EVENT_PASSWORD_CHANGE = 'password_change'
+    EVENT_PASSWORD_RESET_REQUESTED = 'password_reset_requested'
     EVENT_ACCOUNT_LOCKED = 'account_locked'
     EVENT_REGISTRATION = 'user_registration'
 
@@ -239,7 +240,7 @@ class AuditLogger:
     def _infer_category(cls, event_type):
         """Infer event category from event type."""
         if event_type in [cls.EVENT_LOGIN_SUCCESS, cls.EVENT_LOGIN_FAILED, cls.EVENT_LOGOUT,
-                         cls.EVENT_PASSWORD_CHANGE, cls.EVENT_REGISTRATION]:
+                         cls.EVENT_PASSWORD_CHANGE, cls.EVENT_PASSWORD_RESET_REQUESTED, cls.EVENT_REGISTRATION]:
             return cls.CATEGORY_AUTHENTICATION
         elif event_type in [cls.EVENT_PERMISSION_DENIED, cls.EVENT_ROLE_CHANGE]:
             return cls.CATEGORY_AUTHORIZATION

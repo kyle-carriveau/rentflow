@@ -137,7 +137,7 @@
                               {{ form.remember_me.label(class="form-check-label mb-0") }}
                             </div>
                           </div>
-                          <div class="col-auto"><a class="fs--1" href="/forgot_password">Forgot Password?</a></div>
+                          <div class="col-auto"><a class="fs--1" href="{{ url_for('auth.forgot') }}">Forgot Password?</a></div>
                         </div>
                         <div class="mb-3">
                           {{ form.login_submit(class="btn btn-primary d-block w-100 mt-3") }}

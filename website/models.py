@@ -1582,6 +1582,440 @@ class EmailVerificationAttempt(db.Model):
         return f'<EmailVerificationAttempt {self.user_id} - {self.email} - {self.created_at}>'
 
 
+class PasswordResetToken(db.Model):
+    """
+    Password reset tokens for forgot password functionality.
+
+    Tokens are hashed before storage and expire after 24 hours.
+    Single-use tokens are invalidated after successful password reset.
+    """
+    __tablename__ = 'password_reset_token'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    token_hash = db.Column(db.String(255), nullable=False, unique=True, index=True)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    ip_address = db.Column(db.String(45))  # IPv6 compatible
+    user_agent = db.Column(db.String(255))
+
+    # Relationship
+    user = db.relationship('User', backref='reset_tokens')
+
+    def __repr__(self):
+        return f'<PasswordResetToken {self.user_id} - expires: {self.expires_at} - used: {self.used}>'
+
+
+class SubscriptionPlan(db.Model):
+    """
+    Subscription plan definitions (Free, Pro, Enterprise).
+
+    Defines pricing tiers, feature limits, and billing options.
+    Plans are system-wide and not tied to any specific company.
+    """
+    __tablename__ = 'subscription_plan'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Plan identification
+    name = db.Column(db.String(50), nullable=False, unique=True)  # Free, Pro, Enterprise
+    display_name = db.Column(db.String(100), nullable=False)  # "Professional Plan"
+    description = db.Column(db.Text)  # Plan description for marketing
+
+    # Pricing
+    price_monthly = db.Column(db.Numeric(10, 2), nullable=False, default=0)  # Monthly price in USD
+    price_annual = db.Column(db.Numeric(10, 2), nullable=False, default=0)  # Annual price in USD
+
+    # Feature limits
+    max_portfolios = db.Column(db.Integer, nullable=True)  # NULL = unlimited
+    max_properties = db.Column(db.Integer, nullable=True)  # NULL = unlimited
+    max_units = db.Column(db.Integer, nullable=True)  # NULL = unlimited
+    max_tenants = db.Column(db.Integer, nullable=True)  # NULL = unlimited
+    max_users = db.Column(db.Integer, nullable=True)  # NULL = unlimited
+
+    # Feature flags
+    advanced_reporting = db.Column(db.Boolean, default=False)
+    priority_support = db.Column(db.Boolean, default=False)
+    custom_branding = db.Column(db.Boolean, default=False)
+    api_access = db.Column(db.Boolean, default=False)
+    bulk_operations = db.Column(db.Boolean, default=False)
+
+    # Stripe integration
+    stripe_price_id_monthly = db.Column(db.String(100))  # Stripe Price ID for monthly billing
+    stripe_price_id_annual = db.Column(db.String(100))  # Stripe Price ID for annual billing
+    stripe_product_id = db.Column(db.String(100))  # Stripe Product ID
+
+    # Plan status
+    is_active = db.Column(db.Boolean, default=True)
+    is_public = db.Column(db.Boolean, default=True)  # Show on pricing page
+    sort_order = db.Column(db.Integer, default=0)  # Display order on pricing page
+
+    # Metadata
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    subscriptions = db.relationship('CompanySubscription', backref='plan', lazy=True)
+
+    def __repr__(self):
+        return f'<SubscriptionPlan {self.name} - ${self.price_monthly}/mo>'
+
+    def get_limit_display(self, limit_name):
+        """Get human-readable display of a limit."""
+        limit_value = getattr(self, limit_name, None)
+        return "Unlimited" if limit_value is None else str(limit_value)
+
+    def is_limit_unlimited(self, limit_name):
+        """Check if a specific limit is unlimited."""
+        limit_value = getattr(self, limit_name, None)
+        return limit_value is None
+
+    def get_annual_savings(self):
+        """Calculate annual savings percentage."""
+        if self.price_monthly == 0 or self.price_annual == 0:
+            return 0
+        monthly_total = float(self.price_monthly) * 12
+        annual_price = float(self.price_annual)
+        savings = ((monthly_total - annual_price) / monthly_total) * 100
+        return round(savings, 1)
+
+
+class CompanySubscription(db.Model):
+    """
+    Company's active subscription and usage tracking.
+
+    Links a company to their subscription plan and tracks usage
+    against limits with grace period support.
+    """
+    __tablename__ = 'company_subscription'
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False, unique=True)
+    plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plan.id'), nullable=False)
+
+    # Billing information
+    billing_cycle = db.Column(db.String(20), nullable=False, default='monthly')  # monthly, annual
+    status = db.Column(db.String(20), nullable=False, default='active')  # active, past_due, canceled, trialing
+
+    # Subscription dates
+    subscribed_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    current_period_start = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    current_period_end = db.Column(db.DateTime)
+    trial_start = db.Column(db.DateTime)
+    trial_end = db.Column(db.DateTime)
+    canceled_at = db.Column(db.DateTime)
+    ends_at = db.Column(db.DateTime)  # When subscription fully ends after cancellation
+
+    # Usage tracking (cached for performance)
+    current_portfolios = db.Column(db.Integer, default=0)
+    current_properties = db.Column(db.Integer, default=0)
+    current_units = db.Column(db.Integer, default=0)
+    current_tenants = db.Column(db.Integer, default=0)
+    current_users = db.Column(db.Integer, default=0)
+    usage_last_updated = db.Column(db.DateTime)
+
+    # Grace period tracking
+    is_over_limit = db.Column(db.Boolean, default=False)
+    over_limit_since = db.Column(db.DateTime)  # When company first exceeded limits
+    grace_period_ends = db.Column(db.DateTime)  # When enforcement begins
+    limit_warning_sent = db.Column(db.Boolean, default=False)
+    limit_final_warning_sent = db.Column(db.Boolean, default=False)
+
+    # Stripe integration
+    stripe_customer_id = db.Column(db.String(100))  # Stripe Customer ID
+    stripe_subscription_id = db.Column(db.String(100))  # Stripe Subscription ID
+    stripe_status = db.Column(db.String(50))  # Stripe subscription status
+
+    # Metadata
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    company = db.relationship('Company', backref=db.backref('subscription', uselist=False, lazy=True))
+    payment_history = db.relationship('PaymentHistory', backref='subscription', lazy=True, cascade='all, delete-orphan')
+    usage_events = db.relationship('UsageEvent', backref='subscription', lazy=True, cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<CompanySubscription company_id={self.company_id} plan={self.plan.name} status={self.status}>'
+
+    def is_active(self):
+        """Check if subscription is currently active."""
+        return self.status in ['active', 'trialing']
+
+    def is_in_trial(self):
+        """Check if subscription is in trial period."""
+        if not self.trial_end:
+            return False
+        return datetime.utcnow() < self.trial_end
+
+    def days_until_renewal(self):
+        """Calculate days until next billing cycle."""
+        if not self.current_period_end:
+            return None
+        delta = self.current_period_end - datetime.utcnow()
+        return max(0, delta.days)
+
+    def is_in_grace_period(self):
+        """Check if company is in grace period for overages."""
+        if not self.is_over_limit or not self.grace_period_ends:
+            return False
+        return datetime.utcnow() < self.grace_period_ends
+
+    def days_left_in_grace_period(self):
+        """Calculate days remaining in grace period."""
+        if not self.is_in_grace_period():
+            return 0
+        delta = self.grace_period_ends - datetime.utcnow()
+        return max(0, delta.days)
+
+    def update_usage(self):
+        """Update cached usage counts from actual database records."""
+        from datetime import datetime
+
+        self.current_portfolios = Portfolio.query.filter_by(company_id=self.company_id).count()
+        self.current_properties = Property.query.filter_by(company_id=self.company_id).count()
+        self.current_units = Unit.query.filter_by(company_id=self.company_id).count()
+        self.current_tenants = Tenant.query.filter_by(company_id=self.company_id).count()
+        self.current_users = User.query.filter_by(company_id=self.company_id).count()
+        self.usage_last_updated = datetime.utcnow()
+
+        # Check if over limit
+        self.check_limits()
+
+    def check_limits(self):
+        """Check if company has exceeded any limits and update grace period."""
+        from datetime import datetime, timedelta
+
+        plan = self.plan
+        is_over = False
+
+        # Check each limit (None = unlimited)
+        if plan.max_portfolios is not None and self.current_portfolios > plan.max_portfolios:
+            is_over = True
+        if plan.max_properties is not None and self.current_properties > plan.max_properties:
+            is_over = True
+        if plan.max_units is not None and self.current_units > plan.max_units:
+            is_over = True
+        if plan.max_tenants is not None and self.current_tenants > plan.max_tenants:
+            is_over = True
+        if plan.max_users is not None and self.current_users > plan.max_users:
+            is_over = True
+
+        # Update grace period status
+        if is_over and not self.is_over_limit:
+            # Just went over limit - start grace period
+            self.is_over_limit = True
+            self.over_limit_since = datetime.utcnow()
+            # Grace period is 14 days by default (can be configured via env var)
+            grace_days = 14  # TODO: Load from config
+            self.grace_period_ends = datetime.utcnow() + timedelta(days=grace_days)
+            self.limit_warning_sent = False
+            self.limit_final_warning_sent = False
+        elif not is_over and self.is_over_limit:
+            # Back within limits - clear grace period
+            self.is_over_limit = False
+            self.over_limit_since = None
+            self.grace_period_ends = None
+            self.limit_warning_sent = False
+            self.limit_final_warning_sent = False
+
+    def get_usage_summary(self):
+        """Get dictionary of usage vs limits."""
+        plan = self.plan
+        return {
+            'portfolios': {
+                'current': self.current_portfolios,
+                'limit': plan.max_portfolios,
+                'unlimited': plan.max_portfolios is None,
+                'over_limit': plan.max_portfolios is not None and self.current_portfolios > plan.max_portfolios
+            },
+            'properties': {
+                'current': self.current_properties,
+                'limit': plan.max_properties,
+                'unlimited': plan.max_properties is None,
+                'over_limit': plan.max_properties is not None and self.current_properties > plan.max_properties
+            },
+            'units': {
+                'current': self.current_units,
+                'limit': plan.max_units,
+                'unlimited': plan.max_units is None,
+                'over_limit': plan.max_units is not None and self.current_units > plan.max_units
+            },
+            'tenants': {
+                'current': self.current_tenants,
+                'limit': plan.max_tenants,
+                'unlimited': plan.max_tenants is None,
+                'over_limit': plan.max_tenants is not None and self.current_tenants > plan.max_tenants
+            },
+            'users': {
+                'current': self.current_users,
+                'limit': plan.max_users,
+                'unlimited': plan.max_users is None,
+                'over_limit': plan.max_users is not None and self.current_users > plan.max_users
+            }
+        }
+
+
+class PaymentHistory(db.Model):
+    """
+    Stripe payment transaction history.
+
+    Records all payment transactions from Stripe for audit,
+    compliance, and financial tracking.
+    """
+    __tablename__ = 'payment_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+    subscription_id = db.Column(db.Integer, db.ForeignKey('company_subscription.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    # Payment details
+    amount = db.Column(db.Numeric(10, 2), nullable=False)  # Amount in USD
+    currency = db.Column(db.String(3), default='usd')
+    status = db.Column(db.String(20), nullable=False)  # succeeded, failed, pending, refunded
+    payment_method = db.Column(db.String(50))  # card, bank_transfer, etc.
+
+    # Stripe references
+    stripe_payment_intent_id = db.Column(db.String(100), unique=True)
+    stripe_invoice_id = db.Column(db.String(100))
+    stripe_charge_id = db.Column(db.String(100))
+
+    # Billing period
+    billing_period_start = db.Column(db.DateTime)
+    billing_period_end = db.Column(db.DateTime)
+
+    # Payment dates
+    payment_date = db.Column(db.DateTime)  # When payment was processed
+    due_date = db.Column(db.DateTime)  # When payment was due
+
+    # Failure information
+    failure_code = db.Column(db.String(100))  # Stripe failure code
+    failure_message = db.Column(db.Text)  # Human-readable failure message
+
+    # Invoice details
+    invoice_url = db.Column(db.String(500))  # Stripe hosted invoice URL
+    invoice_pdf_url = db.Column(db.String(500))  # PDF download URL
+    receipt_url = db.Column(db.String(500))  # Receipt URL
+
+    # Metadata
+    description = db.Column(db.Text)  # Payment description
+    payment_metadata = db.Column(db.Text)  # JSON string with additional data
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    company = db.relationship('Company', backref='subscription_payments', lazy=True)
+
+    def __repr__(self):
+        return f'<PaymentHistory ${self.amount} {self.status} for company_id={self.company_id}>'
+
+    def is_successful(self):
+        """Check if payment was successful."""
+        return self.status == 'succeeded'
+
+    def is_failed(self):
+        """Check if payment failed."""
+        return self.status == 'failed'
+
+    def is_pending(self):
+        """Check if payment is pending."""
+        return self.status == 'pending'
+
+    def is_refunded(self):
+        """Check if payment was refunded."""
+        return self.status == 'refunded'
+
+
+class UsageEvent(db.Model):
+    """
+    Detailed usage event tracking (optional).
+
+    Records individual usage events for analytics and debugging.
+    Useful for understanding usage patterns and generating reports.
+    """
+    __tablename__ = 'usage_event'
+
+    id = db.Column(db.Integer, primary_key=True)
+    subscription_id = db.Column(db.Integer, db.ForeignKey('company_subscription.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    # Event details
+    event_type = db.Column(db.String(50), nullable=False, index=True)  # created, deleted, updated
+    resource_type = db.Column(db.String(50), nullable=False, index=True)  # portfolio, property, unit, tenant, user
+    resource_id = db.Column(db.Integer)  # ID of the resource
+
+    # Usage snapshot (at time of event)
+    portfolios_count = db.Column(db.Integer)
+    properties_count = db.Column(db.Integer)
+    units_count = db.Column(db.Integer)
+    tenants_count = db.Column(db.Integer)
+    users_count = db.Column(db.Integer)
+
+    # User context
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_email = db.Column(db.String(150))
+
+    # Metadata
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    event_metadata = db.Column(db.Text)  # JSON string with additional context
+
+    # Relationships
+    company = db.relationship('Company', backref='usage_events', lazy=True)
+    user = db.relationship('User', backref='usage_events', lazy=True)
+
+    # Database indexes for analytics queries
+    __table_args__ = (
+        db.Index('idx_usage_event_company_date', 'company_id', 'created_at'),
+        db.Index('idx_usage_event_resource', 'resource_type', 'event_type'),
+    )
+
+    def __repr__(self):
+        return f'<UsageEvent {self.event_type} {self.resource_type} company_id={self.company_id}>'
+
+    @classmethod
+    def track_event(cls, subscription_id, company_id, event_type, resource_type, resource_id=None, user_id=None):
+        """
+        Convenience method to track a usage event.
+
+        Args:
+            subscription_id: Company subscription ID
+            company_id: Company ID
+            event_type: Type of event (created, deleted, updated)
+            resource_type: Type of resource (portfolio, property, unit, tenant, user)
+            resource_id: Optional ID of the resource
+            user_id: Optional ID of the user performing the action
+
+        Returns:
+            UsageEvent: The created event record
+        """
+        from flask_login import current_user
+
+        # Get current usage counts
+        subscription = CompanySubscription.query.get(subscription_id)
+        if not subscription:
+            return None
+
+        # Create event record
+        event = cls(
+            subscription_id=subscription_id,
+            company_id=company_id,
+            event_type=event_type,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            portfolios_count=subscription.current_portfolios,
+            properties_count=subscription.current_properties,
+            units_count=subscription.current_units,
+            tenants_count=subscription.current_tenants,
+            users_count=subscription.current_users,
+            user_id=user_id or (current_user.id if hasattr(current_user, 'id') else None),
+            user_email=current_user.email if hasattr(current_user, 'email') else None
+        )
+
+        db.session.add(event)
+        return event
+
+
 class SuperAdmin(db.Model):
     """
     Super Administrator model for God View Dashboard.
