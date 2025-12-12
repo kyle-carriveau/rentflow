@@ -106,12 +106,16 @@ def user(db_session, company):
         email='testuser@example.com',
         first_name='Test',
         last_name='User',
-        phone='5550101',
+        # phone removed from constructor - will be set after
         role='Owner',
         company_id=company.id
     )
-    # Use set_password method instead of directly setting password_hash
+    # Set password using the set_password method
     user.set_password('TestPassword123!', validate_policy=False)
+
+    # Set optional fields after initialization
+    user.phone = '5550101'
+
     db_session.session.add(user)
     db_session.session.commit()
     return user
