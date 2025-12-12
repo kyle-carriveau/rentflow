@@ -104,13 +104,14 @@ def user(db_session, company):
     """
     user = User(
         email='testuser@example.com',
-        password_hash=generate_password_hash('TestPassword123!'),
         first_name='Test',
         last_name='User',
         phone='5550101',
         role='Owner',
         company_id=company.id
     )
+    # Use set_password method instead of directly setting password_hash
+    user.set_password('TestPassword123!', validate_policy=False)
     db_session.session.add(user)
     db_session.session.commit()
     return user
