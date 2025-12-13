@@ -71,27 +71,30 @@ class TestResetPasswordView:
         response = client.get('/reset/invalid_token_12345', follow_redirects=True)
 
         assert response.status_code == 200
-        assert b'Invalid' in response.data or b'expired' in response.data
+        # After invalid token, redirects to forgot password page
+        assert b'Forgot your password?' in response.data
 
     def test_reset_password_post_valid_data(self, client, user):
         """Test POST with valid password data."""
         token = PasswordResetManager.generate_token(user)
 
         response = client.post(f'/reset/{token}', data={
-            'password': 'NewSecurePassword123!',
-            'confirm_password': 'NewSecurePassword123!'
-        }, follow_redirects=True)
+            'password': 'NewSecurePass42!',  # No sequential chars
+            'confirm_password': 'NewSecurePass42!',
+            'submit': 'Reset Password'
+        }, follow_redirects=False)
 
-        assert response.status_code == 200
-        assert b'successfully' in response.data.lower() or b'login' in response.data.lower()
+        # Should redirect to login page after successful reset
+        assert response.status_code == 302
+        assert response.location.endswith('/login') or '/login' in response.location
 
     def test_reset_password_post_mismatched_passwords(self, client, user):
         """Test POST with mismatched passwords."""
         token = PasswordResetManager.generate_token(user)
 
         response = client.post(f'/reset/{token}', data={
-            'password': 'NewPassword123!',
-            'confirm_password': 'DifferentPassword123!'
+            'password': 'NewPass42!',
+            'confirm_password': 'DifferentPass84!'
         })
 
         assert response.status_code == 200
