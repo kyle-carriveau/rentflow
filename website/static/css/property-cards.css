@@ -37,7 +37,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 380px;  /* Fixed height for consistent alignment */
+  height: 480px;  /* Fixed height for consistent alignment - tall enough for all content */
 }
 
 .property-card:hover {
