@@ -276,6 +276,132 @@ def dashboard():
                          occupied_units=occupied_units,
                          total_units=total_units)
 
+@profile.route('/dashboard/data')
+@login_required
+def dashboard_data():
+    """
+    AJAX endpoint for dashboard data refresh.
+    Returns JSON with metrics, charts, and activity without full page reload.
+    """
+    from website.models import Property, Portfolio, Lease, Payment, Expense, Unit
+
+    company_id = current_user.get_company_id()
+    today = datetime.now()
+    today_date = today.date()
+
+    # Calculate key metrics
+    total_units = db.session.query(Unit).join(Property).filter(Property.company_id == company_id).count()
+    occupied_units = 0
+    total_monthly_revenue = 0
+
+    if total_units > 0:
+        all_units = db.session.query(Unit).join(Property).filter(Property.company_id == company_id).all()
+        for unit in all_units:
+            if unit.get_lease_status() == 'Occupied':
+                occupied_units += 1
+                current_lease = unit.get_current_lease()
+                if current_lease and current_lease.rent:
+                    total_monthly_revenue += float(current_lease.rent)
+
+    occupancy_rate = (occupied_units / total_units * 100) if total_units > 0 else 0
+
+    # Active leases count
+    active_leases = db.session.query(Lease).join(Unit).join(Property).filter(
+        Property.company_id == company_id,
+        Lease.start <= today_date,
+        Lease.end >= today_date
+    ).count()
+
+    # Maintenance items count
+    maintenance_count = db.session.query(Unit).join(Property).filter(
+        Property.company_id == company_id,
+        Unit.upcoming_maintenance.isnot(None),
+        Unit.upcoming_maintenance != ''
+    ).count()
+
+    # Recent maintenance expenses count
+    recent_maintenance = db.session.query(Expense).filter(
+        Expense.company_id == company_id,
+        Expense.category.in_(['maintenance', 'repairs']),
+        Expense.expense_date >= (today - timedelta(days=30)).date()
+    ).count()
+
+    maintenance_items_total = maintenance_count + recent_maintenance
+
+    # Chart data - Revenue trend (last 6 months)
+    revenue_labels = []
+    revenue_data = []
+    for i in range(5, -1, -1):
+        month_date = today - timedelta(days=30*i)
+        month_start = month_date.replace(day=1)
+        month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+
+        month_revenue = db.session.query(func.sum(Payment.amount)).join(Lease).join(Unit).join(Property).filter(
+            Property.company_id == company_id,
+            Payment.payment_date >= month_start.date(),
+            Payment.payment_date <= month_end.date(),
+            Payment.status == 'completed'
+        ).scalar() or 0
+
+        revenue_labels.append(month_date.strftime('%b'))
+        revenue_data.append(float(month_revenue))
+
+    # Occupancy trend (simplified for now - using current rate for all months)
+    occupancy_labels = revenue_labels
+    occupancy_data = [occupancy_rate] * 6
+
+    # Recent activity (last 5 payments and expenses)
+    recent_payments = db.session.query(Payment).join(Lease).join(Unit).join(Property).filter(
+        Property.company_id == company_id
+    ).order_by(Payment.payment_date.desc()).limit(5).all()
+
+    recent_expenses = db.session.query(Expense).filter(
+        Expense.company_id == company_id
+    ).order_by(Expense.expense_date.desc()).limit(5).all()
+
+    # Format activity data
+    activity = []
+    for payment in recent_payments:
+        activity.append({
+            'type': 'payment',
+            'date': payment.payment_date.strftime('%Y-%m-%d') if payment.payment_date else '',
+            'description': f"Payment received: ${payment.amount:.2f}",
+            'amount': float(payment.amount) if payment.amount else 0
+        })
+
+    for expense in recent_expenses:
+        activity.append({
+            'type': 'expense',
+            'date': expense.expense_date.strftime('%Y-%m-%d') if expense.expense_date else '',
+            'description': f"{expense.category}: ${expense.amount:.2f}",
+            'amount': float(expense.amount) if expense.amount else 0
+        })
+
+    # Sort activity by date
+    activity.sort(key=lambda x: x['date'], reverse=True)
+    activity = activity[:10]  # Limit to 10 items
+
+    return jsonify({
+        'success': True,
+        'metrics': {
+            'total_revenue': total_monthly_revenue,
+            'active_leases': active_leases,
+            'occupancy_rate': round(occupancy_rate, 1),
+            'maintenance_items': maintenance_items_total
+        },
+        'charts': {
+            'revenue_chart': {
+                'labels': revenue_labels,
+                'data': revenue_data
+            },
+            'occupancy_chart': {
+                'labels': occupancy_labels,
+                'data': occupancy_data
+            }
+        },
+        'activity': activity
+    })
+
 @profile.route('/')
 @login_required
 def home():

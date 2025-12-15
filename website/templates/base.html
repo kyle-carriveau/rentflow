@@ -37,6 +37,8 @@
     <link href="{{ url_for('static', filename='vendors/choices/choices.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='vendors/flatpickr/flatpickr.min.css') }}" rel="stylesheet">
 
+    {% block custom_css %}{% endblock %}
+
     <script>
       var isRTL = JSON.parse(localStorage.getItem('isRTL'));
       if (isRTL) {
@@ -56,6 +58,9 @@
 
 
   <body>
+
+    <!-- Toast notification container -->
+    <div id="toast-container"></div>
 
     <!-- ===============================================-->
     <!--    Main Content-->

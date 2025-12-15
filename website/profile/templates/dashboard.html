@@ -2,6 +2,10 @@
 
 {% block title %}Dashboard - RentFlow{% endblock %}
 
+{% block custom_css %}
+<link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
 
 <!-- Dashboard Header -->
@@ -79,157 +83,62 @@
 
 <!-- Key Metrics Cards -->
 <div class="row g-3 mb-4">
-    <!-- Portfolio Overview -->
-    <div class="col-lg-6">
-        <div class="card h-100">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-1.png') }});"></div>
-            <div class="card-body position-relative">
-                <div class="row">
-                    <div class="col-auto">
-                        <div class="avatar avatar-3xl">
-                            <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
-                                <span class="fas fa-building fa-2x"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <h3 class="mb-1">{{ properties|length }}</h3>
-                        <h6 class="text-800 mb-2">Total Properties</h6>
-                        <div class="row g-0">
-                            <div class="col-6">
-                                <div class="border-end pe-2">
-                                    <p class="mb-0 text-600 fs--2">Portfolios</p>
-                                    <h5 class="mb-0">{{ portfolios|length }}</h5>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="ps-2">
-                                    <p class="mb-0 text-600 fs--2">Total Units</p>
-                                    {% set total_units = properties|map(attribute='units')|map('length')|sum %}
-                                    <h5 class="mb-0">{{ total_units }}</h5>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Total Revenue Card -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card h-100">
+            <div class="card-body">
+                <div class="metric-icon icon-revenue">
+                    <span class="fas fa-dollar-sign"></span>
                 </div>
+                <div class="metric-value" data-metric="total-revenue">
+                    ${{ "{:,.2f}".format(total_monthly_revenue or 0) }}
+                </div>
+                <div class="metric-label">Monthly Revenue</div>
             </div>
         </div>
     </div>
 
-    <!-- Occupancy & Performance -->
-    <div class="col-lg-6">
-        <div class="card h-100">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-2.png') }});"></div>
-            <div class="card-body position-relative">
-                <div class="row">
-                    <div class="col-auto">
-                        <div class="avatar avatar-3xl">
-                            <div class="avatar-name rounded-circle {% if occupancy_rate >= 90 %}bg-success{% elif occupancy_rate >= 70 %}bg-warning{% else %}bg-danger{% endif %} text-white d-flex align-items-center justify-content-center">
-                                <span class="fas fa-chart-line fa-2x"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <h3 class="mb-1 {% if occupancy_rate >= 90 %}text-success{% elif occupancy_rate >= 70 %}text-warning{% else %}text-danger{% endif %}">
-                            {{ "%.1f"|format(occupancy_rate) }}%
-                        </h3>
-                        <h6 class="text-800 mb-2">Occupancy Rate</h6>
-                        <div class="row g-0">
-                            <div class="col-6">
-                                <div class="border-end pe-2">
-                                    <p class="mb-0 text-600 fs--2">Occupied</p>
-                                    {% set total_units = properties|map(attribute='units')|map('length')|sum %}
-                                    {% set occupied_count = (occupancy_rate * total_units / 100)|int %}
-                                    <h5 class="mb-0">{{ occupied_count }}/{{ total_units }}</h5>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="ps-2">
-                                    <p class="mb-0 text-600 fs--2">Revenue/Unit</p>
-                                    <h5 class="mb-0">${{ "%.0f"|format((revenue_per_unit or 0)|float) }}</h5>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Active Leases Card -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card h-100">
+            <div class="card-body">
+                <div class="metric-icon icon-leases">
+                    <span class="fas fa-file-contract"></span>
                 </div>
+                <div class="metric-value" data-metric="active-leases">
+                    {{ properties|selectattr('units')|map(attribute='units')|sum(attribute=[])|selectattr('lease_status', 'equalto', 'Occupied')|list|length }}
+                </div>
+                <div class="metric-label">Active Leases</div>
             </div>
         </div>
     </div>
 
-    <!-- Financial Overview -->
-    <div class="col-lg-6">
-        <div class="card h-100">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-3.png') }});"></div>
-            <div class="card-body position-relative">
-                <div class="row">
-                    <div class="col-auto">
-                        <div class="avatar avatar-3xl">
-                            <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
-                                <span class="fas fa-dollar-sign fa-2x"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <h3 class="mb-1">${{ "%.0f"|format((total_monthly_revenue or 0)|float) }}</h3>
-                        <h6 class="text-800 mb-2">Monthly Revenue</h6>
-                        <div class="row g-0">
-                            <div class="col-6">
-                                <div class="border-end pe-2">
-                                    <p class="mb-0 text-600 fs--2">Collection Rate</p>
-                                    <h5 class="mb-0 {% if collection_rate >= 95 %}text-success{% elif collection_rate >= 80 %}text-warning{% else %}text-danger{% endif %}">
-                                        {{ "%.0f"|format((collection_rate or 0)|float) }}%
-                                    </h5>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="ps-2">
-                                    <p class="mb-0 text-600 fs--2">Net Effective</p>
-                                    <h5 class="mb-0">${{ "%.0f"|format((total_net_effective_rent or 0)|float) }}</h5>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Occupancy Rate Card -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card h-100">
+            <div class="card-body">
+                <div class="metric-icon icon-occupancy">
+                    <span class="fas fa-chart-pie"></span>
                 </div>
+                <div class="metric-value" data-metric="occupancy-rate">
+                    {{ "{:.1f}".format(occupancy_rate or 0) }}%
+                </div>
+                <div class="metric-label">Occupancy Rate</div>
             </div>
         </div>
     </div>
 
-    <!-- Outstanding & Collections -->
-    <div class="col-lg-6">
-        <div class="card h-100">
-            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-4.png') }});"></div>
-            <div class="card-body position-relative">
-                <div class="row">
-                    <div class="col-auto">
-                        <div class="avatar avatar-3xl">
-                            <div class="avatar-name rounded-circle {% if outstanding_total > 0 %}bg-warning{% else %}bg-success{% endif %} text-white d-flex align-items-center justify-content-center">
-                                <span class="fas fa-{% if outstanding_total > 0 %}exclamation-triangle{% else %}check-circle{% endif %} fa-2x"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <h3 class="mb-1 {% if outstanding_total > 0 %}text-warning{% else %}text-success{% endif %}">
-                            ${{ "%.0f"|format((outstanding_total or 0)|float) }}
-                        </h3>
-                        <h6 class="text-800 mb-2">Outstanding Balance</h6>
-                        <div class="row g-0">
-                            <div class="col-6">
-                                <div class="border-end pe-2">
-                                    <p class="mb-0 text-600 fs--2">Status</p>
-                                    <h6 class="mb-0 {% if outstanding_total > 0 %}text-warning{% else %}text-success{% endif %}">
-                                        {% if outstanding_total > 0 %}Attention Needed{% else %}All Current{% endif %}
-                                    </h6>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="ps-2">
-                                    <p class="mb-0 text-600 fs--2">Deposits Held</p>
-                                    <h5 class="mb-0">${{ "%.0f"|format((total_upfront_costs or 0)|float) }}</h5>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Maintenance Items Card -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card h-100">
+            <div class="card-body">
+                <div class="metric-icon icon-maintenance">
+                    <span class="fas fa-tools"></span>
                 </div>
+                <div class="metric-value" data-metric="maintenance-items">
+                    {{ maintenance_items|length }}
+                </div>
+                <div class="metric-label">Maintenance Items</div>
             </div>
         </div>
     </div>
@@ -906,11 +815,8 @@ new Chart(forecastCtx, {
         }
     }
 });
-
-// Auto-refresh data every 5 minutes
-setInterval(function() {
-    window.location.reload();
-}, 300000);
 </script>
 
+<!-- Dashboard JavaScript with AJAX refresh -->
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}
