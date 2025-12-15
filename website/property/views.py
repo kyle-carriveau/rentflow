@@ -1,4 +1,4 @@
-from flask import render_template, Blueprint, request, redirect, url_for, flash
+from flask import render_template, Blueprint, request, redirect, url_for, flash, jsonify
 from website.models import Tenant, Property, Unit, Lease, Portfolio
 from website import db
 from flask_login import login_required, current_user
@@ -180,22 +180,51 @@ def edit(uuid):
 @login_required
 @can_delete_required
 def delete(uuid):
-    """Delete a property and all associated data."""
+    """Delete a property and all associated data (supports both HTML and AJAX requests)."""
     company_id = current_user.get_company_id()
-    property = Property.find_by_uuid(str(uuid), company_id)
-    if not property:
-        return page_not_found(404)
-    
-    property_name = property.name
-    
+    property_obj = Property.find_by_uuid(str(uuid), company_id)
+
+    # Check if property exists
+    if not property_obj:
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Property not found'}), 404
+        flash('Property not found.', 'error')
+        return redirect(url_for('property.properties'))
+
+    # Check for units before deletion
+    if property_obj.units:
+        message = f'Cannot delete property "{property_obj.name}". It has {len(property_obj.units)} unit(s). Please delete all units first.'
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': message}), 400
+        flash(message, 'error')
+        return redirect(url_for('property.properties'))
+
+    property_name = property_obj.name
+
     try:
         # The cascade relationships in the models will handle automatic deletion
         # of associated units, tenants, and leases
-        db.session.delete(property)
+        db.session.delete(property_obj)
         db.session.commit()
-        flash(f'Property "{property_name}" and all associated data deleted successfully!', 'success')
+
+        success_message = f'Property "{property_name}" deleted successfully!'
+
+        # Return JSON for AJAX requests
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': success_message}), 200
+
+        # Return redirect for traditional form submissions
+        flash(success_message, 'success')
+        return redirect(url_for('property.properties'))
+
     except Exception as e:
         db.session.rollback()
+        error_message = f'Error deleting property: {str(e)}'
+
+        # Return JSON for AJAX requests
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Error deleting property. Please try again.'}), 500
+
+        # Return redirect for traditional form submissions
         flash('Error deleting property. Please try again.', 'error')
-    
-    return redirect(url_for('property.properties'))
+        return redirect(url_for('property.properties'))
