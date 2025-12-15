@@ -106,7 +106,7 @@
                     <span class="fas fa-file-contract"></span>
                 </div>
                 <div class="metric-value" data-metric="active-leases">
-                    {{ properties|selectattr('units')|map(attribute='units')|sum(attribute=[])|selectattr('lease_status', 'equalto', 'Occupied')|list|length }}
+                    {{ occupied_units }}
                 </div>
                 <div class="metric-label">Active Leases</div>
             </div>
