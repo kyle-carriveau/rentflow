@@ -196,14 +196,14 @@
     <!-- Card Footer -->
     <div class="property-card-footer">
       <a
-        href="{{ url_for('property.view', id=property.id) }}"
+        href="{{ url_for('property.view', uuid=property.uuid) }}"
         class="btn btn-sm btn-outline-primary"
         aria-label="View {{ property.name }}"
       >
         <i class="fas fa-eye me-1"></i>View
       </a>
       <a
-        href="{{ url_for('property.edit', id=property.id) }}"
+        href="{{ url_for('property.edit', uuid=property.uuid) }}"
         class="btn btn-sm btn-outline-secondary"
         aria-label="Edit {{ property.name }}"
       >
