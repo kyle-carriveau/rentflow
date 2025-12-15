@@ -32,6 +32,9 @@ flask_session/
 *.swp
 *.swo
 
+# Claude Code local configuration
+.claude/
+
 # OS generated files
 .DS_Store
 .DS_Store?
