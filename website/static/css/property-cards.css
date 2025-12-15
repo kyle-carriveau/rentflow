@@ -73,6 +73,12 @@
   50% { transform: translate(-10%, -10%); }
 }
 
+/* Text shadow for better readability on gradient background */
+.property-card-header h5,
+.property-card-header p {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
 .property-card-title {
   font-size: 1.25rem;
   font-weight: 600;
@@ -97,13 +103,14 @@
 
 .property-card-location {
   font-size: 0.875rem;
-  opacity: 0.9;
+  opacity: 0.95;  /* Slightly brighter for better visibility */
   margin: 0.5rem 0 0;
   position: relative;
   z-index: 1;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-weight: 500;  /* Slightly bolder for improved readability */
 }
 
 /* ============================================
