@@ -416,6 +416,22 @@ class Property(db.Model):
 
         return new_status
 
+    @property
+    def occupancy_rate(self):
+        """
+        Calculate occupancy rate as a percentage.
+
+        Returns:
+            float: Percentage of occupied units (0-100)
+        """
+        if not self.units or len(self.units) == 0:
+            return 0.0
+
+        total_units = len(self.units)
+        occupied_units = sum(1 for unit in self.units if unit.get_lease_status() == 'Occupied')
+
+        return round((occupied_units / total_units) * 100, 1)
+
     def __init__(self, name="", company_id=None, portfolio_id=None):
         self.uuid = str(uuid.uuid4())
         self.name = name
