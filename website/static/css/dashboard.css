@@ -15,7 +15,7 @@
     --dashboard-info: #39afd1;
 
     /* Gradient backgrounds */
-    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-primary: linear-gradient(135deg, #2c7be5 0%, #1e5bb8 100%);  /* Falcon primary blue */
     --gradient-success: linear-gradient(135deg, #0cebeb 0%, #20e3b2 100%);
     --gradient-warning: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     --gradient-danger: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
