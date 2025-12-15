@@ -579,19 +579,22 @@ class Unit(db.Model):
         """Get unit's current lease status based on active leases."""
         from datetime import datetime
         today = datetime.now().date()
-        
-        active_leases = [lease for lease in self.leases 
+
+        # Filter out leases with null dates (defensive coding)
+        valid_leases = [lease for lease in self.leases if lease.start and lease.end]
+
+        active_leases = [lease for lease in valid_leases
                         if lease.start.date() <= today <= lease.end.date()]
-        
+
         if active_leases:
             return 'Occupied'
-        
-        future_leases = [lease for lease in self.leases 
+
+        future_leases = [lease for lease in valid_leases
                         if lease.start.date() > today]
-        
+
         if future_leases:
             return 'Reserved'
-            
+
         return 'Available'
     
     def get_current_lease(self):
