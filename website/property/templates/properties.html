@@ -142,27 +142,6 @@
           </div>
         </div>
 
-        <!-- Occupancy Progress Bar -->
-        <div class="occupancy-progress-wrapper">
-          <div class="occupancy-progress">
-            <div
-              class="occupancy-progress-bar
-                {% if property.occupancy_rate == 100 %}occupancy-full
-                {% elif property.occupancy_rate >= 75 %}occupancy-high
-                {% elif property.occupancy_rate >= 50 %}occupancy-medium
-                {% elif property.occupancy_rate > 0 %}occupancy-low
-                {% else %}occupancy-vacant
-                {% endif %}"
-              style="width: {{ property.occupancy_rate }}%"
-              role="progressbar"
-              aria-valuenow="{{ property.occupancy_rate }}"
-              aria-valuemin="0"
-              aria-valuemax="100"
-              aria-label="{{ '%.0f'|format(property.occupancy_rate) }}% occupied"
-            ></div>
-          </div>
-        </div>
-
         <!-- Portfolio Badge (if assigned) -->
         {% if property.portfolio_ref %}
         <div class="property-portfolio">
