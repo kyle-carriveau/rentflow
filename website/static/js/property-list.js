@@ -12,6 +12,7 @@ let filteredProperties = [];
 document.addEventListener('DOMContentLoaded', function() {
   initializePropertyList();
   initializeSearchAndFilter();
+  initializeDropdownMenus();
   initializeDeleteHandlers();
 });
 
@@ -185,6 +186,52 @@ function updateResultsCount() {
 }
 
 /**
+ * Initialize dropdown menus for property cards
+ */
+function initializeDropdownMenus() {
+  const menuButtons = document.querySelectorAll('.property-menu-btn');
+
+  menuButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation(); // Prevent card link click
+
+      const menu = this.closest('.property-card-menu');
+      const isActive = menu.classList.contains('active');
+
+      // Close all other dropdowns
+      document.querySelectorAll('.property-card-menu.active').forEach(activeMenu => {
+        if (activeMenu !== menu) {
+          activeMenu.classList.remove('active');
+        }
+      });
+
+      // Toggle this dropdown
+      menu.classList.toggle('active');
+      this.setAttribute('aria-expanded', !isActive);
+    });
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.property-card-menu')) {
+      document.querySelectorAll('.property-card-menu.active').forEach(menu => {
+        menu.classList.remove('active');
+        const button = menu.querySelector('.property-menu-btn');
+        if (button) button.setAttribute('aria-expanded', 'false');
+      });
+    }
+  });
+
+  // Prevent dropdown items from triggering card link
+  document.querySelectorAll('.property-menu-dropdown .dropdown-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+  });
+}
+
+/**
  * Initialize delete button handlers
  */
 function initializeDeleteHandlers() {
@@ -193,6 +240,7 @@ function initializeDeleteHandlers() {
   deleteButtons.forEach(button => {
     button.addEventListener('click', function(e) {
       e.preventDefault();
+      e.stopPropagation(); // Prevent card link click
       const propertyId = this.dataset.propertyId;
       const propertyName = this.dataset.propertyName;
       showDeleteModal(propertyId, propertyName);

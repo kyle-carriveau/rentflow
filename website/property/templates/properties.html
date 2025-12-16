@@ -105,85 +105,67 @@
     {% if property.portfolio_ref %}data-portfolio-id="{{ property.portfolio_ref.id }}"{% endif %}
     data-occupancy-rate="{{ property.occupancy_rate }}"
   >
-    <!-- Card Header -->
-    <div class="property-card-header">
-      <h3 class="property-card-title">
-        <i class="fas fa-building"></i>
-        {{ property.name }}
-      </h3>
-      <div class="property-card-location">
-        <i class="fas fa-map-marker-alt"></i>
-        {{ property.city }}, {{ property.state }}
-      </div>
-    </div>
-
-    <!-- Card Body -->
-    <div class="property-card-body">
-      <!-- Property Metrics -->
-      <div class="property-metrics">
-        <!-- Units Count -->
-        <div class="property-metric">
-          <div class="property-metric-icon units">
-            <i class="fas fa-door-open"></i>
-          </div>
-          <div class="property-metric-value">{{ property.units|length }}</div>
-          <div class="property-metric-label">Units</div>
-        </div>
-
-        <!-- Occupancy Rate -->
-        <div class="property-metric">
-          <div class="property-metric-icon occupancy">
-            <i class="fas fa-percentage"></i>
-          </div>
-          <div class="property-metric-value">{{ "%.0f"|format(property.occupancy_rate) }}%</div>
-          <div class="property-metric-label">Occupied</div>
-        </div>
-      </div>
-
-      <!-- Occupancy Progress Bar -->
-      <div class="occupancy-progress-wrapper">
-        <div class="occupancy-progress-label">
-          <span>Occupancy Status</span>
-          <span class="badge
-            {% if property.occupancy_rate == 100 %}bg-success
-            {% elif property.occupancy_rate >= 75 %}bg-primary
-            {% elif property.occupancy_rate >= 50 %}bg-warning
-            {% elif property.occupancy_rate > 0 %}bg-danger
-            {% else %}bg-secondary
-            {% endif %}">
-            {{ "%.0f"|format(property.occupancy_rate) }}%
-          </span>
-        </div>
-        <div class="occupancy-progress">
-          <div
-            class="occupancy-progress-bar
-              {% if property.occupancy_rate == 100 %}occupancy-full
-              {% elif property.occupancy_rate >= 75 %}occupancy-high
-              {% elif property.occupancy_rate >= 50 %}occupancy-medium
-              {% elif property.occupancy_rate > 0 %}occupancy-low
-              {% else %}occupancy-vacant
-              {% endif %}"
-            style="width: {{ property.occupancy_rate }}%"
-            role="progressbar"
-            aria-valuenow="{{ property.occupancy_rate }}"
-            aria-valuemin="0"
-            aria-valuemax="100"
-          ></div>
-        </div>
-      </div>
-
-      <!-- Property Details -->
-      <div class="property-details">
-        <div class="property-detail-item">
+    <!-- Clickable Card Link -->
+    <a href="{{ url_for('property.home', uuid=property.uuid) }}" class="property-card-link" aria-label="View {{ property.name }} details">
+      <!-- Card Header -->
+      <div class="property-card-header">
+        <h3 class="property-card-title">
+          <i class="fas fa-building"></i>
+          {{ property.name }}
+        </h3>
+        <div class="property-card-location">
           <i class="fas fa-map-marker-alt"></i>
-          <span>{{ property.address }}</span>
+          {{ property.city }}, {{ property.state }}
         </div>
-        <div class="property-detail-item">
-          <i class="fas fa-city"></i>
-          <span>{{ property.city }}, {{ property.state }} {{ property.zip_code }}</span>
+      </div>
+
+      <!-- Card Body -->
+      <div class="property-card-body">
+        <!-- Property Metrics -->
+        <div class="property-metrics">
+          <!-- Units Count -->
+          <div class="property-metric">
+            <div class="property-metric-icon units">
+              <i class="fas fa-door-open"></i>
+            </div>
+            <div class="property-metric-value">{{ property.units|length }}</div>
+            <div class="property-metric-label">Units</div>
+          </div>
+
+          <!-- Occupancy Rate -->
+          <div class="property-metric">
+            <div class="property-metric-icon occupancy">
+              <i class="fas fa-percentage"></i>
+            </div>
+            <div class="property-metric-value">{{ "%.0f"|format(property.occupancy_rate) }}%</div>
+            <div class="property-metric-label">Occupied</div>
+          </div>
         </div>
+
+        <!-- Occupancy Progress Bar -->
+        <div class="occupancy-progress-wrapper">
+          <div class="occupancy-progress">
+            <div
+              class="occupancy-progress-bar
+                {% if property.occupancy_rate == 100 %}occupancy-full
+                {% elif property.occupancy_rate >= 75 %}occupancy-high
+                {% elif property.occupancy_rate >= 50 %}occupancy-medium
+                {% elif property.occupancy_rate > 0 %}occupancy-low
+                {% else %}occupancy-vacant
+                {% endif %}"
+              style="width: {{ property.occupancy_rate }}%"
+              role="progressbar"
+              aria-valuenow="{{ property.occupancy_rate }}"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-label="{{ '%.0f'|format(property.occupancy_rate) }}% occupied"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Portfolio Badge (if assigned) -->
         {% if property.portfolio_ref %}
-        <div class="property-detail-item">
+        <div class="property-portfolio">
           <span class="portfolio-badge">
             <i class="fas fa-folder"></i>
             {{ property.portfolio_ref.name }}
@@ -191,33 +173,26 @@
         </div>
         {% endif %}
       </div>
-    </div>
+    </a>
 
-    <!-- Card Footer -->
-    <div class="property-card-footer">
-      <a
-        href="{{ url_for('property.home', uuid=property.uuid) }}"
-        class="btn btn-sm btn-outline-primary"
-        aria-label="View {{ property.name }}"
-      >
-        <i class="fas fa-eye me-1"></i>View
-      </a>
-      <a
-        href="{{ url_for('property.edit', uuid=property.uuid) }}"
-        class="btn btn-sm btn-outline-secondary"
-        aria-label="Edit {{ property.name }}"
-      >
-        <i class="fas fa-edit me-1"></i>Edit
-      </a>
-      <button
-        type="button"
-        class="btn btn-sm btn-outline-danger delete-property-btn"
-        data-property-id="{{ property.uuid }}"
-        data-property-name="{{ property.name }}"
-        aria-label="Delete {{ property.name }}"
-      >
-        <i class="fas fa-trash-alt me-1"></i>Delete
+    <!-- Dropdown Menu (appears on hover) -->
+    <div class="property-card-menu">
+      <button class="property-menu-btn" type="button" aria-label="Property actions" aria-expanded="false">
+        <i class="fas fa-ellipsis-v"></i>
       </button>
+      <div class="property-menu-dropdown">
+        <a href="{{ url_for('property.edit', uuid=property.uuid) }}" class="dropdown-item">
+          <i class="fas fa-edit me-2"></i>Edit Property
+        </a>
+        <button
+          type="button"
+          class="dropdown-item delete-property-btn"
+          data-property-id="{{ property.uuid }}"
+          data-property-name="{{ property.name }}"
+        >
+          <i class="fas fa-trash-alt me-2"></i>Delete Property
+        </button>
+      </div>
     </div>
   </div>
   {% endfor %}
