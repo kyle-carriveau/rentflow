@@ -120,7 +120,7 @@ function filterByOccupancy(occupancy, range) {
 function updateDisplayedProperties() {
   allProperties.forEach(property => {
     const isVisible = filteredProperties.includes(property);
-    property.element.style.display = isVisible ? 'flex' : 'none';
+    property.element.style.display = isVisible ? '' : 'none';
 
     // Animate visibility changes
     if (isVisible) {
