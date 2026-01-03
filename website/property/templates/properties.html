@@ -178,38 +178,24 @@
                         {% endif %}
                     {% endfor %}
                     <tr class="align-middle property-row">
-                        <!-- Property Column with Icon Avatar -->
+                        <!-- Property Column -->
                         <td class="property">
-                            <div class="d-flex align-items-center">
-                                <div class="avatar avatar-xs me-2">
-                                    <div class="avatar-name rounded bg-primary text-white d-flex align-items-center justify-content-center">
-                                        <span class="fas fa-building fs--2"></span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <a href="{{ url_for('property.home', uuid=property.uuid) }}" class="fw-semi-bold text-decoration-none">
-                                        {{ property.name }}
-                                    </a>
-                                    {% if property.description %}
-                                        <div class="fs--2 text-600">{{ property.description[:50] }}{% if property.description|length > 50 %}...{% endif %}</div>
-                                    {% endif %}
-                                </div>
+                            <div>
+                                <a href="{{ url_for('property.home', uuid=property.uuid) }}" class="fw-semi-bold text-decoration-none">
+                                    {{ property.name }}
+                                </a>
+                                {% if property.description %}
+                                    <div class="fs--2 text-600">{{ property.description[:50] }}{% if property.description|length > 50 %}...{% endif %}</div>
+                                {% endif %}
                             </div>
                         </td>
 
-                        <!-- Portfolio Column with Icon Avatar -->
+                        <!-- Portfolio Column -->
                         <td class="portfolio">
                             {% if property.portfolio_ref %}
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-xs me-2">
-                                        <div class="avatar-name rounded bg-info text-white d-flex align-items-center justify-content-center">
-                                            <span class="fas fa-folder fs--2"></span>
-                                        </div>
-                                    </div>
-                                    <a href="{{ url_for('portfolio.home', uuid=property.portfolio_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
-                                        {{ property.portfolio_ref.name }}
-                                    </a>
-                                </div>
+                                <a href="{{ url_for('portfolio.home', uuid=property.portfolio_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
+                                    {{ property.portfolio_ref.name }}
+                                </a>
                             {% else %}
                                 <span class="text-400 fst-italic">No portfolio</span>
                             {% endif %}
@@ -235,7 +221,7 @@
                         <td class="units text-center">
                             <div class="d-inline-flex align-items-center" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ occupied_units|length }} of {{ total_property_units }} units occupied">
                                 <span class="fw-bold">{{ total_property_units }}</span>
-                                {% if total_property_units > 0 %}
+                                {% if occupied_units|length > 0 %}
                                     <span class="ms-2 badge badge-subtle-primary">
                                         {{ occupied_units|length }} occupied
                                     </span>
