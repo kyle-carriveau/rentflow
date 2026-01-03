@@ -1,11 +1,5 @@
 {% extends "base.html" %}
 
-{% block title %}Properties - RentFlow{% endblock %}
-
-{% block custom_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/property-cards.css') }}">
-{% endblock %}
-
 {% block content %}
 
 <!-- Breadcrumb Navigation -->
@@ -16,218 +10,456 @@
   </ol>
 </nav>
 
-<!-- Page Header -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <div>
-    <h1 class="h3 mb-1">Properties</h1>
-    <p class="text-muted mb-0">Manage your real estate portfolio</p>
-  </div>
-  <a href="{{ url_for('property.create') }}" class="btn btn-primary">
-    <i class="fas fa-plus me-2"></i>Add Property
-  </a>
+<!-- Property Summary Cards -->
+<div class="row g-3 mb-4" style="align-items: stretch;">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-1.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-building"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h4 class="mb-0">{{ properties|length if properties else 0 }}</h4>
+                        <p class="text-800 fs--1 mb-0">Total Properties</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-2.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-door-open"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        {% set total_units = 0 %}
+                        {% if properties %}
+                            {% for property in properties %}
+                                {% set total_units = total_units + property.units|length %}
+                            {% endfor %}
+                        {% endif %}
+                        <h4 class="mb-0">{{ total_units }}</h4>
+                        <p class="text-800 fs--1 mb-0">Total Units</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-3.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-percentage"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        {% set total_units_all = 0 %}
+                        {% set total_occupied_all = 0 %}
+                        {% if properties %}
+                            {% for property in properties %}
+                                {% set total_units_all = total_units_all + property.units|length %}
+                                {% for unit in property.units %}
+                                    {% if unit.get_lease_status() == 'Occupied' %}
+                                        {% set total_occupied_all = total_occupied_all + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                        {% endif %}
+                        {% set avg_occupancy = (total_occupied_all / total_units_all * 100)|round(1) if total_units_all > 0 else 0 %}
+                        <h4 class="mb-0">{{ avg_occupancy }}%</h4>
+                        <p class="text-800 fs--1 mb-0">Avg Occupancy</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card overflow-hidden h-100">
+            <div class="bg-holder bg-card" style="background-image:url({{ url_for('static', filename='assets/img/icons/spot-illustrations/corner-4.png') }});"></div>
+            <div class="card-body position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-2xl">
+                        <div class="avatar-name rounded-circle bg-info text-white d-flex align-items-center justify-content-center">
+                            <span class="fas fa-dollar-sign"></span>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        {% set total_revenue = 0 %}
+                        {% if properties %}
+                            {% for property in properties %}
+                                {% for unit in property.units %}
+                                    {% set current_lease = unit.get_current_lease() %}
+                                    {% if current_lease and current_lease.rent %}
+                                        {% set total_revenue = total_revenue + current_lease.rent %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                        {% endif %}
+                        <h4 class="mb-0">${{ "{:,}".format(total_revenue) }}</h4>
+                        <p class="text-800 fs--1 mb-0">Monthly Revenue</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Search and Filter Bar -->
-{% if properties %}
-<div class="search-filter-bar">
-  <div class="row g-3">
-    <!-- Search Input -->
-    <div class="col-md-5">
-      <div class="search-input-wrapper">
-        <i class="fas fa-search"></i>
-        <input
-          type="text"
-          id="propertySearch"
-          class="form-control"
-          placeholder="Search properties by name, address, or city..."
-          aria-label="Search properties"
-        >
-      </div>
-    </div>
-
-    <!-- Portfolio Filter -->
-    <div class="col-md-3">
-      <div class="filter-group">
-        <label for="portfolioFilter">
-          <i class="fas fa-folder me-1"></i>Portfolio:
-        </label>
-        <select id="portfolioFilter" class="form-select" aria-label="Filter by portfolio">
-          <option value="">All Portfolios</option>
-          {% set portfolios_list = [] %}
-          {% for property in properties %}
-            {% if property.portfolio_ref and property.portfolio_ref not in portfolios_list %}
-              {% set _ = portfolios_list.append(property.portfolio_ref) %}
-            {% endif %}
-          {% endfor %}
-          {% for portfolio in portfolios_list %}
-            <option value="{{ portfolio.id }}">{{ portfolio.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-    </div>
-
-    <!-- Occupancy Filter -->
-    <div class="col-md-4">
-      <div class="filter-group">
-        <label for="occupancyFilter">
-          <i class="fas fa-percentage me-1"></i>Occupancy:
-        </label>
-        <select id="occupancyFilter" class="form-select" aria-label="Filter by occupancy">
-          <option value="">All Occupancy Levels</option>
-          <option value="full">Full (100%)</option>
-          <option value="high">High (75-99%)</option>
-          <option value="medium">Medium (50-74%)</option>
-          <option value="low">Low (1-49%)</option>
-          <option value="vacant">Vacant (0%)</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <!-- Results Count -->
-  <div class="results-count" id="resultsCount">
-    <i class="fas fa-info-circle"></i>
-    <span>Loading...</span>
-  </div>
-</div>
-{% endif %}
-
-<!-- Property Grid -->
-{% if properties %}
-<div id="propertyGrid" class="property-grid">
-  {% for property in properties %}
-  <div
-    class="property-card"
-    data-property-id="{{ property.uuid }}"
-    data-property-name="{{ property.name }}"
-    data-property-address="{{ property.address }}"
-    data-property-city="{{ property.city }}"
-    {% if property.portfolio_ref %}data-portfolio-id="{{ property.portfolio_ref.id }}"{% endif %}
-    data-occupancy-rate="{{ property.occupancy_rate }}"
-  >
-    <!-- Clickable Card Link -->
-    <a href="{{ url_for('property.home', uuid=property.uuid) }}" class="property-card-link" aria-label="View {{ property.name }} details">
-      <!-- Card Header -->
-      <div class="property-card-header">
-        <h3 class="property-card-title">
-          <i class="fas fa-building"></i>
-          {{ property.name }}
-        </h3>
-        <div class="property-card-location">
-          <i class="fas fa-map-marker-alt"></i>
-          {{ property.city }}, {{ property.state }}
-        </div>
-      </div>
-
-      <!-- Card Body -->
-      <div class="property-card-body">
-        <!-- Property Metrics -->
-        <div class="property-metrics">
-          <!-- Units Count -->
-          <div class="property-metric">
-            <div class="property-metric-icon units">
-              <i class="fas fa-door-open"></i>
+<!-- Properties Table -->
+<div class="card mb-3" id="propertiesTable" data-list='{"valueNames":["property","portfolio","address","units","occupancy","revenue"],"page":10,"pagination":true}'>
+    <div class="card-header">
+        <div class="row flex-between-center">
+            <div class="col-4 col-sm-auto d-flex align-items-center pe-0">
+                <h5 class="mb-0"><span class="fas fa-building me-2"></span>All Properties</h5>
+                <div class="ms-3">
+                    <div class="search-box" data-list="search-box" style="width: 200px;">
+                        <form class="position-relative" data-bs-toggle="search" data-bs-display="static">
+                            <input class="form-control search-input fuzzy-search" type="search" placeholder="Search properties..." aria-label="Search" />
+                            <span class="fas fa-search search-box-icon"></span>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div class="property-metric-value">{{ property.units|length }}</div>
-            <div class="property-metric-label">Units</div>
-          </div>
-
-          <!-- Occupancy Rate -->
-          <div class="property-metric">
-            <div class="property-metric-icon occupancy">
-              <i class="fas fa-percentage"></i>
+            <div class="col-8 col-sm-auto text-end ps-2">
+                <div id="table-properties-replace-element" class="d-flex align-items-center justify-content-end gap-2">
+                    <a href="{{ url_for('property.create') }}" class="btn btn-falcon-primary btn-sm">
+                        <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                        <span class="d-none d-sm-inline-block ms-1">New Property</span>
+                    </a>
+                    <button class="btn btn-falcon-default btn-sm" type="button" onclick="exportProperties()">
+                        <span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span>
+                        <span class="d-none d-sm-inline-block ms-1">Export</span>
+                    </button>
+                </div>
             </div>
-            <div class="property-metric-value">{{ "%.0f"|format(property.occupancy_rate) }}%</div>
-            <div class="property-metric-label">Occupied</div>
-          </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if properties %}
+        <div class="table-responsive scrollbar">
+            <table class="table table-hover table-striped overflow-hidden">
+                <thead>
+                    <tr>
+                        <th scope="col" class="sort" data-sort="property">Property</th>
+                        <th scope="col" class="sort" data-sort="portfolio">Portfolio</th>
+                        <th scope="col" class="sort" data-sort="address">Address</th>
+                        <th scope="col" class="sort text-center" data-sort="units">Units</th>
+                        <th scope="col" class="sort text-center" data-sort="occupancy">Occupancy</th>
+                        <th scope="col" class="sort text-end" data-sort="revenue">Monthly Revenue</th>
+                        <th scope="col" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="list">
+                    {% for property in properties %}
+                    {% set occupied_units = [] %}
+                    {% set total_property_units = property.units|length %}
+                    {% set property_revenue = 0 %}
+                    {% for unit in property.units %}
+                        {% if unit.get_lease_status() == 'Occupied' %}
+                            {% set _ = occupied_units.append(unit) %}
+                        {% endif %}
+                        {% set current_lease = unit.get_current_lease() %}
+                        {% if current_lease and current_lease.rent %}
+                            {% set property_revenue = property_revenue + current_lease.rent %}
+                        {% endif %}
+                    {% endfor %}
+                    <tr class="align-middle property-row">
+                        <!-- Property Column with Icon Avatar -->
+                        <td class="property">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-xs me-2">
+                                    <div class="avatar-name rounded bg-primary text-white d-flex align-items-center justify-content-center">
+                                        <span class="fas fa-building fs--2"></span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('property.home', uuid=property.uuid) }}" class="fw-semi-bold text-decoration-none">
+                                        {{ property.name }}
+                                    </a>
+                                    {% if property.description %}
+                                        <div class="fs--2 text-600">{{ property.description[:50] }}{% if property.description|length > 50 %}...{% endif %}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Portfolio Column with Icon Avatar -->
+                        <td class="portfolio">
+                            {% if property.portfolio_ref %}
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-xs me-2">
+                                        <div class="avatar-name rounded bg-info text-white d-flex align-items-center justify-content-center">
+                                            <span class="fas fa-folder fs--2"></span>
+                                        </div>
+                                    </div>
+                                    <a href="{{ url_for('portfolio.home', uuid=property.portfolio_ref.uuid) }}" class="fw-semi-bold text-decoration-none">
+                                        {{ property.portfolio_ref.name }}
+                                    </a>
+                                </div>
+                            {% else %}
+                                <span class="text-400 fst-italic">No portfolio</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Address Column -->
+                        <td class="address">
+                            {% if property.address %}
+                                <div>
+                                    <div class="fw-semi-bold">{{ property.address }}</div>
+                                    {% if property.city or property.state or property.zip %}
+                                        <div class="fs--2 text-600">
+                                            {{ property.city }}{% if property.city and (property.state or property.zip) %}, {% endif %}{{ property.state }} {{ property.zip }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-400 fst-italic">No address</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Units Column with Modern Badge -->
+                        <td class="units text-center">
+                            <div class="d-inline-flex align-items-center" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ occupied_units|length }} of {{ total_property_units }} units occupied">
+                                <span class="fw-bold">{{ total_property_units }}</span>
+                                {% if total_property_units > 0 %}
+                                    <span class="ms-2 badge badge-subtle-primary">
+                                        {{ occupied_units|length }} occupied
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Occupancy Column with Color-Coded Progress Bar -->
+                        <td class="occupancy text-center">
+                            {% if total_property_units > 0 %}
+                                {% set occupancy_pct = (occupied_units|length / total_property_units * 100)|round(1) %}
+                                <div class="d-flex align-items-center justify-content-center" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ occupied_units|length }}/{{ total_property_units }} units occupied ({{ occupancy_pct }}%)">
+                                    <div class="progress me-2" style="width: 70px; height: 8px;">
+                                        <div class="progress-bar
+                                                    {% if occupancy_pct == 100 %}bg-success
+                                                    {% elif occupancy_pct >= 75 %}bg-info
+                                                    {% elif occupancy_pct >= 50 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}"
+                                             role="progressbar"
+                                             style="width: {{ occupancy_pct }}%"
+                                             aria-valuenow="{{ occupancy_pct }}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100"></div>
+                                    </div>
+                                    <span class="text-600 fs--1">{{ occupancy_pct }}%</span>
+                                </div>
+                            {% else %}
+                                <span class="text-400 fst-italic">N/A</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Revenue Column -->
+                        <td class="revenue text-end">
+                            {% if property_revenue > 0 %}
+                                <div data-bs-toggle="tooltip" data-bs-placement="top" title="${{ "{:,}".format(property_revenue * 12) }} annual revenue">
+                                    <span class="text-success fw-bold">${{ "{:,}".format(property_revenue) }}</span>
+                                    <div class="fs--2 text-600">monthly</div>
+                                </div>
+                            {% else %}
+                                <span class="text-400">$0</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions Column -->
+                        <td class="actions text-end">
+                            <div class="dropdown text-sans-serif">
+                                <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        aria-haspopup="true"
+                                        aria-expanded="false">
+                                    <span class="fas fa-ellipsis-h fs--1"></span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end border py-0">
+                                    <div class="py-2">
+                                        <a class="dropdown-item" href="{{ url_for('property.home', uuid=property.uuid) }}">
+                                            <span class="fas fa-eye me-1"></span>View Details
+                                        </a>
+                                        <a class="dropdown-item" href="{{ url_for('property.edit', uuid=property.uuid) }}">
+                                            <span class="fas fa-edit me-1"></span>Edit Property
+                                        </a>
+                                        <a class="dropdown-item" href="{{ url_for('unit.create', uuid=property.uuid) }}">
+                                            <span class="fas fa-plus me-1"></span>Add Unit
+                                        </a>
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item text-danger" href="#" onclick="deleteProperty('{{ property.uuid }}', '{{ property.name }}'); return false;">
+                                            <span class="fas fa-trash me-1"></span>Delete Property
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
 
-        <!-- Portfolio Badge (if assigned) -->
-        {% if property.portfolio_ref %}
-        <div class="property-portfolio">
-          <span class="portfolio-badge">
-            <i class="fas fa-folder"></i>
-            {{ property.portfolio_ref.name }}
-          </span>
+        <!-- Pagination Footer -->
+        <div class="card-footer d-flex align-items-center justify-content-center">
+            <button class="btn btn-sm btn-falcon-default me-1"
+                    type="button"
+                    title="Previous"
+                    data-list-pagination="prev">
+                <span class="fas fa-chevron-left"></span>
+            </button>
+            <ul class="pagination mb-0"></ul>
+            <button class="btn btn-sm btn-falcon-default ms-1"
+                    type="button"
+                    title="Next"
+                    data-list-pagination="next">
+                <span class="fas fa-chevron-right"></span>
+            </button>
+        </div>
+
+        {% else %}
+        <!-- Empty State: No Properties -->
+        <div class="text-center p-4">
+            <div class="mb-3">
+                <span class="fas fa-building fa-2x text-300"></span>
+            </div>
+            <h6 class="mb-2">No Properties Found</h6>
+            <p class="text-600 mb-3">You haven't created any properties yet. Properties are the foundation of your portfolio.</p>
+            <a href="{{ url_for('property.create') }}" class="btn btn-falcon-primary btn-sm">
+                <span class="fas fa-plus fs--2 me-1"></span>Create Your First Property
+            </a>
         </div>
         {% endif %}
-      </div>
-    </a>
-
-    <!-- Dropdown Menu (appears on hover) -->
-    <div class="property-card-menu">
-      <button class="property-menu-btn" type="button" aria-label="Property actions" aria-expanded="false">
-        <i class="fas fa-ellipsis-v"></i>
-      </button>
-      <div class="property-menu-dropdown">
-        <a href="{{ url_for('property.edit', uuid=property.uuid) }}" class="dropdown-item">
-          <i class="fas fa-edit me-2"></i>Edit Property
-        </a>
-        <button
-          type="button"
-          class="dropdown-item delete-property-btn"
-          data-property-id="{{ property.uuid }}"
-          data-property-name="{{ property.name }}"
-        >
-          <i class="fas fa-trash-alt me-2"></i>Delete Property
-        </button>
-      </div>
     </div>
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
-
-<!-- Empty State -->
-<div id="emptyState" class="empty-state" style="display: {% if not properties %}block{% else %}none{% endif %};">
-  <div class="empty-state-icon">
-    <i class="fas fa-building"></i>
-  </div>
-  <h3>No Properties Yet</h3>
-  <p>Get started by adding your first property to your portfolio.</p>
-  <a href="{{ url_for('property.create') }}" class="btn btn-primary btn-lg">
-    <i class="fas fa-plus me-2"></i>Add Your First Property
-  </a>
 </div>
 
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deletePropertyModal" tabindex="-1" aria-labelledby="deletePropertyModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="deletePropertyModalLabel">
-          <i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p class="mb-3">Are you sure you want to delete this property?</p>
-        <div class="alert alert-warning mb-3">
-          <i class="fas fa-exclamation-circle me-2"></i>
-          <strong>Warning:</strong> This action cannot be undone.
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deletePropertyModalLabel">Delete Property</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete property "<strong id="deletePropertyName"></strong>"?</p>
+                <p class="text-danger mb-0">This action cannot be undone and will delete all associated units and leases.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete Property</button>
+            </div>
         </div>
-        <p class="mb-0">
-          <strong>Property:</strong>
-          <span id="deletePropertyName" class="text-primary"></span>
-        </p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          <i class="fas fa-times me-2"></i>Cancel
-        </button>
-        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
-          <i class="fas fa-trash-alt me-2"></i>Delete Property
-        </button>
-      </div>
     </div>
-  </div>
 </div>
 
-{% endblock %}
+<!-- Hidden delete form -->
+<form id="deleteForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+</form>
 
-{% block javascript %}
-<!-- Include dashboard.js for toast functionality -->
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-<!-- Property list functionality -->
-<script src="{{ url_for('static', filename='js/property-list.js') }}"></script>
+<script>
+// Initialize tooltips when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Global variables for delete functionality
+let propertyToDelete = null;
+
+// Delete property function with modal
+function deleteProperty(propertyId, propertyName) {
+    propertyToDelete = propertyId;
+    document.getElementById('deletePropertyName').textContent = propertyName;
+
+    const deleteModal = new bootstrap.Modal(document.getElementById('deletePropertyModal'));
+    deleteModal.show();
+}
+
+// Confirm delete button click handler
+document.getElementById('confirmDeleteBtn')?.addEventListener('click', function() {
+    if (propertyToDelete) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/property/${propertyToDelete}/delete`;
+        form.submit();
+    }
+});
+
+// Export properties to CSV
+function exportProperties() {
+    const rows = document.querySelectorAll('.property-row');
+    let csv = 'Property Name,Portfolio,Address,City,State,ZIP,Total Units,Occupied Units,Occupancy Rate,Monthly Revenue\n';
+
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+
+        // Property name (column 0)
+        const propertyName = cells[0].querySelector('a')?.textContent?.trim() || '';
+
+        // Portfolio (column 1)
+        const portfolio = cells[1].querySelector('a')?.textContent?.trim() || 'No portfolio';
+
+        // Address (column 2)
+        const address = cells[2].querySelector('.fw-semi-bold')?.textContent?.trim() || '';
+        const cityStateZip = cells[2].querySelector('.fs--2')?.textContent?.trim() || '';
+
+        // Parse city, state, ZIP
+        let city = '';
+        let state = '';
+        let zip = '';
+        if (cityStateZip) {
+            const parts = cityStateZip.split(',');
+            if (parts.length > 0) {
+                city = parts[0].trim();
+            }
+            if (parts.length > 1) {
+                const stateZip = parts[1].trim().split(' ');
+                state = stateZip[0] || '';
+                zip = stateZip[1] || '';
+            }
+        }
+
+        // Units (column 3)
+        const units = cells[3].querySelector('.fw-bold')?.textContent?.trim() || '0';
+        const occupiedText = cells[3].querySelector('.badge')?.textContent?.trim() || '0 occupied';
+        const occupied = occupiedText.split(' ')[0];
+
+        // Occupancy (column 4)
+        const occupancyRate = cells[4].querySelector('.fs--1')?.textContent?.trim() || '0%';
+
+        // Revenue (column 5)
+        const revenue = cells[5].querySelector('.fw-bold')?.textContent?.trim() || '$0';
+
+        csv += `"${propertyName}","${portfolio}","${address}","${city}","${state}","${zip}","${units}","${occupied}","${occupancyRate}","${revenue}"\n`;
+    });
+
+    // Create and download CSV file
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'properties_export.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+
 {% endblock %}
