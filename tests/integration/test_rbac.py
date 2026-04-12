@@ -31,7 +31,7 @@ class TestOwnerPermissions:
     def test_owner_can_access_company_settings(self, auth_client_company_a, company_a):
         """Owner should be able to access and modify company settings."""
         # Access company settings page
-        response = auth_client_company_a.get('/company/profile')
+        response = auth_client_company_a.get('/company/edit')
         assert response.status_code == 200, \
             "Owner should be able to access company settings"
 
@@ -40,7 +40,7 @@ class TestOwnerPermissions:
             "Company name should be visible on settings page"
 
         # Attempt to update company settings
-        response = auth_client_company_a.post('/company/profile', data={
+        response = auth_client_company_a.post('/company/edit', data={
             'name': 'Updated Company Name',
             'email': company_a.email,
             'phone': company_a.phone
@@ -192,7 +192,7 @@ class TestManagerPermissions:
 
     def test_manager_cannot_access_company_settings(self, auth_client_manager):
         """Manager should NOT be able to access company settings."""
-        response = auth_client_manager.get('/company/profile')
+        response = auth_client_manager.get('/company/edit')
         assert response.status_code in [302, 403, 404], \
             f"Manager should not access company settings. Got {response.status_code}"
 
@@ -236,7 +236,7 @@ class TestStaffPermissions:
 
     def test_staff_cannot_access_company_settings(self, auth_client_staff):
         """Staff should NOT be able to access company settings."""
-        response = auth_client_staff.get('/company/profile')
+        response = auth_client_staff.get('/company/edit')
         assert response.status_code in [302, 403, 404], \
             f"Staff should not access company settings. Got {response.status_code}"
 
@@ -340,7 +340,7 @@ class TestRoleHierarchyEnforcement:
     def test_staff_cannot_access_owner_only_features(self, auth_client_staff):
         """Staff should not be able to access Owner-only features."""
         # Company settings - Owner only
-        response = auth_client_staff.get('/company/profile')
+        response = auth_client_staff.get('/company/edit')
         assert response.status_code in [302, 403, 404], \
             "Staff should not access Owner-only company settings"
 
