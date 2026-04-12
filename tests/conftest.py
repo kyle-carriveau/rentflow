@@ -10,6 +10,9 @@ from website import create_app, db
 from website.models import Company, User
 from werkzeug.security import generate_password_hash
 
+# Import multi-tenant fixtures for isolation and RBAC testing
+pytest_plugins = ['tests.fixtures.multi_tenant_fixtures']
+
 
 @pytest.fixture(scope='session')
 def app():

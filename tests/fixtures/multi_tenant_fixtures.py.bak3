@@ -1,0 +1,552 @@
+"""
+Multi-Tenant Test Fixtures
+
+Comprehensive fixtures for testing multi-tenant isolation and role-based access control.
+These fixtures create two separate companies with complete business object hierarchies
+for testing data isolation.
+"""
+
+import pytest
+import uuid
+from datetime import datetime, timedelta
+from website import db
+from website.models import (
+    Company, User, Portfolio, Property, Unit, Tenant, Lease,
+    Payment, Expense
+)
+
+
+# ============================================================================
+# COMPANY FIXTURES
+# ============================================================================
+
+@pytest.fixture
+def company_a(db_session):
+    """
+    Test company A for multi-tenant isolation testing.
+    Primary company for most tests.
+    """
+    company = Company(
+        name='Alpha Properties LLC',
+        email='contact@alpha-properties.com',
+        phone='555-0200',
+        address='100 Alpha Drive',
+        city='Los Angeles',
+        state='CA',
+        zip_code='90001'
+    )
+    db_session.session.add(company)
+    db_session.session.commit()
+    return company
+
+
+@pytest.fixture
+def company_b(db_session):
+    """
+    Test company B for multi-tenant isolation testing.
+    Used to verify Company A cannot access Company B's data.
+    """
+    company = Company(
+        name='Beta Realty Group',
+        email='info@beta-realty.com',
+        phone='555-0300',
+        address='200 Beta Boulevard',
+        city='San Francisco',
+        state='CA',
+        zip_code='94102'
+    )
+    db_session.session.add(company)
+    db_session.session.commit()
+    return company
+
+
+# ============================================================================
+# USER FIXTURES - COMPANY A (Role-Based Access Control Testing)
+# ============================================================================
+
+@pytest.fixture
+def owner_user(db_session, company_a):
+    """
+    Owner role user for Company A.
+    Full access to all features and data.
+    """
+    user = User(
+        email='owner@alpha-properties.com',
+        first_name='Alice',
+        last_name='Owner',
+        role='owner',
+        company_id=company_a.id
+    )
+    user.set_password('OwnerPass123!', validate_policy=False)
+    user.phone = '555-0201'
+
+    db_session.session.add(user)
+    db_session.session.commit()
+    return user
+
+
+@pytest.fixture
+def manager_user(db_session, company_a):
+    """
+    Manager role user for Company A.
+    Property and tenant management access, financial operations.
+    """
+    user = User(
+        email='manager@alpha-properties.com',
+        first_name='Bob',
+        last_name='Manager',
+        role='manager',
+        company_id=company_a.id
+    )
+    user.set_password('ManagerPass123!', validate_policy=False)
+    user.phone = '555-0202'
+
+    db_session.session.add(user)
+    db_session.session.commit()
+    return user
+
+
+@pytest.fixture
+def staff_user(db_session, company_a):
+    """
+    Staff role user for Company A.
+    Property and tenant management, limited financial access.
+    """
+    user = User(
+        email='staff@alpha-properties.com',
+        first_name='Charlie',
+        last_name='Staff',
+        role='staff',
+        company_id=company_a.id
+    )
+    user.set_password('StaffPass123!', validate_policy=False)
+    user.phone = '555-0203'
+
+    db_session.session.add(user)
+    db_session.session.commit()
+    return user
+
+
+@pytest.fixture
+def viewer_user(db_session, company_a):
+    """
+    Viewer role user for Company A.
+    Read-only access to assigned data.
+    """
+    user = User(
+        email='viewer@alpha-properties.com',
+        first_name='Diana',
+        last_name='Viewer',
+        role='viewer',
+        company_id=company_a.id
+    )
+    user.set_password('ViewerPass123!', validate_policy=False)
+    user.phone = '555-0204'
+
+    db_session.session.add(user)
+    db_session.session.commit()
+    return user
+
+
+# ============================================================================
+# USER FIXTURES - COMPANY B (Isolation Testing)
+# ============================================================================
+
+@pytest.fixture
+def user_company_b(db_session, company_b):
+    """
+    Owner role user for Company B.
+    Used to verify Company A users cannot access Company B's data.
+    """
+    user = User(
+        email='owner@beta-realty.com',
+        first_name='Eve',
+        last_name='BetaOwner',
+        role='owner',
+        company_id=company_b.id
+    )
+    user.set_password('BetaPass123!', validate_policy=False)
+    user.phone = '555-0301'
+
+    db_session.session.add(user)
+    db_session.session.commit()
+    return user
+
+
+# ============================================================================
+# BUSINESS OBJECT FIXTURES - COMPANY A
+# ============================================================================
+
+@pytest.fixture
+def portfolio_a(db_session, company_a):
+    """
+    Test portfolio for Company A.
+    """
+    portfolio = Portfolio(
+        name='Alpha Downtown Portfolio',
+        company_id=company_a.id
+    )
+    db_session.session.add(portfolio)
+    db_session.session.commit()
+    return portfolio
+
+
+@pytest.fixture
+def property_a(db_session, company_a, portfolio_a):
+    """
+    Test property for Company A in portfolio A.
+    """
+    property_obj = Property(
+        name='Alpha Towers',
+        company_id=company_a.id,
+        portfolio_id=portfolio_a.id
+    )
+    # Set additional attributes after creation
+    property_obj.address = '100 Main Street'
+    property_obj.city = 'Los Angeles'
+    property_obj.state = 'CA'
+    property_obj.zip_code = '90001'
+    property_obj.type = 'Apartment'
+    property_obj.year_built = 2015
+    property_obj.total_units = 10
+    property_obj.occupancy_status = 'Partially Occupied'
+
+    db_session.session.add(property_obj)
+    db_session.session.commit()
+    return property_obj
+
+
+@pytest.fixture
+def unit_a(db_session, property_a, company_a):
+    """
+    Test unit in property A for Company A.
+    """
+    unit = Unit(
+        name='Unit 101',
+        property_id=property_a.id,
+        company_id=company_a.id
+    )
+    # Set additional attributes after creation
+    unit.bedrooms = 2
+    unit.bathrooms = 2.0  # Float for SQLite compatibility
+    unit.square_feet = 1200
+    unit.rent = 2500.00  # Float for SQLite compatibility
+    unit.deposit = 2500.00  # Float for SQLite compatibility
+    unit.occupancy_status = 'Available'
+    unit.pets_allowed = True
+
+    db_session.session.add(unit)
+    db_session.session.commit()
+    return unit
+
+
+@pytest.fixture
+def tenant_a(db_session, company_a, property_a):
+    """
+    Test tenant for Company A.
+    """
+    tenant = Tenant(
+        first_name='John',
+        last_name='TenantA',
+        company_id=company_a.id
+    )
+    # Set additional attributes after creation
+    tenant.email = 'john.tenanta@example.com'
+    tenant.phone = '555-1001'
+    tenant.property_id = property_a.id
+
+    db_session.session.add(tenant)
+    db_session.session.commit()
+    return tenant
+
+
+@pytest.fixture
+def active_lease_a(db_session, company_a, property_a, unit_a, tenant_a):
+    """
+    Active lease for Company A linking unit_a and tenant_a.
+    """
+    today = datetime.now()
+    lease = Lease(
+        tenant_id=tenant_a.id,
+        unit_id=unit_a.id,
+        property_id=property_a.id,
+        company_id=company_a.id,
+        start=today - timedelta(days=30),  # Started 30 days ago
+        end=today + timedelta(days=335),   # Ends in ~11 months
+        rent=2500.00  # Float for SQLite compatibility
+    )
+    # Set additional attributes after creation
+    lease.deposit = 2500.00  # Float for SQLite compatibility
+    lease.lease_status = 'Active'
+    lease.payment_frequency = 'Monthly'
+
+    db_session.session.add(lease)
+    db_session.session.commit()
+
+    # Update unit occupancy status
+    unit_a.occupancy_status = 'Occupied'
+    db_session.session.commit()
+
+    return lease
+
+
+@pytest.fixture
+def payment_a(db_session, company_a, property_a, active_lease_a, owner_user):
+    """
+    Test payment for active_lease_a in Company A.
+    """
+    payment = Payment(
+        lease_id=active_lease_a.id,
+        property_id=property_a.id,
+        user_id=owner_user.id,
+        company_id=company_a.id,
+        amount=2500.00,  # Float for SQLite compatibility
+        payment_date=datetime.now() - timedelta(days=5),
+        due_date=datetime.now() - timedelta(days=30),
+        payment_method='Check',
+        reference_number='CHK-001',
+        status='completed',
+        notes='Rent payment for December'
+    )
+    db_session.session.add(payment)
+    db_session.session.commit()
+    return payment
+
+
+@pytest.fixture
+def expense_a(db_session, company_a, property_a, owner_user):
+    """
+    Test expense for property_a in Company A.
+    """
+    expense = Expense(
+        user_id=owner_user.id,
+        company_id=company_a.id,
+        property_id=property_a.id,
+        amount=350.00,  # Float for SQLite compatibility
+        expense_date=datetime.now() - timedelta(days=10),
+        category='Maintenance',
+        subcategory='Plumbing',
+        description='Fixed leaking faucet in Unit 101',
+        vendor='ABC Plumbing',
+        reference_number='INV-1001',
+        tax_deductible=True,
+        notes='Emergency repair'
+    )
+    db_session.session.add(expense)
+    db_session.session.commit()
+    return expense
+
+
+# ============================================================================
+# BUSINESS OBJECT FIXTURES - COMPANY B (Isolation Testing)
+# ============================================================================
+
+@pytest.fixture
+def property_b(db_session, company_b):
+    """
+    Test property for Company B.
+    Used to verify Company A cannot access this data.
+    """
+    property_obj = Property(
+        name='Beta Plaza',
+        company_id=company_b.id,
+        portfolio_id=None
+    )
+    # Set additional attributes after creation
+    property_obj.address = '200 Market Street'
+    property_obj.city = 'San Francisco'
+    property_obj.state = 'CA'
+    property_obj.zip_code = '94102'
+    property_obj.type = 'Commercial'
+    property_obj.year_built = 2010
+    property_obj.total_units = 5
+    property_obj.occupancy_status = 'Fully Occupied'
+
+    db_session.session.add(property_obj)
+    db_session.session.commit()
+    return property_obj
+
+
+@pytest.fixture
+def unit_b(db_session, property_b, company_b):
+    """
+    Test unit in property B for Company B.
+    """
+    unit = Unit(
+        name='Suite 201',
+        property_id=property_b.id,
+        company_id=company_b.id
+    )
+    # Set additional attributes after creation
+    unit.bedrooms = 3
+    unit.bathrooms = 2.5  # Float for SQLite compatibility
+    unit.square_feet = 1800
+    unit.rent = 4500.00  # Float for SQLite compatibility
+    unit.deposit = 4500.00  # Float for SQLite compatibility
+    unit.occupancy_status = 'Occupied'
+    unit.pets_allowed = False
+
+    db_session.session.add(unit)
+    db_session.session.commit()
+    return unit
+
+
+@pytest.fixture
+def tenant_b(db_session, company_b, property_b):
+    """
+    Test tenant for Company B.
+    """
+    tenant = Tenant(
+        first_name='Jane',
+        last_name='TenantB',
+        company_id=company_b.id
+    )
+    # Set additional attributes after creation
+    tenant.email = 'jane.tenantb@example.com'
+    tenant.phone = '555-2001'
+    tenant.property_id = property_b.id
+
+    db_session.session.add(tenant)
+    db_session.session.commit()
+    return tenant
+
+
+@pytest.fixture
+def lease_b(db_session, company_b, property_b, unit_b, tenant_b):
+    """
+    Active lease for Company B.
+    """
+    today = datetime.now()
+    lease = Lease(
+        tenant_id=tenant_b.id,
+        unit_id=unit_b.id,
+        property_id=property_b.id,
+        company_id=company_b.id,
+        start=today - timedelta(days=60),  # Started 60 days ago
+        end=today + timedelta(days=305),   # Ends in ~10 months
+        rent=4500.00  # Float for SQLite compatibility
+    )
+    # Set additional attributes after creation
+    lease.deposit = 4500.00  # Float for SQLite compatibility
+    lease.lease_status = 'Active'
+    lease.payment_frequency = 'Monthly'
+
+    db_session.session.add(lease)
+    db_session.session.commit()
+    return lease
+
+
+@pytest.fixture
+def payment_b(db_session, company_b, property_b, lease_b, user_company_b):
+    """
+    Test payment for lease_b in Company B.
+    """
+    payment = Payment(
+        lease_id=lease_b.id,
+        property_id=property_b.id,
+        user_id=user_company_b.id,
+        company_id=company_b.id,
+        amount=4500.00,  # Float for SQLite compatibility
+        payment_date=datetime.now() - timedelta(days=3),
+        due_date=datetime.now() - timedelta(days=30),
+        payment_method='ACH',
+        reference_number='ACH-5001',
+        status='completed',
+        notes='Monthly rent payment'
+    )
+    db_session.session.add(payment)
+    db_session.session.commit()
+    return payment
+
+
+@pytest.fixture
+def expense_b(db_session, company_b, property_b, user_company_b):
+    """
+    Test expense for property_b in Company B.
+    """
+    expense = Expense(
+        user_id=user_company_b.id,
+        company_id=company_b.id,
+        property_id=property_b.id,
+        amount=1200.00,  # Float for SQLite compatibility
+        expense_date=datetime.now() - timedelta(days=7),
+        category='Utilities',
+        subcategory='Electric',
+        description='Monthly electric bill',
+        vendor='City Power Company',
+        reference_number='UTIL-2001',
+        tax_deductible=True,
+        notes='Common area electricity'
+    )
+    db_session.session.add(expense)
+    db_session.session.commit()
+    return expense
+
+
+# ============================================================================
+# AUTHENTICATED CLIENT FIXTURES
+# ============================================================================
+
+@pytest.fixture
+def auth_client_company_a(client, owner_user):
+    """
+    Authenticated test client logged in as Company A owner.
+    """
+    with client:
+        client.post('/auth/login', data={
+            'email': owner_user.email,
+            'password': 'OwnerPass123!'
+        }, follow_redirects=True)
+        yield client
+
+
+@pytest.fixture
+def auth_client_company_b(client, user_company_b):
+    """
+    Authenticated test client logged in as Company B owner.
+    """
+    with client:
+        client.post('/auth/login', data={
+            'email': user_company_b.email,
+            'password': 'BetaPass123!'
+        }, follow_redirects=True)
+        yield client
+
+
+@pytest.fixture
+def auth_client_manager(client, manager_user):
+    """
+    Authenticated test client logged in as Company A manager.
+    """
+    with client:
+        client.post('/auth/login', data={
+            'email': manager_user.email,
+            'password': 'ManagerPass123!'
+        }, follow_redirects=True)
+        yield client
+
+
+@pytest.fixture
+def auth_client_staff(client, staff_user):
+    """
+    Authenticated test client logged in as Company A staff.
+    """
+    with client:
+        client.post('/auth/login', data={
+            'email': staff_user.email,
+            'password': 'StaffPass123!'
+        }, follow_redirects=True)
+        yield client
+
+
+@pytest.fixture
+def auth_client_viewer(client, viewer_user):
+    """
+    Authenticated test client logged in as Company A viewer.
+    """
+    with client:
+        client.post('/auth/login', data={
+            'email': viewer_user.email,
+            'password': 'ViewerPass123!'
+        }, follow_redirects=True)
+        yield client
