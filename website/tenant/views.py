@@ -2,6 +2,7 @@ from flask import render_template, Blueprint, request, redirect, url_for, flash
 from website.models import User, Tenant, Property
 from website import db
 from flask_login import login_required, current_user
+from website.auth_utils import role_required
 from website.views import get_tenant, get_properties, get_states
 from website.errors import page_not_found
 from website.tenant.forms import TenantCreateForm, TenantEditForm, TenantDeleteForm
@@ -18,6 +19,7 @@ def tenants():
 
 @tenant.route('/create', methods=['GET', 'POST'])
 @login_required
+@role_required('staff')
 def create():
     company_id = current_user.get_company_id()
     form = TenantCreateForm(properties=get_properties())
