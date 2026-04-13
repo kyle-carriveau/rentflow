@@ -1,34 +1,30 @@
 from flask import render_template, Blueprint, request, redirect, url_for, flash, jsonify
 from website.models import Portfolio, Property, Unit, Lease
-from website import db 
+from website import db
 from flask_login import login_required, current_user
 from website.views import get_portfolios
 from website.errors import page_not_found
+from website.portfolio.forms import PortfolioForm, PortfolioEditForm, PropertyAssignmentForm, PropertyRemovalForm, PortfolioDeleteForm
 from sqlalchemy import func, and_
 from datetime import datetime
 
 portfolio = Blueprint('portfolio', __name__, template_folder='templates')
 
-@portfolio.route('/', methods=['GET', 'POST']) 
-@login_required 
+@portfolio.route('/', methods=['GET', 'POST'])
+@login_required
 def portfolios():
     """Display all portfolios with enhanced metrics."""
-    if request.method == "POST":
-        name = request.form.get('portfolio_name', '').strip()
-        description = request.form.get('description', '').strip()
-        
-        if not name:
-            flash('Portfolio name is required.', 'error')
-            return render_template("portfolios.html", user=current_user, portfolios=get_enhanced_portfolios())
-        
+    form = PortfolioForm()
+
+    if form.validate_on_submit():
         company_id = current_user.get_company_id()
-        new_portfolio = Portfolio(name=name, company_id=company_id)
+        new_portfolio = Portfolio(name=form.name.data, company_id=company_id)
         db.session.add(new_portfolio)
         db.session.commit()
         flash('Portfolio created successfully!', 'success')
         return redirect(url_for('portfolio.portfolios'))
-    
-    return render_template("portfolios.html", user=current_user, portfolios=get_enhanced_portfolios())
+
+    return render_template("portfolios.html", user=current_user, portfolios=get_enhanced_portfolios(), form=form)
 
 @portfolio.route('/<uuid:uuid>')
 @login_required
@@ -61,20 +57,16 @@ def edit(uuid):
     portfolio = Portfolio.find_by_uuid(str(uuid), company_id)
     if not portfolio:
         return page_not_found(404)
-    
-    if request.method == "POST":
-        name = request.form.get('name', '').strip()
-        
-        if not name:
-            flash('Portfolio name is required.', 'error')
-            return render_template("edit_portfolio.html", user=current_user, portfolio=portfolio)
-        
-        portfolio.name = name
+
+    form = PortfolioEditForm(obj=portfolio)
+
+    if form.validate_on_submit():
+        portfolio.name = form.name.data
         db.session.commit()
         flash('Portfolio updated successfully!', 'success')
         return redirect(url_for('portfolio.home', uuid=uuid))
-    
-    return render_template("edit_portfolio.html", user=current_user, portfolio=portfolio)
+
+    return render_template("edit_portfolio.html", user=current_user, portfolio=portfolio, form=form)
 
 @portfolio.route('/<uuid:uuid>/delete', methods=['POST'])
 @login_required
@@ -84,19 +76,22 @@ def delete(uuid):
     portfolio = Portfolio.find_by_uuid(str(uuid), company_id)
     if not portfolio:
         return page_not_found(404)
-    
-    portfolio_name = portfolio.name
-    
-    try:
-        # Move all properties in this portfolio to unassigned
-        Property.query.filter_by(portfolio_id=portfolio.id, company_id=company_id).update({'portfolio_id': None})
-        db.session.delete(portfolio)
-        db.session.commit()
-        flash(f'Portfolio "{portfolio_name}" deleted. Properties moved to unassigned.', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash('Error deleting portfolio.', 'error')
-    
+
+    form = PortfolioDeleteForm()
+
+    if form.validate_on_submit():
+        portfolio_name = portfolio.name
+
+        try:
+            # Move all properties in this portfolio to unassigned
+            Property.query.filter_by(portfolio_id=portfolio.id, company_id=company_id).update({'portfolio_id': None})
+            db.session.delete(portfolio)
+            db.session.commit()
+            flash(f'Portfolio "{portfolio_name}" deleted. Properties moved to unassigned.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash('Error deleting portfolio.', 'error')
+
     return redirect(url_for('portfolio.portfolios'))
 
 @portfolio.route('/<uuid:uuid>/assign-property', methods=['POST'])
@@ -107,17 +102,21 @@ def assign_property(uuid):
     portfolio = Portfolio.find_by_uuid(str(uuid), company_id)
     if not portfolio:
         return page_not_found(404)
-    
-    property_uuid = request.form.get('property_uuid')
-    property = Property.find_by_uuid(property_uuid, company_id) if property_uuid else None
-    
-    if not property:
-        flash('Property not found.', 'error')
-        return redirect(url_for('portfolio.home', uuid=uuid))
-    
-    property.portfolio_id = portfolio.id
-    db.session.commit()
-    flash(f'Property "{property.name}" assigned to portfolio "{portfolio.name}".', 'success')
+
+    form = PropertyAssignmentForm()
+
+    if form.validate_on_submit():
+        property_uuid = form.property_uuid.data
+        property = Property.find_by_uuid(property_uuid, company_id) if property_uuid else None
+
+        if not property:
+            flash('Property not found.', 'error')
+            return redirect(url_for('portfolio.home', uuid=uuid))
+
+        property.portfolio_id = portfolio.id
+        db.session.commit()
+        flash(f'Property "{property.name}" assigned to portfolio "{portfolio.name}".', 'success')
+
     return redirect(url_for('portfolio.home', uuid=uuid))
 
 @portfolio.route('/<uuid:uuid>/remove-property', methods=['POST'])
@@ -128,21 +127,25 @@ def remove_property(uuid):
     portfolio = Portfolio.find_by_uuid(str(uuid), company_id)
     if not portfolio:
         return page_not_found(404)
-    
-    property_uuid = request.form.get('property_uuid')
-    property = Property.find_by_uuid(property_uuid, company_id) if property_uuid else None
 
-    # Additional check to ensure property is in this portfolio
-    if property and property.portfolio_id != portfolio.id:
-        property = None
-    
-    if not property:
-        flash('Property not found in this portfolio.', 'error')
-        return redirect(url_for('portfolio.home', uuid=uuid))
-    
-    property.portfolio_id = None
-    db.session.commit()
-    flash(f'Property "{property.name}" removed from portfolio.', 'success')
+    form = PropertyRemovalForm()
+
+    if form.validate_on_submit():
+        property_uuid = form.property_uuid.data
+        property = Property.find_by_uuid(property_uuid, company_id) if property_uuid else None
+
+        # Additional check to ensure property is in this portfolio
+        if property and property.portfolio_id != portfolio.id:
+            property = None
+
+        if not property:
+            flash('Property not found in this portfolio.', 'error')
+            return redirect(url_for('portfolio.home', uuid=uuid))
+
+        property.portfolio_id = None
+        db.session.commit()
+        flash(f'Property "{property.name}" removed from portfolio.', 'success')
+
     return redirect(url_for('portfolio.home', uuid=uuid))
 
 def get_enhanced_portfolios():

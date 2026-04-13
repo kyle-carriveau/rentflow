@@ -52,7 +52,7 @@ class TestOwnerPermissions:
     def test_owner_can_manage_users(self, auth_client_company_a):
         """Owner should be able to invite, edit, and remove users."""
         # Access user management page
-        response = auth_client_company_a.get('/users')
+        response = auth_client_company_a.get('/users/')
         assert response.status_code == 200, \
             "Owner should be able to access user management"
 
@@ -90,7 +90,7 @@ class TestOwnerPermissions:
     def test_owner_can_view_all_financial_data(self, auth_client_company_a, payment_a, expense_a):
         """Owner should have full access to all financial data."""
         # Access financial overview
-        response = auth_client_company_a.get('/financial')
+        response = auth_client_company_a.get('/financial/')
         assert response.status_code == 200, \
             "Owner should be able to access financial overview"
 
@@ -220,7 +220,7 @@ class TestStaffPermissions:
 
     def test_staff_can_view_properties(self, auth_client_staff, property_a):
         """Staff should be able to view properties."""
-        response = auth_client_staff.get('/property')
+        response = auth_client_staff.get('/property/')
         assert response.status_code == 200, \
             "Staff should be able to view property list"
 
@@ -249,7 +249,7 @@ class TestStaffPermissions:
     def test_staff_has_limited_financial_access(self, auth_client_staff):
         """Staff should have view access to financial data but limited modification rights."""
         # Staff should be able to VIEW financial data
-        response = auth_client_staff.get('/financial')
+        response = auth_client_staff.get('/financial/')
         assert response.status_code == 200, \
             "Staff should be able to view financial overview"
 
@@ -278,7 +278,7 @@ class TestViewerPermissions:
 
     def test_viewer_can_view_properties(self, auth_client_viewer, property_a):
         """Viewer should be able to view properties (read-only)."""
-        response = auth_client_viewer.get('/property')
+        response = auth_client_viewer.get('/property/')
         assert response.status_code == 200, \
             "Viewer should be able to view property list"
 
@@ -320,7 +320,7 @@ class TestViewerPermissions:
             f"Viewer should not access expense creation. Got {response.status_code}"
 
         # May be able to VIEW financial summary (read-only) - implementation dependent
-        response = auth_client_viewer.get('/financial')
+        response = auth_client_viewer.get('/financial/')
 
         # Either completely forbidden or read-only access allowed
         assert response.status_code in [200, 403, 404], \
@@ -345,7 +345,7 @@ class TestRoleHierarchyEnforcement:
             "Staff should not access Owner-only company settings"
 
         # User management - Owner only
-        response = auth_client_staff.get('/users')
+        response = auth_client_staff.get('/users/')
         assert response.status_code in [302, 403, 404], \
             "Staff should not access Owner-only user management"
 
@@ -371,7 +371,7 @@ class TestRoleHierarchyEnforcement:
     def test_manager_cannot_escalate_privileges(self, auth_client_manager):
         """Manager should not be able to escalate their own privileges."""
         # Attempt to access user management (which could allow role changes)
-        response = auth_client_manager.get('/users')
+        response = auth_client_manager.get('/users/')
         assert response.status_code in [302, 403, 404], \
             "Manager should not access user management (prevents privilege escalation)"
 
@@ -402,7 +402,7 @@ class TestCrossRoleDataAccess:
     ):
         """Staff can see their company's properties but not other companies."""
         # Can see Company A properties
-        response = auth_client_staff.get('/property')
+        response = auth_client_staff.get('/property/')
         assert response.status_code == 200
 
         response_data = response.data.decode('utf-8')

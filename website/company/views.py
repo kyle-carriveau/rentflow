@@ -4,6 +4,7 @@ from website import db
 from flask_login import login_required, current_user
 from website.errors import page_not_found
 from website.auth_utils import owner_required, manager_required
+from website.company.forms import CompanyEditForm, BusinessSettingsForm, FinancialSettingsForm, CommunicationSettingsForm
 from datetime import datetime
 import json
 
@@ -29,70 +30,33 @@ def edit():
     company_data = Company.query.filter_by(id=company_id).first()
     if not company_data:
         return page_not_found(404)
-    
-    if request.method == 'POST':
-        # Basic company information
-        name = request.form.get('name', '').strip()
-        email = request.form.get('email', '').strip()
-        phone = request.form.get('phone', '').strip()
-        address = request.form.get('address', '').strip()
-        city = request.form.get('city', '').strip()
-        state = request.form.get('state', '').strip()
-        zip_code = request.form.get('zip_code', '').strip()
-        website = request.form.get('website', '').strip()
-        description = request.form.get('description', '').strip()
 
-        # Enhanced company fields
-        industry = request.form.get('industry', '').strip()
-        company_size = request.form.get('company_size', '').strip()
-        tax_id = request.form.get('tax_id', '').strip()
-        license_number = request.form.get('license_number', '').strip()
-        established_date = request.form.get('established_date')
-        timezone = request.form.get('timezone', 'America/New_York').strip()
-        currency = request.form.get('currency', 'USD').strip()
+    form = CompanyEditForm(obj=company_data)
 
-        # Server-side validation
-        if not name:
-            flash('Company name is required.', 'error')
-            return render_template("edit_company.html", user=current_user, company=company_data)
-
-        if not email:
-            flash('Company email is required.', 'error')
-            return render_template("edit_company.html", user=current_user, company=company_data)
-
-        # Data conversion
-        try:
-            if established_date:
-                established_date = datetime.strptime(established_date, '%Y-%m-%d').date()
-            else:
-                established_date = None
-        except ValueError:
-            flash('Invalid established date format.', 'error')
-            return render_template("edit_company.html", user=current_user, company=company_data)
-
-        # Update company
-        company_data.name = name
-        company_data.email = email
-        company_data.phone = phone
-        company_data.address = address
-        company_data.city = city
-        company_data.state = state
-        company_data.zip_code = zip_code
-        company_data.website = website
-        company_data.description = description
-        company_data.industry = industry
-        company_data.company_size = company_size
-        company_data.tax_id = tax_id
-        company_data.license_number = license_number
-        company_data.established_date = established_date
-        company_data.timezone = timezone
-        company_data.currency = currency
+    if form.validate_on_submit():
+        # Update company with form data
+        company_data.name = form.name.data
+        company_data.email = form.email.data
+        company_data.phone = form.phone.data if form.phone.data else None
+        company_data.address = form.address.data if form.address.data else None
+        company_data.city = form.city.data if form.city.data else None
+        company_data.state = form.state.data if form.state.data else None
+        company_data.zip_code = form.zip_code.data if form.zip_code.data else None
+        company_data.website = form.website.data if form.website.data else None
+        company_data.description = form.description.data if form.description.data else None
+        company_data.industry = form.industry.data if form.industry.data else None
+        company_data.company_size = form.company_size.data if form.company_size.data else None
+        company_data.tax_id = form.tax_id.data if form.tax_id.data else None
+        company_data.license_number = form.license_number.data if form.license_number.data else None
+        company_data.established_date = form.established_date.data
+        company_data.timezone = form.timezone.data
+        company_data.currency = form.currency.data
 
         db.session.commit()
         flash('Company information updated successfully!', 'success')
         return redirect(url_for('company.profile'))
 
-    return render_template("edit_company.html", user=current_user, company=company_data)
+    return render_template("edit_company.html", user=current_user, company=company_data, form=form)
 
 # Helper functions for settings management
 def get_company_setting(company_id, setting_key, default_value=None):
@@ -181,25 +145,27 @@ def business_settings():
     """Manage business settings."""
     company_id = current_user.get_company_id()
 
-    if request.method == 'POST':
-        try:
-            # Business rule settings
-            default_lease_term = request.form.get('default_lease_term', '12')
-            late_fee_amount = request.form.get('late_fee_amount', '50')
-            grace_period_days = request.form.get('grace_period_days', '5')
-            security_deposit_multiplier = request.form.get('security_deposit_multiplier', '1')
-            application_fee = request.form.get('application_fee', '25')
-            pet_policy_enabled = 'pet_policy_enabled' in request.form
-            pet_deposit_amount = request.form.get('pet_deposit_amount', '200')
+    # Load current settings for form pre-population
+    form = BusinessSettingsForm(
+        default_lease_term=get_company_setting(company_id, 'default_lease_term', 12),
+        late_fee_amount=get_company_setting(company_id, 'late_fee_amount', 50),
+        grace_period_days=get_company_setting(company_id, 'grace_period_days', 5),
+        security_deposit_multiplier=get_company_setting(company_id, 'security_deposit_multiplier', '1'),
+        application_fee=get_company_setting(company_id, 'application_fee', 25),
+        pet_policy_enabled=get_company_setting(company_id, 'pet_policy_enabled', False),
+        pet_deposit_amount=get_company_setting(company_id, 'pet_deposit_amount', 200)
+    )
 
-            # Save settings
-            set_company_setting(company_id, 'default_lease_term', default_lease_term, 'integer', 'business')
-            set_company_setting(company_id, 'late_fee_amount', late_fee_amount, 'integer', 'business')
-            set_company_setting(company_id, 'grace_period_days', grace_period_days, 'integer', 'business')
-            set_company_setting(company_id, 'security_deposit_multiplier', security_deposit_multiplier, 'string', 'business')
-            set_company_setting(company_id, 'application_fee', application_fee, 'integer', 'business')
-            set_company_setting(company_id, 'pet_policy_enabled', pet_policy_enabled, 'boolean', 'business')
-            set_company_setting(company_id, 'pet_deposit_amount', pet_deposit_amount, 'integer', 'business')
+    if form.validate_on_submit():
+        try:
+            # Save settings from form
+            set_company_setting(company_id, 'default_lease_term', form.default_lease_term.data, 'integer', 'business')
+            set_company_setting(company_id, 'late_fee_amount', form.late_fee_amount.data, 'integer', 'business')
+            set_company_setting(company_id, 'grace_period_days', form.grace_period_days.data, 'integer', 'business')
+            set_company_setting(company_id, 'security_deposit_multiplier', form.security_deposit_multiplier.data, 'string', 'business')
+            set_company_setting(company_id, 'application_fee', form.application_fee.data, 'integer', 'business')
+            set_company_setting(company_id, 'pet_policy_enabled', form.pet_policy_enabled.data, 'boolean', 'business')
+            set_company_setting(company_id, 'pet_deposit_amount', form.pet_deposit_amount.data, 'integer', 'business')
 
             flash('Business settings updated successfully!', 'success')
             return redirect(url_for('company.settings'))
@@ -208,20 +174,7 @@ def business_settings():
             flash('Error updating business settings.', 'error')
             return redirect(url_for('company.business_settings'))
 
-    # Load current settings
-    settings = {
-        'default_lease_term': get_company_setting(company_id, 'default_lease_term', 12),
-        'late_fee_amount': get_company_setting(company_id, 'late_fee_amount', 50),
-        'grace_period_days': get_company_setting(company_id, 'grace_period_days', 5),
-        'security_deposit_multiplier': get_company_setting(company_id, 'security_deposit_multiplier', '1'),
-        'application_fee': get_company_setting(company_id, 'application_fee', 25),
-        'pet_policy_enabled': get_company_setting(company_id, 'pet_policy_enabled', False),
-        'pet_deposit_amount': get_company_setting(company_id, 'pet_deposit_amount', 200)
-    }
-
-    return render_template("business_settings.html",
-                         user=current_user,
-                         settings=settings)
+    return render_template("business_settings.html", user=current_user, form=form)
 
 @company.route('/settings/financial', methods=['GET', 'POST'])
 @login_required
@@ -230,17 +183,19 @@ def financial_settings():
     """Manage financial settings (owner only)."""
     company_id = current_user.get_company_id()
 
-    if request.method == 'POST':
-        try:
-            # Financial settings
-            accounting_period = request.form.get('accounting_period', 'monthly')
-            tax_year_type = request.form.get('tax_year_type', 'calendar')
-            late_payment_interest = request.form.get('late_payment_interest', '0')
+    # Load current settings for form pre-population
+    form = FinancialSettingsForm(
+        accounting_period=get_company_setting(company_id, 'accounting_period', 'monthly'),
+        tax_year_type=get_company_setting(company_id, 'tax_year_type', 'calendar'),
+        late_payment_interest=get_company_setting(company_id, 'late_payment_interest', '0')
+    )
 
-            # Save settings
-            set_company_setting(company_id, 'accounting_period', accounting_period, 'string', 'financial')
-            set_company_setting(company_id, 'tax_year_type', tax_year_type, 'string', 'financial')
-            set_company_setting(company_id, 'late_payment_interest', late_payment_interest, 'string', 'financial')
+    if form.validate_on_submit():
+        try:
+            # Save settings from form
+            set_company_setting(company_id, 'accounting_period', form.accounting_period.data, 'string', 'financial')
+            set_company_setting(company_id, 'tax_year_type', form.tax_year_type.data, 'string', 'financial')
+            set_company_setting(company_id, 'late_payment_interest', form.late_payment_interest.data, 'string', 'financial')
 
             flash('Financial settings updated successfully!', 'success')
             return redirect(url_for('company.settings'))
@@ -249,16 +204,7 @@ def financial_settings():
             flash('Error updating financial settings.', 'error')
             return redirect(url_for('company.financial_settings'))
 
-    # Load current settings
-    settings = {
-        'accounting_period': get_company_setting(company_id, 'accounting_period', 'monthly'),
-        'tax_year_type': get_company_setting(company_id, 'tax_year_type', 'calendar'),
-        'late_payment_interest': get_company_setting(company_id, 'late_payment_interest', '0')
-    }
-
-    return render_template("financial_settings.html",
-                         user=current_user,
-                         settings=settings)
+    return render_template("financial_settings.html", user=current_user, form=form)
 
 @company.route('/settings/communication', methods=['GET', 'POST'])
 @login_required
@@ -267,19 +213,21 @@ def communication_settings():
     """Manage communication settings."""
     company_id = current_user.get_company_id()
 
-    if request.method == 'POST':
-        try:
-            # Communication settings
-            email_notifications = 'email_notifications' in request.form
-            sms_notifications = 'sms_notifications' in request.form
-            rent_reminder_days = request.form.get('rent_reminder_days', '3')
-            lease_expiry_notice_days = request.form.get('lease_expiry_notice_days', '60')
+    # Load current settings for form pre-population
+    form = CommunicationSettingsForm(
+        email_notifications=get_company_setting(company_id, 'email_notifications', True),
+        sms_notifications=get_company_setting(company_id, 'sms_notifications', False),
+        rent_reminder_days=get_company_setting(company_id, 'rent_reminder_days', 3),
+        lease_expiry_notice_days=get_company_setting(company_id, 'lease_expiry_notice_days', 60)
+    )
 
-            # Save settings
-            set_company_setting(company_id, 'email_notifications', email_notifications, 'boolean', 'communication')
-            set_company_setting(company_id, 'sms_notifications', sms_notifications, 'boolean', 'communication')
-            set_company_setting(company_id, 'rent_reminder_days', rent_reminder_days, 'integer', 'communication')
-            set_company_setting(company_id, 'lease_expiry_notice_days', lease_expiry_notice_days, 'integer', 'communication')
+    if form.validate_on_submit():
+        try:
+            # Save settings from form
+            set_company_setting(company_id, 'email_notifications', form.email_notifications.data, 'boolean', 'communication')
+            set_company_setting(company_id, 'sms_notifications', form.sms_notifications.data, 'boolean', 'communication')
+            set_company_setting(company_id, 'rent_reminder_days', form.rent_reminder_days.data, 'integer', 'communication')
+            set_company_setting(company_id, 'lease_expiry_notice_days', form.lease_expiry_notice_days.data, 'integer', 'communication')
 
             flash('Communication settings updated successfully!', 'success')
             return redirect(url_for('company.settings'))
@@ -288,14 +236,4 @@ def communication_settings():
             flash('Error updating communication settings.', 'error')
             return redirect(url_for('company.communication_settings'))
 
-    # Load current settings
-    settings = {
-        'email_notifications': get_company_setting(company_id, 'email_notifications', True),
-        'sms_notifications': get_company_setting(company_id, 'sms_notifications', False),
-        'rent_reminder_days': get_company_setting(company_id, 'rent_reminder_days', 3),
-        'lease_expiry_notice_days': get_company_setting(company_id, 'lease_expiry_notice_days', 60)
-    }
-
-    return render_template("communication_settings.html",
-                         user=current_user,
-                         settings=settings)
+    return render_template("communication_settings.html", user=current_user, form=form)
