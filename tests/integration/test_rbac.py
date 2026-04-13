@@ -96,13 +96,13 @@ class TestOwnerPermissions:
 
         response_data = response.data.decode('utf-8')
 
-        # Verify payment data is visible
-        assert payment_a.reference_number in response_data, \
-            "Owner should see payment data"
+        # Verify payment amount is visible on dashboard (reference_number is not displayed on summary view)
+        assert '$2,500.00' in response_data, \
+            "Owner should see payment amount in financial dashboard"
 
-        # Verify expense data is visible
-        assert expense_a.vendor in response_data, \
-            "Owner should see expense data"
+        # Verify expense description is visible on dashboard (vendor is not displayed on summary view)
+        assert expense_a.description in response_data, \
+            "Owner should see expense description in financial dashboard"
 
         # Access financial analytics
         response = auth_client_company_a.get('/financial/analytics')
