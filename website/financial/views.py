@@ -1,5 +1,6 @@
 from flask import render_template, Blueprint, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
+from website.auth_utils import manager_required
 from website.models import Payment, Expense, Lease, Property, Tenant
 from website import db
 from datetime import datetime, timedelta
@@ -112,6 +113,7 @@ def payments():
 
 @financial.route('/payments/record', methods=['GET', 'POST'])
 @login_required
+@manager_required
 def record_payment():
     """Record a new payment."""
     if request.method == 'POST':
@@ -249,6 +251,7 @@ def expenses():
 
 @financial.route('/expenses/add', methods=['GET', 'POST'])
 @login_required
+@manager_required
 def add_expense():
     """Add a new expense."""
     if request.method == 'POST':
