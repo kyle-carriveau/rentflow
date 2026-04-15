@@ -19,6 +19,11 @@ def finances(uuid):
 @login_required
 def properties():
     if request.method == "POST":
+        # RBAC: Only Manager and Owner can create properties
+        if current_user.role not in ['owner', 'manager']:
+            flash('You do not have permission to create properties.', 'error')
+            return redirect(url_for('property.properties'))
+
         name = request.form.get('property_name', '').strip()
         portfolio = request.form.get('portfolio')
         

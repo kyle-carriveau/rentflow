@@ -56,6 +56,11 @@ def view_contract(uuid):
 @lease.route('/update/<uuid:uuid>', methods=['GET', 'POST'])
 @login_required
 def update(uuid):
+    # RBAC: Only Manager and Owner can modify leases
+    if current_user.role not in ['owner', 'manager']:
+        flash('You do not have permission to modify leases.', 'error')
+        return redirect(url_for('lease.leases'))
+
     # Only allow updating leases for properties owned by current user
     company_id = current_user.get_company_id()
     lease = Lease.find_by_uuid(str(uuid), company_id)

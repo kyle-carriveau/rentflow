@@ -52,28 +52,29 @@ def invite_user():
             flash('Invalid role selected.', 'error')
             return render_template("invite_user.html", user=current_user, roles=User.ROLES)
 
-        # Password validation
-        if not password or len(password) < 6:
-            flash('Password must be at least 6 characters long.', 'error')
-            return render_template("invite_user.html", user=current_user, roles=User.ROLES)
-
         # Check if email is already in use
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
             flash('Email is already in use.', 'error')
             return render_template("invite_user.html", user=current_user, roles=User.ROLES)
 
-        # Create new user in the same company
+        # Create new user in the same company (without password - will set separately)
         company_id = current_user.get_company_id()
         new_user = User(
-            first_name=first_name, 
-            last_name=last_name, 
-            email=email, 
-            password=password,
-            company_id=company_id, 
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            company_id=company_id,
             role=role
         )
-        
+
+        # Validate and set password using the same policy as registration
+        success, errors = new_user.set_password(password, validate_policy=True)
+        if not success:
+            for error in errors:
+                flash(error, 'error')
+            return render_template("invite_user.html", user=current_user, roles=User.ROLES)
+
         db.session.add(new_user)
         db.session.commit()
         

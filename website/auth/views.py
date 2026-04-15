@@ -14,7 +14,6 @@ def login():
 
     login_form = LoginForm()
     if login_form.validate_on_submit():
-        print('form is validated')
         user = User.query.filter_by(email=login_form.email.data).first()
         if user is None or not user.check_password(login_form.password.data):
             # Log failed login attempt
@@ -65,7 +64,6 @@ def register():
     if current_user.is_authenticated:
         return redirect(url_for("profile.dashboard"))
     register_form = RegistrationForm()
-    print(register_form.validate_on_submit())
     if register_form.validate_on_submit():
         first_name      = register_form.first_name.data
         last_name       = register_form.last_name.data

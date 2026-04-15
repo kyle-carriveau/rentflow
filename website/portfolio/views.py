@@ -17,6 +17,10 @@ def portfolios():
     form = PortfolioForm()
 
     if form.validate_on_submit():
+        # RBAC: Only Manager and Owner can create portfolios
+        if current_user.role not in ['owner', 'manager']:
+            flash('You do not have permission to create portfolios.', 'error')
+            return redirect(url_for('portfolio.portfolios'))
         company_id = current_user.get_company_id()
         new_portfolio = Portfolio(name=form.name.data, company_id=company_id)
         db.session.add(new_portfolio)

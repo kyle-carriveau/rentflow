@@ -10,12 +10,13 @@ from website.admin import admin
 from website.admin.forms import AdminLoginForm, AdminPasswordChangeForm, AdminUserCreateForm
 from website.models import SuperAdmin, SuperAdminAuditLog, Company, User, Property, Unit, Tenant, Lease
 from website.auth_utils import super_admin_required, log_admin_action
-from website import db
+from website import db, limiter
 from sqlalchemy import func
 from datetime import datetime, timedelta, timezone
 
 
 @admin.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")  # Prevent brute force attacks on admin login
 def login():
     """
     Super admin login page.
