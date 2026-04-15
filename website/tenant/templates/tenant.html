@@ -333,6 +333,83 @@
             </div>
         </div>
 
+        <!-- Portal Access Status Card -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <span class="fas fa-user-shield me-2"></span>Portal Access
+                </h6>
+            </div>
+            <div class="card-body text-center">
+                {% if tenant.portal_invitation_accepted %}
+                    <!-- Tenant has active portal access -->
+                    <div class="avatar avatar-xl mb-3">
+                        <div class="avatar-name rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; margin: 0 auto;">
+                            <span class="fas fa-check-circle fa-lg"></span>
+                        </div>
+                    </div>
+                    <h6 class="text-success">Portal Access Active</h6>
+                    <p class="text-600 fs--1 mb-0">
+                        Registered {{ tenant.portal_invitation_accepted.strftime('%m/%d/%Y') }}
+                    </p>
+                {% elif tenant.portal_invitation_sent %}
+                    <!-- Invitation sent, pending acceptance -->
+                    <div class="avatar avatar-xl mb-3">
+                        <div class="avatar-name rounded-circle bg-warning text-white d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; margin: 0 auto;">
+                            <span class="fas fa-clock fa-lg"></span>
+                        </div>
+                    </div>
+                    <h6 class="text-warning">Invitation Pending</h6>
+                    <p class="text-600 fs--1 mb-2">
+                        Sent {{ tenant.portal_invitation_sent.strftime('%m/%d/%Y') }}
+                    </p>
+                    {% if user.is_manager() or user.is_owner() %}
+                    <div class="d-flex gap-2 justify-content-center">
+                        <form method="POST" action="{{ url_for('tenant.invite_to_portal', uuid=tenant.uuid) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                <span class="fas fa-paper-plane me-1"></span>Resend
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('tenant.revoke_invitation', uuid=tenant.uuid) }}" class="d-inline"
+                              onsubmit="return confirm('Revoke portal invitation for {{ tenant.first_name }}?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <span class="fas fa-times me-1"></span>Revoke
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <!-- No invitation sent yet -->
+                    <div class="avatar avatar-xl mb-3">
+                        <div class="avatar-name rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; margin: 0 auto;">
+                            <span class="fas fa-user-times fa-lg"></span>
+                        </div>
+                    </div>
+                    <h6 class="text-secondary">No Portal Access</h6>
+                    <p class="text-600 fs--1 mb-2">
+                        Tenant has not been invited to the portal.
+                    </p>
+                    {% if user.is_manager() or user.is_owner() %}
+                        {% if tenant.email %}
+                        <form method="POST" action="{{ url_for('tenant.invite_to_portal', uuid=tenant.uuid) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <span class="fas fa-envelope me-1"></span>Send Invitation
+                            </button>
+                        </form>
+                        {% else %}
+                        <p class="text-danger fs--1 mb-0">
+                            <span class="fas fa-exclamation-circle me-1"></span>
+                            Email required to send invitation
+                        </p>
+                        {% endif %}
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
         <!-- Actions Card -->
         <div class="card">
             <div class="card-header">
@@ -345,7 +422,7 @@
                     <a href="{{ url_for('tenant.edit', uuid=tenant.uuid) }}" class="btn btn-falcon-primary w-100">
                         <span class="fas fa-edit me-1"></span>Edit Tenant Info
                     </a>
-                    
+
                     {% if lease_status == 'Prospect' or lease_status == 'Former' %}
                         <div class="dropdown">
                             <button class="btn btn-falcon-success dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
@@ -363,7 +440,16 @@
                             </div>
                         </div>
                     {% endif %}
-                    
+
+                    {% if (user.is_manager() or user.is_owner()) and not tenant.portal_invitation_accepted and tenant.email and not tenant.portal_invitation_sent %}
+                    <form method="POST" action="{{ url_for('tenant.invite_to_portal', uuid=tenant.uuid) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn btn-falcon-info w-100">
+                            <span class="fas fa-envelope me-1"></span>Invite to Portal
+                        </button>
+                    </form>
+                    {% endif %}
+
                     <button class="btn btn-falcon-danger w-100" onclick="deleteTenant()">
                         <span class="fas fa-trash me-1"></span>Delete Tenant
                     </button>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenant Portal Invitation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #0d6efd;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .content h2 {
+            color: #0d6efd;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .content p {
+            margin: 15px 0;
+        }
+        .features-list {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .features-list ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .features-list li {
+            margin: 8px 0;
+        }
+        .button {
+            display: inline-block;
+            background-color: #0d6efd;
+            color: #ffffff !important;
+            padding: 14px 28px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .button:hover {
+            background-color: #0b5ed7;
+        }
+        .button-container {
+            text-align: center;
+            margin: 25px 0;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #dee2e6;
+        }
+        .footer a {
+            color: #0d6efd;
+            text-decoration: none;
+        }
+        .security-note {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #666;
+        }
+        .property-info {
+            background-color: #e7f1ff;
+            border-left: 4px solid #0d6efd;
+            padding: 12px 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{{ company.name }} Tenant Portal</h1>
+        </div>
+
+        <div class="content">
+            <h2>Welcome, {{ tenant.first_name }}!</h2>
+
+            <p>You've been invited to access the tenant portal{% if property_name %} for your rental at <strong>{{ property_name }}</strong>{% if unit_name %} ({{ unit_name }}){% endif %}{% endif %}.</p>
+
+            {% if property_name %}
+            <div class="property-info">
+                <strong>Property:</strong> {{ property_name }}{% if unit_name %} - {{ unit_name }}{% endif %}
+            </div>
+            {% endif %}
+
+            <p>The tenant portal gives you convenient access to:</p>
+
+            <div class="features-list">
+                <ul>
+                    <li>View your lease details and documents</li>
+                    <li>Pay rent online securely</li>
+                    <li>Submit and track maintenance requests</li>
+                    <li>Access your payment history</li>
+                </ul>
+            </div>
+
+            <p>Click the button below to set up your account:</p>
+
+            <div class="button-container">
+                <a href="{{ invitation_url }}" class="button">Set Up Your Account</a>
+            </div>
+
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #0d6efd;">{{ invitation_url }}</p>
+
+            <div class="warning">
+                <strong>Important:</strong> This invitation link will expire in 72 hours.
+            </div>
+
+            <div class="security-note">
+                <strong>Security Note:</strong><br>
+                Do not share this link with anyone. If you did not expect this invitation or have concerns, please contact {{ company.name }} directly.
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>
+                <strong>Thanks,</strong><br>
+                {{ company.name }}
+            </p>
+            <p style="margin-top: 10px; color: #999;">
+                This invitation was sent by {{ invited_by.first_name }} {{ invited_by.last_name }}.
+            </p>
+            <p style="margin-top: 10px; color: #999;">
+                This is an automated email. Please do not reply to this message.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

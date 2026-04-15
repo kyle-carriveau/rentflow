@@ -1,0 +1,26 @@
+Welcome to {{ company.name }} Tenant Portal
+
+Hello {{ tenant.first_name }},
+
+You've been invited to access the tenant portal{% if property_name %} for your rental at {{ property_name }}{% if unit_name %} ({{ unit_name }}){% endif %}{% endif %}.
+
+The tenant portal gives you convenient access to:
+- View your lease details and documents
+- Pay rent online securely
+- Submit and track maintenance requests
+- Access your payment history
+
+Click the link below to set up your account:
+{{ invitation_url }}
+
+IMPORTANT: This invitation link will expire in 72 hours.
+
+SECURITY NOTE:
+Do not share this link with anyone. If you did not expect this invitation or have concerns, please contact {{ company.name }} directly.
+
+Thanks,
+{{ company.name }}
+
+---
+This invitation was sent by {{ invited_by.first_name }} {{ invited_by.last_name }}.
+This is an automated email. Please do not reply to this message.

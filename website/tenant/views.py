@@ -1,11 +1,14 @@
 from flask import render_template, Blueprint, request, redirect, url_for, flash
-from website.models import User, Tenant, Property
-from website import db
+from website.models import User, Tenant, Property, TenantUser, Company
+from website import db, limiter
 from flask_login import login_required, current_user
 from website.auth_utils import role_required
 from website.views import get_tenant, get_properties, get_states
 from website.errors import page_not_found
 from website.tenant.forms import TenantCreateForm, TenantEditForm, TenantDeleteForm
+from website.email_utils import send_tenant_invitation_email
+from website.audit_logging import AuditLogger
+from datetime import datetime
 import re
 
 tenant = Blueprint('tenant', __name__, template_folder='templates')
@@ -185,3 +188,171 @@ def delete(uuid):
             flash('Error deleting tenant. They may have associated leases.', 'error')
 
     return redirect(url_for('tenant.tenants'))
+
+
+@tenant.route('/<uuid:uuid>/invite', methods=['POST'])
+@login_required
+@role_required('manager')
+@limiter.limit("10 per hour")
+def invite_to_portal(uuid):
+    """
+    Send tenant portal invitation email.
+
+    SECURITY:
+    - Requires manager role or higher
+    - Rate limited to 10 per hour per user
+    - Company isolation enforced
+    - Audit logged
+    """
+    company_id = current_user.get_company_id()
+    tenant_obj = Tenant.find_by_uuid(str(uuid), company_id)
+
+    if not tenant_obj:
+        return page_not_found(404)
+
+    # Validate tenant has email
+    if not tenant_obj.email:
+        flash('Cannot invite tenant without an email address.', 'error')
+        return redirect(url_for('tenant.home', uuid=uuid))
+
+    # Check if TenantUser already exists
+    existing_tenant_user = TenantUser.query.filter_by(
+        tenant_id=tenant_obj.id,
+        company_id=company_id
+    ).first()
+
+    if existing_tenant_user:
+        # Check if invitation already accepted
+        if existing_tenant_user.invitation_accepted_at:
+            flash(f'{tenant_obj.first_name} already has portal access.', 'info')
+            return redirect(url_for('tenant.home', uuid=uuid))
+
+        # Resend invitation - generate new token
+        token = existing_tenant_user.generate_invitation_token()
+        existing_tenant_user.invited_by_user_id = current_user.id
+        db.session.commit()
+
+        tenant_user = existing_tenant_user
+        action = 'resent'
+    else:
+        # Check if email is already used by another TenantUser
+        email_in_use = TenantUser.query.filter_by(email=tenant_obj.email.lower()).first()
+        if email_in_use:
+            flash('This email is already associated with another tenant portal account.', 'error')
+            return redirect(url_for('tenant.home', uuid=uuid))
+
+        # Create new TenantUser record
+        tenant_user = TenantUser(
+            tenant_id=tenant_obj.id,
+            company_id=company_id,
+            email=tenant_obj.email.lower()
+        )
+        # Set a placeholder password hash (will be replaced on registration)
+        tenant_user.password_hash = 'INVITATION_PENDING'
+        tenant_user.invited_by_user_id = current_user.id
+
+        db.session.add(tenant_user)
+        db.session.commit()
+
+        # Generate invitation token
+        token = tenant_user.generate_invitation_token()
+        db.session.commit()
+
+        action = 'sent'
+
+    # Update tenant record
+    tenant_obj.portal_invitation_sent = datetime.utcnow()
+    db.session.commit()
+
+    # Get company for email branding
+    company = Company.query.get(company_id)
+
+    # Send invitation email
+    email_sent = send_tenant_invitation_email(
+        tenant=tenant_obj,
+        tenant_user=tenant_user,
+        token=token,
+        company=company,
+        invited_by=current_user
+    )
+
+    # Log audit event
+    AuditLogger.log_event(
+        event_type='tenant_portal_invitation_sent',
+        category=AuditLogger.CATEGORY_SECURITY,
+        resource_type='tenant',
+        resource_id=tenant_obj.id,
+        details={
+            'action': action,
+            'tenant_email': tenant_obj.email,
+            'invited_by': current_user.email,
+            'email_sent': email_sent
+        },
+        company_id=company_id
+    )
+
+    if email_sent:
+        flash(f'Portal invitation {action} to {tenant_obj.first_name} {tenant_obj.last_name}.', 'success')
+    else:
+        flash(f'Invitation created but email could not be sent. Please check email configuration.', 'warning')
+
+    return redirect(url_for('tenant.home', uuid=uuid))
+
+
+@tenant.route('/<uuid:uuid>/revoke-invitation', methods=['POST'])
+@login_required
+@role_required('manager')
+def revoke_invitation(uuid):
+    """
+    Revoke a pending tenant portal invitation.
+
+    SECURITY:
+    - Requires manager role or higher
+    - Can only revoke pending invitations (not accepted)
+    - Audit logged
+    """
+    company_id = current_user.get_company_id()
+    tenant_obj = Tenant.find_by_uuid(str(uuid), company_id)
+
+    if not tenant_obj:
+        return page_not_found(404)
+
+    # Find TenantUser
+    tenant_user = TenantUser.query.filter_by(
+        tenant_id=tenant_obj.id,
+        company_id=company_id
+    ).first()
+
+    if not tenant_user:
+        flash('No invitation found for this tenant.', 'error')
+        return redirect(url_for('tenant.home', uuid=uuid))
+
+    if tenant_user.invitation_accepted_at:
+        flash('Cannot revoke - tenant has already registered.', 'error')
+        return redirect(url_for('tenant.home', uuid=uuid))
+
+    # Clear invitation token and deactivate
+    tenant_user.invitation_token = None
+    tenant_user.invitation_token_expires = None
+    tenant_user.is_active = False
+
+    # Update tenant record
+    tenant_obj.portal_invitation_sent = None
+    tenant_obj.has_portal_access = False
+
+    db.session.commit()
+
+    # Log audit event
+    AuditLogger.log_event(
+        event_type='tenant_portal_invitation_revoked',
+        category=AuditLogger.CATEGORY_SECURITY,
+        resource_type='tenant',
+        resource_id=tenant_obj.id,
+        details={
+            'revoked_by': current_user.email
+        },
+        company_id=company_id
+    )
+
+    flash(f'Portal invitation revoked for {tenant_obj.first_name} {tenant_obj.last_name}.', 'success')
+    return redirect(url_for('tenant.home', uuid=uuid))

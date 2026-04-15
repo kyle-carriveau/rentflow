@@ -198,3 +198,71 @@ def send_notification_email(user, subject, message):
     except Exception as e:
         logger.error(f"Failed to send notification email to user {user.id}: {str(e)}")
         return False
+
+
+def send_tenant_invitation_email(tenant, tenant_user, token, company, invited_by):
+    """
+    Send tenant portal invitation email.
+
+    Args:
+        tenant: Tenant model instance
+        tenant_user: TenantUser model instance (newly created)
+        token: Invitation token (plaintext, for URL)
+        company: Company model instance (for branding)
+        invited_by: User instance who sent the invitation
+
+    Returns:
+        bool: True if email queued successfully, False on error
+
+    Security:
+        - Uses _external=True for absolute URLs
+        - Token is only sent via email, never logged
+    """
+    try:
+        # Generate absolute URL for invitation link
+        invitation_url = url_for(
+            'tenant_portal.register',
+            token=token,
+            _external=True
+        )
+
+        # Get current property info if tenant has active lease
+        property_name = None
+        unit_name = None
+        current_lease = tenant.get_current_lease() if hasattr(tenant, 'get_current_lease') else None
+        if current_lease and hasattr(current_lease, 'unit_ref') and current_lease.unit_ref:
+            unit_name = current_lease.unit_ref.name
+            if hasattr(current_lease.unit_ref, 'property_ref') and current_lease.unit_ref.property_ref:
+                property_name = current_lease.unit_ref.property_ref.name
+
+        # Render email templates
+        text_body = render_template(
+            'emails/tenant_invitation.txt',
+            tenant=tenant,
+            company=company,
+            property_name=property_name,
+            unit_name=unit_name,
+            invitation_url=invitation_url,
+            invited_by=invited_by
+        )
+        html_body = render_template(
+            'emails/tenant_invitation.html',
+            tenant=tenant,
+            company=company,
+            property_name=property_name,
+            unit_name=unit_name,
+            invitation_url=invitation_url,
+            invited_by=invited_by
+        )
+
+        # Send email
+        return send_email(
+            subject=f'{company.name} - Tenant Portal Invitation',
+            recipients=tenant.email,
+            text_body=text_body,
+            html_body=html_body
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to send tenant invitation email to {tenant.email}: {str(e)}")
+        return False

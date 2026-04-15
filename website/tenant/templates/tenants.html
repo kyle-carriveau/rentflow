@@ -166,6 +166,7 @@
               <th scope="col">Current Property</th>
               <th scope="col">Monthly Rent</th>
               <th scope="col">Status</th>
+              <th scope="col">Portal</th>
               <th scope="col">Actions</th>
             </tr>
           </thead>
@@ -263,6 +264,21 @@
                   </span>
                 {% endif %}
               </td>
+              <td>
+                {% if tenant.portal_invitation_accepted %}
+                  <span class="badge bg-success" title="Active since {{ tenant.portal_invitation_accepted.strftime('%m/%d/%Y') }}">
+                    <span class="fas fa-check me-1"></span>Active
+                  </span>
+                {% elif tenant.portal_invitation_sent %}
+                  <span class="badge bg-warning text-dark" title="Sent {{ tenant.portal_invitation_sent.strftime('%m/%d/%Y') }}">
+                    <span class="fas fa-clock me-1"></span>Pending
+                  </span>
+                {% else %}
+                  <span class="badge bg-secondary">
+                    <span class="fas fa-minus me-1"></span>None
+                  </span>
+                {% endif %}
+              </td>
               <td class="text-nowrap">
                 <div class="dropdown text-sans-serif">
                   <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal"
@@ -277,6 +293,19 @@
                       <a class="dropdown-item" href="{{ url_for('tenant.edit', uuid=tenant.uuid) }}">
                         <span class="fas fa-edit me-1"></span>Edit Tenant
                       </a>
+                      {% if (user.is_manager() or user.is_owner()) and not tenant.portal_invitation_accepted and tenant.email %}
+                      <form method="POST" action="{{ url_for('tenant.invite_to_portal', uuid=tenant.uuid) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="dropdown-item">
+                          <span class="fas fa-envelope me-1"></span>
+                          {% if tenant.portal_invitation_sent %}
+                            Resend Invitation
+                          {% else %}
+                            Invite to Portal
+                          {% endif %}
+                        </button>
+                      </form>
+                      {% endif %}
                       <div class="dropdown-divider"></div>
                       <a class="dropdown-item text-danger" href="#"
                          data-confirm="Are you sure you want to delete tenant &quot;{{ tenant.first_name }} {{ tenant.last_name }}&quot;? This action cannot be undone."
