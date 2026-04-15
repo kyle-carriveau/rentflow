@@ -26,9 +26,10 @@ def create():
 
     if form.validate_on_submit():
         # Additional uniqueness validation (beyond WTForms)
-        # Check if email is already in use (check both users and tenants)
+        # Check if email is already in use by a system user (global check - users are unique across all companies)
         existing_user = User.query.filter_by(email=form.email.data).first()
-        existing_tenant = Tenant.query.filter_by(email=form.email.data).first()
+        # Check if email is already in use by another tenant IN THIS COMPANY (company-scoped)
+        existing_tenant = Tenant.query.filter_by(email=form.email.data, company_id=company_id).first()
 
         if existing_user:
             flash('Email is already in use by a system user.', 'error')
@@ -38,9 +39,9 @@ def create():
             flash('Email is already in use by another tenant.', 'error')
             return render_template("/create_tenant.html", user=current_user, form=form, properties=get_properties(), states=get_states())
 
-        # Check if phone number is already in use
+        # Check if phone number is already in use IN THIS COMPANY (company-scoped)
         # Note: phone is already cleaned by form validator
-        existing_tenant_phone = Tenant.query.filter_by(phone=form.phone.data).first()
+        existing_tenant_phone = Tenant.query.filter_by(phone=form.phone.data, company_id=company_id).first()
         if existing_tenant_phone:
             flash('Phone number is already in use by another tenant.', 'error')
             return render_template("/create_tenant.html", user=current_user, form=form, properties=get_properties(), states=get_states())
@@ -120,16 +121,17 @@ def edit(uuid):
 
     if form.validate_on_submit():
         # Check if email is already in use (excluding current tenant)
+        # Users are global, tenants are company-scoped
         existing_user = User.query.filter_by(email=form.email.data).first()
-        existing_tenant = Tenant.query.filter_by(email=form.email.data).filter(Tenant.id != tenant.id).first()
+        existing_tenant = Tenant.query.filter_by(email=form.email.data, company_id=company_id).filter(Tenant.id != tenant.id).first()
 
         if existing_user or existing_tenant:
             flash('Email is already in use.', 'error')
             return render_template("edit_tenant.html", tenant=tenant, user=current_user, form=form, properties=get_properties(), states=get_states())
 
-        # Check if phone number is already in use (excluding current tenant)
+        # Check if phone number is already in use IN THIS COMPANY (excluding current tenant)
         # Note: phone is already cleaned by form validator
-        existing_tenant_phone = Tenant.query.filter_by(phone=form.phone.data).filter(Tenant.id != tenant.id).first()
+        existing_tenant_phone = Tenant.query.filter_by(phone=form.phone.data, company_id=company_id).filter(Tenant.id != tenant.id).first()
         if existing_tenant_phone:
             flash('Phone number is already in use by another tenant.', 'error')
             return render_template("edit_tenant.html", tenant=tenant, user=current_user, form=form, properties=get_properties(), states=get_states())
