@@ -96,6 +96,10 @@ def create_app(config_name=None):
     from website.health import health_bp
     app.register_blueprint(health_bp)
 
+    # Tenant Portal Blueprint (separate authentication system for tenants)
+    from website.tenant_portal import tenant_portal
+    app.register_blueprint(tenant_portal)
+
     # Super Admin Blueprint (separate authentication system)
     from website.admin import admin
     from website.admin.cli import admin_cli
@@ -112,7 +116,8 @@ def create_app(config_name=None):
         User, Company, Portfolio, Property, Unit,
         Tenant, Lease, LeaseTemplate, Payment, Expense,
         PasswordHistoryModel, AuditLogModel, EmailVerificationAttempt,
-        PasswordResetToken, SuperAdmin, SuperAdminAuditLog
+        PasswordResetToken, SuperAdmin, SuperAdminAuditLog,
+        TenantUser, MaintenanceRequest
     )
 
     # Initialize admin bootstrap (creates initial admin from ENV vars if needed)
@@ -169,12 +174,27 @@ def create_app(config_name=None):
 
     @login_manager.user_loader
     def load_user(id):
+        """
+        Load user by UUID for Flask-Login.
+
+        SECURITY: Supports both User (staff) and TenantUser (tenant portal).
+        Each user type is completely separate for security isolation.
+        """
         try:
             # For Flask-Login, we need to handle both UUID strings and potential integer IDs for backward compatibility
             # Try UUID lookup first (secure method)
+
+            # Check TenantUser first (tenant portal users)
+            from website.models import TenantUser
+            tenant_user = TenantUser.query.filter_by(uuid=str(id)).first()
+            if tenant_user:
+                return tenant_user
+
+            # Check staff User
             user = User.query.filter_by(uuid=str(id)).first()
             if user:
                 return user
+
             # Fallback to integer ID lookup for existing sessions (temporary compatibility)
             try:
                 return User.query.get(int(id))

@@ -683,7 +683,12 @@ class Tenant(db.Model):
     state = db.Column(db.String(150))
     zip_code = db.Column(db.String(10))
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'))
-    
+
+    # Tenant Portal Access Fields
+    has_portal_access = db.Column(db.Boolean, default=False, nullable=False)
+    portal_invitation_sent = db.Column(db.DateTime, nullable=True)
+    portal_invitation_accepted = db.Column(db.DateTime, nullable=True)
+
     # Relationships with cascade delete
     leases = db.relationship('Lease', backref='tenant_ref', cascade='all, delete-orphan')
     
@@ -1433,32 +1438,37 @@ class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     lease_id = db.Column(db.Integer, db.ForeignKey('lease.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Nullable for tenant portal payments
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
-    
+
     # Payment details
     amount = db.Column(db.Numeric(10, 2), nullable=False)
     payment_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     due_date = db.Column(db.DateTime, nullable=False)
-    
+
     # Payment method and status
-    payment_method = db.Column(db.String(50), nullable=False, default='cash')  # cash, check, bank_transfer, credit_card
+    payment_method = db.Column(db.String(50), nullable=False, default='cash')  # cash, check, bank_transfer, credit_card, stripe
     status = db.Column(db.String(20), nullable=False, default='pending')  # pending, completed, failed, refunded
-    
+
     # References and notes
     reference_number = db.Column(db.String(100))  # Check number, transaction ID, etc.
     notes = db.Column(db.Text)
-    
+
+    # Stripe integration for tenant portal payments (PCI compliant - no card data stored)
+    stripe_payment_intent_id = db.Column(db.String(100), unique=True, nullable=True, index=True)
+    tenant_user_id = db.Column(db.Integer, db.ForeignKey('tenant_user.id'), nullable=True)  # Who made the payment
+
     # Late fee tracking
     late_fee = db.Column(db.Numeric(10, 2), default=0)
-    
+
     # Timestamps
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     property_ref = db.relationship('Property', backref='payments')
     user_ref = db.relationship('User', backref='payments')
+    tenant_user_ref = db.relationship('TenantUser', backref='payments')
     
     def __repr__(self):
         return f'<Payment {self.id}: ${self.amount} for Lease {self.lease_id}>'
@@ -2106,3 +2116,506 @@ class SuperAdminAuditLog(db.Model):
 
     def __repr__(self):
         return f'<SuperAdminAuditLog {self.action} by admin_{self.admin_id} at {self.timestamp}>'
+
+
+# =============================================================================
+# TENANT PORTAL MODELS
+# =============================================================================
+
+class TenantUser(db.Model, UserMixin):
+    """
+    Separate user model for tenant portal authentication.
+
+    SECURITY NOTES:
+    - Completely separate from staff User model for security isolation
+    - Linked to existing Tenant record via tenant_id (1:1 relationship)
+    - No role/permission escalation possible
+    - Company-scoped for multi-tenant isolation
+    - Cannot access any landlord/staff features
+
+    This model follows the same security patterns as the staff User model:
+    - Password hashing via Werkzeug
+    - Password policy enforcement
+    - Account lockout after failed attempts
+    - Timing attack prevention on login
+    """
+    __tablename__ = 'tenant_user'
+
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, index=True)
+
+    # Link to existing Tenant record (1:1 relationship)
+    # SECURITY: This creates the bridge between auth (TenantUser) and data (Tenant)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenant.id'),
+                          unique=True, nullable=False, index=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'),
+                           nullable=False, index=True)
+
+    # Authentication - email must match tenant's email
+    email = db.Column(db.String(150), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(1500), nullable=False)
+
+    # Account status
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    email_verified_at = db.Column(db.DateTime, nullable=True)
+
+    # Security tracking - brute force protection
+    failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
+    locked_until = db.Column(db.DateTime, nullable=True)
+    last_login = db.Column(db.DateTime, nullable=True)
+    last_login_ip = db.Column(db.String(45), nullable=True)  # IPv6 compatible
+
+    # Invitation tracking - secure onboarding flow
+    invitation_token = db.Column(db.String(100), unique=True, nullable=True, index=True)
+    invitation_token_expires = db.Column(db.DateTime, nullable=True)
+    invitation_sent_at = db.Column(db.DateTime, nullable=True)
+    invitation_accepted_at = db.Column(db.DateTime, nullable=True)
+    invited_by_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    # Stripe customer ID - for saved payment methods (PCI compliant)
+    stripe_customer_id = db.Column(db.String(100), unique=True, nullable=True)
+
+    # Password reset
+    password_reset_token = db.Column(db.String(100), unique=True, nullable=True)
+    password_reset_expires = db.Column(db.DateTime, nullable=True)
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    tenant = db.relationship('Tenant', backref=db.backref('user_account', uselist=False))
+    company = db.relationship('Company', backref='tenant_users')
+    invited_by = db.relationship('User', foreign_keys=[invited_by_user_id])
+
+    # Table indexes for performance
+    __table_args__ = (
+        db.Index('idx_tenant_user_company', 'company_id'),
+        db.Index('idx_tenant_user_active', 'company_id', 'is_active'),
+        db.Index('idx_tenant_user_invitation', 'invitation_token'),
+    )
+
+    def __init__(self, tenant_id, company_id, email, password=None):
+        self.uuid = str(uuid.uuid4())
+        self.tenant_id = tenant_id
+        self.company_id = company_id
+        self.email = email.lower().strip()
+        if password:
+            self.set_password(password, validate_policy=False)
+
+    def set_password(self, password, validate_policy=True):
+        """
+        Set user password with optional policy validation.
+        Returns (success, error_messages) tuple when validate_policy=True.
+
+        SECURITY: Uses same password policy as staff users.
+        """
+        if validate_policy:
+            from .password_policy import PasswordPolicy
+
+            # Validate password strength
+            is_valid, errors = PasswordPolicy.validate_password_strength(password)
+            if not is_valid:
+                return False, errors
+
+        # Generate new password hash
+        self.password_hash = generate_password_hash(password)
+
+        if validate_policy:
+            return True, []
+        return True
+
+    def check_password(self, password):
+        """Verify password hash."""
+        return check_password_hash(self.password_hash, password)
+
+    def get_id(self):
+        """Return the UUID for Flask-Login instead of the integer ID."""
+        return self.uuid
+
+    def is_locked(self):
+        """Check if account is currently locked due to failed login attempts."""
+        if self.locked_until and self.locked_until > datetime.utcnow():
+            return True
+        return False
+
+    def record_failed_login(self):
+        """
+        Record a failed login attempt. Lock account after 5 failures.
+
+        SECURITY: Prevents brute force attacks.
+        """
+        self.failed_login_attempts += 1
+        # Lock account for 15 minutes after 5 failed attempts
+        if self.failed_login_attempts >= 5:
+            self.locked_until = datetime.utcnow() + timedelta(minutes=15)
+        db.session.commit()
+
+    def record_successful_login(self, ip_address=None):
+        """Record a successful login and reset failed attempts."""
+        self.failed_login_attempts = 0
+        self.locked_until = None
+        self.last_login = datetime.utcnow()
+        if ip_address:
+            self.last_login_ip = ip_address
+        db.session.commit()
+
+    def generate_invitation_token(self):
+        """
+        Generate a secure invitation token.
+
+        SECURITY: Token expires in 72 hours.
+        """
+        import secrets
+        self.invitation_token = secrets.token_urlsafe(48)
+        self.invitation_token_expires = datetime.utcnow() + timedelta(hours=72)
+        self.invitation_sent_at = datetime.utcnow()
+        return self.invitation_token
+
+    def verify_invitation_token(self, token):
+        """
+        Verify an invitation token.
+
+        SECURITY: Constant-time comparison to prevent timing attacks.
+        """
+        import hmac
+        if not self.invitation_token or not token:
+            return False
+        if self.invitation_token_expires and self.invitation_token_expires < datetime.utcnow():
+            return False
+        return hmac.compare_digest(self.invitation_token, token)
+
+    def accept_invitation(self, password):
+        """
+        Accept the invitation and set the password.
+
+        SECURITY: Clears token after use, validates password.
+        """
+        success, errors = self.set_password(password, validate_policy=True)
+        if not success:
+            return False, errors
+
+        self.invitation_accepted_at = datetime.utcnow()
+        self.invitation_token = None
+        self.invitation_token_expires = None
+        self.email_verified = True
+        self.email_verified_at = datetime.utcnow()
+        db.session.commit()
+        return True, []
+
+    def generate_password_reset_token(self):
+        """
+        Generate a secure password reset token.
+
+        SECURITY: Token expires in 1 hour.
+        """
+        import secrets
+        self.password_reset_token = secrets.token_urlsafe(48)
+        self.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
+        db.session.commit()
+        return self.password_reset_token
+
+    def verify_password_reset_token(self, token):
+        """Verify a password reset token."""
+        import hmac
+        if not self.password_reset_token or not token:
+            return False
+        if self.password_reset_expires and self.password_reset_expires < datetime.utcnow():
+            return False
+        return hmac.compare_digest(self.password_reset_token, token)
+
+    def clear_password_reset_token(self):
+        """Clear the password reset token after use."""
+        self.password_reset_token = None
+        self.password_reset_expires = None
+        db.session.commit()
+
+    def get_active_lease(self):
+        """Get tenant's current active lease."""
+        today = datetime.now().date()
+        for lease in self.tenant.leases:
+            if lease.start.date() <= today <= lease.end.date():
+                return lease
+        return None
+
+    def get_payment_history(self, limit=10):
+        """Get tenant's payment history."""
+        lease = self.get_active_lease()
+        if not lease:
+            return []
+        return Payment.query.filter_by(
+            lease_id=lease.id,
+            company_id=self.company_id
+        ).order_by(Payment.payment_date.desc()).limit(limit).all()
+
+    def __repr__(self):
+        return f'<TenantUser {self.email} tenant_id={self.tenant_id}>'
+
+
+class MaintenanceRequest(db.Model):
+    """
+    Maintenance requests submitted by tenants.
+
+    SECURITY NOTES:
+    - Always scoped by company_id AND tenant_id for data isolation
+    - Photo uploads must be validated and sanitized
+    - internal_notes field is NEVER exposed to tenants
+    - Status changes must be logged for audit trail
+    """
+    __tablename__ = 'maintenance_request'
+
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, index=True)
+
+    # Multi-tenant scoping (CRITICAL for security)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'),
+                           nullable=False, index=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenant.id'),
+                          nullable=False, index=True)
+    tenant_user_id = db.Column(db.Integer, db.ForeignKey('tenant_user.id'),
+                               nullable=True)  # Nullable for staff-created requests
+
+    # Property/Unit association
+    unit_id = db.Column(db.Integer, db.ForeignKey('unit.id'), nullable=False)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+
+    # Request details
+    category = db.Column(db.String(50), nullable=False)
+    # Categories: plumbing, electrical, hvac, appliance, structural, pest, cleaning, other
+    priority = db.Column(db.String(20), default='medium', nullable=False)
+    # Priorities: low, medium, high, emergency
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+
+    # Photo attachments (stored as JSON array of secure URLs)
+    photos = db.Column(db.JSON, nullable=True)
+
+    # Permission to enter
+    permission_to_enter = db.Column(db.Boolean, default=False)
+    preferred_entry_time = db.Column(db.String(100), nullable=True)  # e.g., "Morning", "Afternoon"
+
+    # Status tracking
+    status = db.Column(db.String(20), default='submitted', nullable=False)
+    # Statuses: submitted, acknowledged, assigned, scheduled, in_progress, completed, closed, cancelled
+
+    # Timestamps
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    acknowledged_at = db.Column(db.DateTime, nullable=True)
+    assigned_at = db.Column(db.DateTime, nullable=True)
+    scheduled_date = db.Column(db.DateTime, nullable=True)
+    scheduled_time_window = db.Column(db.String(50), nullable=True)  # e.g., "9:00 AM - 12:00 PM"
+    started_at = db.Column(db.DateTime, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    closed_at = db.Column(db.DateTime, nullable=True)
+
+    # Staff-only fields (NEVER expose to tenant views)
+    assigned_to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    internal_notes = db.Column(db.Text, nullable=True)  # SECURITY: Never expose to tenant
+    estimated_cost = db.Column(db.Numeric(10, 2), nullable=True)
+    actual_cost = db.Column(db.Numeric(10, 2), nullable=True)
+    vendor_name = db.Column(db.String(150), nullable=True)  # Simplified vendor tracking
+    vendor_phone = db.Column(db.String(20), nullable=True)
+
+    # Resolution details
+    resolution_notes = db.Column(db.Text, nullable=True)  # What was done (can show to tenant)
+    parts_used = db.Column(db.Text, nullable=True)  # JSON list of parts/materials
+
+    # Tenant feedback (after completion)
+    tenant_feedback = db.Column(db.Text, nullable=True)
+    tenant_rating = db.Column(db.Integer, nullable=True)  # 1-5 stars
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    company = db.relationship('Company', backref='maintenance_requests')
+    tenant = db.relationship('Tenant', backref='maintenance_requests')
+    tenant_user = db.relationship('TenantUser', backref='maintenance_requests')
+    unit = db.relationship('Unit', backref='maintenance_requests')
+    property_obj = db.relationship('Property', backref='maintenance_requests', foreign_keys=[property_id])
+    assigned_to = db.relationship('User', foreign_keys=[assigned_to_user_id])
+
+    # Indexes for performance
+    __table_args__ = (
+        db.Index('idx_maint_company_status', 'company_id', 'status'),
+        db.Index('idx_maint_tenant', 'tenant_id'),
+        db.Index('idx_maint_property', 'property_id'),
+        db.Index('idx_maint_submitted', 'submitted_at'),
+        db.Index('idx_maint_priority', 'priority', 'status'),
+    )
+
+    # Category choices
+    CATEGORIES = [
+        ('plumbing', 'Plumbing'),
+        ('electrical', 'Electrical'),
+        ('hvac', 'Heating/Cooling (HVAC)'),
+        ('appliance', 'Appliance'),
+        ('structural', 'Structural'),
+        ('pest', 'Pest Control'),
+        ('cleaning', 'Cleaning'),
+        ('landscaping', 'Landscaping'),
+        ('security', 'Locks/Security'),
+        ('other', 'Other'),
+    ]
+
+    # Priority choices
+    PRIORITIES = [
+        ('low', 'Low - Can wait a few days'),
+        ('medium', 'Medium - Should be addressed soon'),
+        ('high', 'High - Needs attention quickly'),
+        ('emergency', 'Emergency - Requires immediate attention'),
+    ]
+
+    # Status choices
+    STATUSES = [
+        ('submitted', 'Submitted'),
+        ('acknowledged', 'Acknowledged'),
+        ('assigned', 'Assigned'),
+        ('scheduled', 'Scheduled'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('closed', 'Closed'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    def __init__(self, company_id, tenant_id, unit_id, property_id,
+                 category, title, description, priority='medium', tenant_user_id=None):
+        self.uuid = str(uuid.uuid4())
+        self.company_id = company_id
+        self.tenant_id = tenant_id
+        self.tenant_user_id = tenant_user_id
+        self.unit_id = unit_id
+        self.property_id = property_id
+        self.category = category
+        self.title = title
+        self.description = description
+        self.priority = priority
+        self.status = 'submitted'
+
+    def acknowledge(self):
+        """Mark request as acknowledged by staff."""
+        self.status = 'acknowledged'
+        self.acknowledged_at = datetime.utcnow()
+        db.session.commit()
+
+    def assign(self, user_id, notes=None):
+        """Assign request to a staff member."""
+        self.status = 'assigned'
+        self.assigned_to_user_id = user_id
+        self.assigned_at = datetime.utcnow()
+        if notes:
+            self.internal_notes = notes
+        db.session.commit()
+
+    def schedule(self, scheduled_date, time_window=None):
+        """Schedule the maintenance visit."""
+        self.status = 'scheduled'
+        self.scheduled_date = scheduled_date
+        self.scheduled_time_window = time_window
+        db.session.commit()
+
+    def start_work(self):
+        """Mark work as in progress."""
+        self.status = 'in_progress'
+        self.started_at = datetime.utcnow()
+        db.session.commit()
+
+    def complete(self, resolution_notes=None, actual_cost=None):
+        """Mark request as completed."""
+        self.status = 'completed'
+        self.completed_at = datetime.utcnow()
+        if resolution_notes:
+            self.resolution_notes = resolution_notes
+        if actual_cost is not None:
+            self.actual_cost = actual_cost
+        db.session.commit()
+
+    def close(self):
+        """Close the request (no further action needed)."""
+        self.status = 'closed'
+        self.closed_at = datetime.utcnow()
+        db.session.commit()
+
+    def cancel(self, reason=None):
+        """Cancel the request."""
+        self.status = 'cancelled'
+        if reason:
+            self.internal_notes = (self.internal_notes or '') + f"\nCancelled: {reason}"
+        db.session.commit()
+
+    def add_tenant_feedback(self, rating, feedback=None):
+        """Add tenant feedback after completion."""
+        if self.status not in ['completed', 'closed']:
+            return False
+        self.tenant_rating = rating
+        if feedback:
+            self.tenant_feedback = feedback
+        db.session.commit()
+        return True
+
+    def is_editable_by_tenant(self):
+        """Check if tenant can still edit the request."""
+        return self.status in ['submitted', 'acknowledged']
+
+    def can_cancel(self):
+        """Check if request can be cancelled."""
+        return self.status in ['submitted', 'acknowledged', 'assigned', 'scheduled']
+
+    def get_status_display(self):
+        """Get human-readable status."""
+        for code, display in self.STATUSES:
+            if code == self.status:
+                return display
+        return self.status.title()
+
+    def get_priority_display(self):
+        """Get human-readable priority."""
+        for code, display in self.PRIORITIES:
+            if code == self.priority:
+                return display
+        return self.priority.title()
+
+    def get_category_display(self):
+        """Get human-readable category."""
+        for code, display in self.CATEGORIES:
+            if code == self.category:
+                return display
+        return self.category.title()
+
+    @classmethod
+    def get_for_tenant(cls, tenant_id, company_id, status_filter=None):
+        """
+        Get maintenance requests for a specific tenant.
+
+        SECURITY: Always filters by tenant_id AND company_id.
+        """
+        query = cls.query.filter_by(
+            tenant_id=tenant_id,
+            company_id=company_id
+        )
+        if status_filter:
+            query = query.filter_by(status=status_filter)
+        return query.order_by(cls.submitted_at.desc()).all()
+
+    @classmethod
+    def get_for_company(cls, company_id, status_filter=None, property_id=None):
+        """
+        Get all maintenance requests for a company (staff view).
+
+        SECURITY: Only for staff, filtered by company_id.
+        """
+        query = cls.query.filter_by(company_id=company_id)
+        if status_filter:
+            query = query.filter_by(status=status_filter)
+        if property_id:
+            query = query.filter_by(property_id=property_id)
+        return query.order_by(cls.submitted_at.desc()).all()
+
+    def __repr__(self):
+        return f'<MaintenanceRequest #{self.id} {self.category} - {self.status}>'
+
+
+# Add timedelta import at module level if not present
+from datetime import timedelta

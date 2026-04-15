@@ -1,0 +1,145 @@
+{% extends "tenant_portal/base.html" %}
+
+{% block title %}My Lease{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">My Lease</h2>
+
+    <div class="row g-4">
+        <!-- Lease Overview -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-file-text me-2"></i>Lease Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-sm-6">
+                            <small class="text-muted">Property</small>
+                            <p class="mb-0 fw-medium">{{ lease.lease_property_ref.name }}</p>
+                            <p class="text-muted mb-0">{{ lease.lease_property_ref.address }}</p>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted">Unit</small>
+                            <p class="mb-0 fw-medium">{{ lease.unit_ref.name }}</p>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted">Lease Start</small>
+                            <p class="mb-0">{{ lease.start.strftime('%B %d, %Y') }}</p>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted">Lease End</small>
+                            <p class="mb-0">{{ lease.end.strftime('%B %d, %Y') }}</p>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted">Monthly Rent</small>
+                            <p class="mb-0 fw-medium text-primary">${{ "%.2f"|format(lease.rent) }}</p>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted">Payment Due</small>
+                            <p class="mb-0">{{ lease.payment_due_date or 1 }}{{ 'st' if (lease.payment_due_date or 1) == 1 else ('nd' if (lease.payment_due_date or 1) == 2 else ('rd' if (lease.payment_due_date or 1) == 3 else 'th')) }} of each month</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Details -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-currency-dollar me-2"></i>Financial Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% if lease.security_deposit %}
+                        <div class="col-sm-6">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Security Deposit</span>
+                                <span>${{ "%.2f"|format(lease.security_deposit) }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if lease.pet_deposit %}
+                        <div class="col-sm-6">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Pet Deposit</span>
+                                <span>${{ "%.2f"|format(lease.pet_deposit) }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if lease.late_fee %}
+                        <div class="col-sm-6">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Late Fee</span>
+                                <span>${{ "%.2f"|format(lease.late_fee) }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if lease.grace_period_days %}
+                        <div class="col-sm-6">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Grace Period</span>
+                                <span>{{ lease.grace_period_days }} days</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unit Info Sidebar -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-house me-2"></i>Unit Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <i class="bi bi-building text-primary" style="font-size: 4rem;"></i>
+                    </div>
+                    <h5 class="text-center">{{ lease.unit_ref.name }}</h5>
+                    <hr>
+                    <ul class="list-unstyled mb-0">
+                        {% if lease.unit_ref.bedrooms %}
+                        <li class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Bedrooms</span>
+                            <span>{{ lease.unit_ref.bedrooms }}</span>
+                        </li>
+                        {% endif %}
+                        {% if lease.unit_ref.bathrooms %}
+                        <li class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Bathrooms</span>
+                            <span>{{ lease.unit_ref.bathrooms }}</span>
+                        </li>
+                        {% endif %}
+                        {% if lease.unit_ref.square_feet %}
+                        <li class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Square Feet</span>
+                            <span>{{ lease.unit_ref.square_feet }}</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('tenant_portal.payment_history') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-credit-card me-2"></i>View Payments
+                        </a>
+                        <a href="{{ url_for('tenant_portal.maintenance_submit') }}" class="btn btn-outline-warning">
+                            <i class="bi bi-wrench me-2"></i>Report Issue
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

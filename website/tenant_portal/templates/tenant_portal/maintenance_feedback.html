@@ -1,0 +1,61 @@
+{% extends "tenant_portal/base.html" %}
+
+{% block title %}Leave Feedback{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="mb-4">
+                <a href="{{ url_for('tenant_portal.maintenance_detail', uuid=request.uuid) }}" class="text-decoration-none">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Request
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-chat-dots me-2"></i>Leave Feedback</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        How was your experience with request #{{ request.id }}: "{{ request.title }}"?
+                    </p>
+
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-4">
+                            <label for="rating" class="form-label">Rating <span class="text-danger">*</span></label>
+                            {{ form.rating(class="form-select") }}
+                            {% if form.rating.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.rating.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="feedback" class="form-label">Comments (Optional)</label>
+                            {{ form.feedback(class="form-control", rows=4, placeholder="Tell us about your experience...") }}
+                            {% if form.feedback.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.feedback.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send me-2"></i>Submit Feedback
+                            </button>
+                            <a href="{{ url_for('tenant_portal.maintenance_detail', uuid=request.uuid) }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

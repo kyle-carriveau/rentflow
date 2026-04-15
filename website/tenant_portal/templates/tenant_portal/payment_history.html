@@ -1,0 +1,123 @@
+{% extends "tenant_portal/base.html" %}
+
+{% block title %}Payment History{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Payment History</h2>
+            <p class="text-muted mb-0">View your rent payment history.</p>
+        </div>
+        <!-- Pay Now button will be enabled with Stripe integration -->
+        <button class="btn btn-primary" disabled title="Coming soon">
+            <i class="bi bi-credit-card me-2"></i>Pay Rent
+        </button>
+    </div>
+
+    {% if payments.items %}
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                            <th>Reference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments.items %}
+                        <tr>
+                            <td>
+                                <div>{{ payment.payment_date.strftime('%b %d, %Y') }}</div>
+                                <small class="text-muted">{{ payment.payment_date.strftime('%I:%M %p') }}</small>
+                            </td>
+                            <td class="fw-medium">${{ "%.2f"|format(payment.amount) }}</td>
+                            <td>
+                                {% if payment.payment_method == 'cash' %}
+                                    <i class="bi bi-cash text-success me-1"></i>Cash
+                                {% elif payment.payment_method == 'check' %}
+                                    <i class="bi bi-card-text text-primary me-1"></i>Check
+                                {% elif payment.payment_method == 'credit_card' or payment.payment_method == 'stripe' %}
+                                    <i class="bi bi-credit-card text-info me-1"></i>Card
+                                {% elif payment.payment_method == 'bank_transfer' %}
+                                    <i class="bi bi-bank text-secondary me-1"></i>Bank
+                                {% else %}
+                                    {{ payment.payment_method|title }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if payment.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% elif payment.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif payment.status == 'failed' %}
+                                    <span class="badge bg-danger">Failed</span>
+                                {% elif payment.status == 'refunded' %}
+                                    <span class="badge bg-secondary">Refunded</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ payment.status|title }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if payment.reference_number %}
+                                    <code class="small">{{ payment.reference_number[-12:] }}</code>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if payments.pages > 1 %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if payments.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('tenant_portal.payment_history', page=payments.prev_num) }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for page_num in payments.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == payments.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('tenant_portal.payment_history', page=page_num) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if payments.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('tenant_portal.payment_history', page=payments.next_num) }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-credit-card text-muted" style="font-size: 3rem;"></i>
+                <h5 class="mt-3">No Payments Yet</h5>
+                <p class="text-muted">Your payment history will appear here once you make your first payment.</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

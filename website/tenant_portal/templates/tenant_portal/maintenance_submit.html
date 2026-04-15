@@ -1,0 +1,105 @@
+{% extends "tenant_portal/base.html" %}
+
+{% block title %}Submit Maintenance Request{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="mb-4">
+                <a href="{{ url_for('tenant_portal.maintenance_list') }}" class="text-decoration-none">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Requests
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-wrench me-2"></i>Submit Maintenance Request</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Unit:</strong> {{ lease.unit_ref.name }} at {{ lease.lease_property_ref.name }}
+                    </div>
+
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
+                                {{ form.category(class="form-select") }}
+                                {% if form.category.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.category.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="priority" class="form-label">Priority <span class="text-danger">*</span></label>
+                                {{ form.priority(class="form-select") }}
+                                {% if form.priority.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.priority.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-12">
+                                <label for="title" class="form-label">Brief Description <span class="text-danger">*</span></label>
+                                {{ form.title(class="form-control", placeholder="e.g., Leaky faucet in kitchen") }}
+                                {% if form.title.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.title.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-12">
+                                <label for="description" class="form-label">Detailed Description <span class="text-danger">*</span></label>
+                                {{ form.description(class="form-control", rows=5, placeholder="Please provide as much detail as possible about the issue...") }}
+                                {% if form.description.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.description.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-12">
+                                <hr>
+                                <h6>Entry Preferences</h6>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    {{ form.permission_to_enter(class="form-check-input") }}
+                                    <label class="form-check-label" for="permission_to_enter">
+                                        Permission to enter if I'm not home
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="preferred_entry_time" class="form-label">Preferred Time</label>
+                                {{ form.preferred_entry_time(class="form-select") }}
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-2"></i>Submit Request
+                            </button>
+                            <a href="{{ url_for('tenant_portal.maintenance_list') }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

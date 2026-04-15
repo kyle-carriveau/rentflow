@@ -19,14 +19,27 @@ depends_on = None
 def upgrade():
     """Change tenant.phone from INTEGER to VARCHAR(20)
 
-    Uses PostgreSQL's USING clause to safely convert existing integer
-    phone numbers to strings. Existing data is preserved.
+    Uses batch operations for SQLite compatibility.
+    PostgreSQL would use: ALTER COLUMN phone TYPE VARCHAR(20) USING phone::VARCHAR(20)
     """
-    op.execute("""
-        ALTER TABLE tenant
-        ALTER COLUMN phone TYPE VARCHAR(20)
-        USING phone::VARCHAR(20)
-    """)
+    # Get the database dialect
+    bind = op.get_bind()
+    dialect = bind.dialect.name
+
+    if dialect == 'sqlite':
+        # SQLite requires batch operations for column type changes
+        with op.batch_alter_table('tenant', schema=None) as batch_op:
+            batch_op.alter_column('phone',
+                                  existing_type=sa.Integer(),
+                                  type_=sa.String(length=20),
+                                  existing_nullable=False)
+    else:
+        # PostgreSQL syntax
+        op.execute("""
+            ALTER TABLE tenant
+            ALTER COLUMN phone TYPE VARCHAR(20)
+            USING phone::VARCHAR(20)
+        """)
 
 
 def downgrade():
@@ -36,8 +49,20 @@ def downgrade():
     characters (e.g., dashes, spaces, parentheses). Only use if you're
     certain all phone data is numeric-only.
     """
-    op.execute("""
-        ALTER TABLE tenant
-        ALTER COLUMN phone TYPE INTEGER
-        USING NULLIF(phone, '')::INTEGER
-    """)
+    bind = op.get_bind()
+    dialect = bind.dialect.name
+
+    if dialect == 'sqlite':
+        # SQLite requires batch operations
+        with op.batch_alter_table('tenant', schema=None) as batch_op:
+            batch_op.alter_column('phone',
+                                  existing_type=sa.String(length=20),
+                                  type_=sa.Integer(),
+                                  existing_nullable=False)
+    else:
+        # PostgreSQL syntax
+        op.execute("""
+            ALTER TABLE tenant
+            ALTER COLUMN phone TYPE INTEGER
+            USING NULLIF(phone, '')::INTEGER
+        """)
