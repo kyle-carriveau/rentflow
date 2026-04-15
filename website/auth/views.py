@@ -15,7 +15,19 @@ def login():
     login_form = LoginForm()
     if login_form.validate_on_submit():
         user = User.query.filter_by(email=login_form.email.data).first()
-        if user is None or not user.check_password(login_form.password.data):
+
+        # SECURITY: Timing attack prevention (CWE-208)
+        # Always perform password hash check to prevent user enumeration via timing
+        # If user doesn't exist, use a dummy hash to maintain consistent response time
+        DUMMY_HASH = 'pbkdf2:sha256:600000$dummysalt$dummyhashfortimingattackprevention1234567890abcdef'
+        if user:
+            password_valid = user.check_password(login_form.password.data)
+        else:
+            # Perform dummy hash check to match timing of real check
+            check_password_hash(DUMMY_HASH, login_form.password.data)
+            password_valid = False
+
+        if not user or not password_valid:
             # Log failed login attempt
             from website.session_security import SessionSecurity
             SessionSecurity.log_security_event('login_failed', {'email': login_form.email.data})
@@ -154,6 +166,10 @@ def forgot():
     form = ForgotPasswordForm()
 
     if form.validate_on_submit():
+        import time
+        import random
+        start_time = time.time()
+
         email = form.email.data.lower().strip()
         user = User.query.filter_by(email=email).first()
 
@@ -186,6 +202,15 @@ def forgot():
                 # Log error but still show success message to user
                 import logging
                 logging.error(f"Failed to send password reset email: {str(e)}")
+
+        # SECURITY: Timing attack prevention (CWE-203)
+        # Ensure consistent response time whether user exists or not
+        # This prevents user enumeration via timing analysis
+        elapsed = time.time() - start_time
+        min_response_time = 2.0  # Minimum response time in seconds
+        if elapsed < min_response_time:
+            # Add delay with random jitter to match email sending time
+            time.sleep(min_response_time - elapsed + random.uniform(0.1, 0.5))
 
         return redirect(url_for('auth.forgot_password_sent'))
 
