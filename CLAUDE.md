@@ -73,6 +73,9 @@ re2/
 │   ├── dev.txt                      # Development & testing
 │   └── prod.txt                     # Production only
 │
+├── docs/                            # Project documentation
+│   └── TENANT_PORTAL_ARCHITECTURE.md # Tenant portal design docs
+│
 ├── website/                         # Main application package
 │   ├── __init__.py                  # App factory (create_app)
 │   ├── models.py                    # SQLAlchemy models
@@ -88,10 +91,20 @@ re2/
 │   ├── main/                        # Main/homepage blueprint
 │   │   ├── __init__.py
 │   │   └── views.py
-│   ├── auth/                        # Authentication blueprint
+│   ├── auth/                        # Authentication blueprint (staff)
 │   │   ├── __init__.py
 │   │   ├── views.py
 │   │   └── forms.py
+│   ├── tenant_portal/               # Tenant Portal (separate auth system)
+│   │   ├── __init__.py
+│   │   ├── views.py
+│   │   ├── forms.py
+│   │   ├── decorators.py            # @tenant_required decorator
+│   │   └── templates/tenant_portal/ # Tenant-specific templates
+│   ├── admin/                       # Super Admin (God View)
+│   │   ├── __init__.py
+│   │   ├── views.py
+│   │   └── cli.py                   # Admin CLI commands
 │   ├── company/                     # Company management
 │   │   ├── __init__.py
 │   │   └── views.py
@@ -106,7 +119,7 @@ re2/
 │   │   ├── __init__.py
 │   │   ├── views.py
 │   │   └── forms.py
-│   ├── tenant/                      # Tenant management
+│   ├── tenant/                      # Tenant management (staff-side)
 │   │   ├── __init__.py
 │   │   └── views.py
 │   ├── lease/                       # Lease management
@@ -187,20 +200,31 @@ re2/
 
 ### Primary Business Models
 - **Company**: Multi-tenant companies with business information
-- **User**: System users with roles and company association
+- **User**: System users (staff) with roles and company association
 - **Portfolio**: Collections of properties within a company
 - **Property**: Individual real estate properties with automated occupancy tracking
 - **Unit**: Rentable units within properties with status management
 - **Tenant**: Renter information and contact details
 - **Lease**: Rental agreements linking tenants to units with automated lifecycle
 - **LeaseTemplate**: Reusable contract templates with variable substitution
-- **Payment**: Payment tracking and rent collection
+- **Payment**: Payment tracking and rent collection (supports Stripe integration)
 - **Expense**: Property and business expense management
+
+### Tenant Portal Models
+- **TenantUser**: Separate authentication model for tenant portal (completely isolated from User)
+- **MaintenanceRequest**: Tenant-submitted maintenance requests with status tracking
+
+### Subscription & Billing Models
+- **SubscriptionPlan**: Tiered pricing plans (Starter, Professional, Enterprise)
+- **CompanySubscription**: Company subscription status and usage tracking
+- **PaymentHistory**: Stripe payment transaction history
 
 ### Security & Audit Models
 - **PasswordHistoryModel**: Password history for security policy enforcement
 - **AuditLogModel**: Comprehensive audit logging for compliance
 - **EmailVerificationAttempt**: Email verification tracking for security
+- **SuperAdmin**: Platform administrators (separate from company users)
+- **SuperAdminAuditLog**: Audit trail for super admin actions
 - **AnonymousUser**: Custom anonymous user for Flask-Login integration
 
 ## Application Modules
@@ -298,13 +322,31 @@ website/[module]/
 - Database connectivity verification
 - Used by Docker healthchecks and load balancers
 
+### 16. **Tenant Portal** (`/portal` - `website/tenant_portal/`)
+- **Separate authentication system** for tenants (TenantUser model)
+- Invitation-based registration with secure tokens
+- Tenant dashboard with lease and payment overview
+- Online rent payment (Stripe integration - planned)
+- Maintenance request submission and tracking
+- Payment history and lease document viewing
+- **Security**: Completely isolated from staff User model
+
+### 17. **Super Admin** (`/admin` - `website/admin/`)
+- Platform-wide administration ("God View")
+- View all companies and their data (read-only)
+- **Separate authentication** from company users
+- Comprehensive audit logging
+- No company_id association (platform-level access)
+
 ## Key Features
 
 ### Multi-Tenant & Security
 - **Company-level data isolation** with `company_id` filtering
-- **Role-based access control** with four permission levels
-- **Secure authentication** with password hashing
-- **Session management** with Flask-Login
+- **Role-based access control** with four permission levels (Owner, Manager, Staff, Viewer)
+- **Secure authentication** with password hashing (Werkzeug pbkdf2:sha256)
+- **Session management** with Flask-Login and session rotation
+- **Timing attack prevention** on login and password reset
+- **Account lockout** after failed login attempts
 
 ### Property & Portfolio Management
 - **Hierarchical property organization** (Company → Portfolio → Property → Unit)
@@ -317,12 +359,22 @@ website/[module]/
 - **Expense management** with categorization and tax features
 - **Financial reporting** with income/expense analytics
 - **Outstanding balance tracking** and overdue notifications
+- **Stripe integration** for online payments (tenant portal)
+
+### Tenant Portal (Self-Service)
+- **Separate TenantUser authentication** (isolated from staff)
+- **Invitation-based registration** with secure token flow
+- **Dashboard** with lease info, payment status, and quick actions
+- **Online rent payments** via Stripe (PCI compliant - no card data stored)
+- **Maintenance requests** submission and tracking
+- **Payment history** and lease document access
 
 ### User Experience
-- **Responsive design** with Bootstrap framework
+- **Responsive design** with Bootstrap 5 framework
 - **Role-based navigation** and feature access
 - **Form autosave functionality** for data preservation
 - **Enhanced UI components** with modern styling
+- **Separate tenant portal UI** with tenant-focused design
 
 ## Development Setup
 
@@ -433,25 +485,50 @@ flask db current
 
 ## Security & Permissions
 
-### Role Hierarchy (highest to lowest privilege)
+### Authentication Systems
+The application has **three separate authentication systems** for security isolation:
+
+1. **Staff Authentication** (`website/auth/`)
+   - For property managers, owners, and staff
+   - Uses `User` model with role-based permissions
+   - Company-scoped access
+
+2. **Tenant Portal Authentication** (`website/tenant_portal/`)
+   - For tenants accessing their rental information
+   - Uses `TenantUser` model (completely separate from User)
+   - Tenant-scoped access (can only see own data)
+   - **Cannot access any staff features**
+
+3. **Super Admin Authentication** (`website/admin/`)
+   - For platform administrators
+   - Uses `SuperAdmin` model
+   - Platform-wide read-only access
+   - **No company association**
+
+### Role Hierarchy (Staff Users - highest to lowest)
 1. **Owner**: Full access, company management, user management
 2. **Manager**: Property and tenant management, financial operations
 3. **Staff**: Property and tenant management, limited financial access
 4. **Viewer**: Read-only access to assigned data
 
 ### Security Features
-- **Password hashing** using Werkzeug security
+- **Password hashing** using Werkzeug security (pbkdf2:sha256)
 - **Session security** with Flask-Login and custom middleware (`website/session_security.py`)
+- **Session rotation** on login to prevent session fixation
 - **CSRF protection** on all forms via Flask-WTF
 - **Company-level data isolation** preventing cross-tenant access
-- **Role-based decorators** for endpoint protection
+- **Tenant-level data isolation** in tenant portal (tenant_id + company_id)
+- **Role-based decorators** for endpoint protection (`@manager_required`, `@role_required`, `@tenant_required`)
 - **Rate limiting** via Flask-Limiter with Redis backend (production)
+- **Account lockout** after 5 failed login attempts (15-minute lockout)
+- **Timing attack prevention** on login and password reset (constant-time responses)
 - **Audit logging** for compliance and security monitoring (`website/audit_logging.py`)
 - **Security monitoring** with anomaly detection (`website/security_monitoring.py`)
 - **Password policies** enforcing strong passwords (`website/password_policy.py`)
 - **Two-factor authentication** support (`website/two_factor_auth.py`)
 - **SSL/TLS** in production with Cloudflare Origin Certificates
 - **Authenticated Origin Pulls** blocking direct IP access to origin server
+- **PCI compliance** for payments via Stripe (no card data on our servers)
 
 ## Development Guidelines
 
@@ -903,6 +980,8 @@ docker compose -f deployment/docker/docker-compose.yml down
 
 - **Application Code**: `website/`
 - **Database Models**: `website/models.py`
+- **Tenant Portal**: `website/tenant_portal/`
+- **Super Admin**: `website/admin/`
 - **Entry Point**: `main.py`
 - **Environment Config**: `.env` (create from `.env.example`)
 - **Docker Config**: `deployment/docker/docker-compose.yml`
@@ -911,6 +990,7 @@ docker compose -f deployment/docker/docker-compose.yml down
 - **Tests**: `tests/`
 - **Deployment Script**: `deploy.sh`
 - **Deployment Docs**: `DEPLOYMENT.md`
+- **Architecture Docs**: `docs/TENANT_PORTAL_ARCHITECTURE.md`
 
 ### Key Environment Variables
 
@@ -919,6 +999,15 @@ docker compose -f deployment/docker/docker-compose.yml down
 SECRET_KEY                    # Flask secret (openssl rand -hex 32)
 POSTGRES_PASSWORD            # Database password
 DATABASE_URL                 # PostgreSQL connection string
+
+# Stripe (for tenant portal payments)
+STRIPE_SECRET_KEY            # Stripe API secret key
+STRIPE_PUBLISHABLE_KEY       # Stripe publishable key (for frontend)
+STRIPE_WEBHOOK_SECRET        # Stripe webhook signing secret
+
+# SendGrid (for email notifications)
+SENDGRID_API_KEY             # SendGrid API key
+FROM_EMAIL                   # Default sender email address
 
 # Optional (has defaults)
 GUNICORN_WORKERS=4           # Number of worker processes
@@ -973,16 +1062,20 @@ GUNICORN_TIMEOUT=120         # Request timeout in seconds
 - **DEPLOYMENT.md**: Comprehensive production deployment guide
 - **deployment/docker/README.md**: Docker-specific documentation
 - **tests/README.md**: Testing documentation and guidelines
+- **docs/TENANT_PORTAL_ARCHITECTURE.md**: Tenant portal design and security
 
 ### Getting Help
 - Review existing code patterns in the codebase
 - Check test files for usage examples
 - Consult DEPLOYMENT.md for production issues
 - Refer to Flask documentation for framework questions
+- Review `docs/TENANT_PORTAL_ARCHITECTURE.md` for tenant portal design decisions
 
 ---
 
-**Last Updated**: 2025-10-21
-**Version**: Production-ready with Docker deployment
+**Last Updated**: 2026-04-15
+**Version**: Production-ready with Docker deployment + Tenant Portal
 **Python Version**: 3.12+
 **Framework**: Flask with SQLAlchemy
+**Tenant Portal**: Phase 2 - Foundation complete (auth, dashboard, maintenance requests)
+**Planned Integrations**: Stripe (payments), SendGrid (email)
